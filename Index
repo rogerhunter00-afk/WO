@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Work Orders List – Aberdeen Laundry Services (Engineering)</title>
+  <style>
+    :root{
+      --ink:#0b0f1a;            
+      --muted:#6b7280;          
+      --als-blue:#0b67c2;       
+      --als-blue-strong:#0a5cb0;
+      --thead:#0b67c2;          
+      --thead-text:#ffffff;     
+      --grid:#e6e9ef;           
+      --zebra:#ffffff;          
+      --chip-cat-tx:#0b67c2;    
+      --chip-cat-br:#0b67c2;    
+      --done-tx:#059669;        
+      --open-tx:#0b67c2;        
+      --paper:#ffffff;
+    }
+
+    html,body{height:100%}
+    body{
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color:var(--ink); background:var(--paper); margin:0; font-size:12px; line-height:1.28;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+
+    .page{ padding:16mm 16mm 18mm; box-sizing:border-box; }
+
+    .page-head{ display:flex; align-items:flex-start; justify-content:space-between; }
+    .title{ font-size:28px; font-weight:800; color:var(--ink); margin:0 0 8px; }
+    .logo{ height:50px; }
+
+    .top-rule{ height:6px; background:var(--als-blue); border-bottom:1px solid var(--als-blue-strong); margin:8px 0 10px; }
+
+    table{ width:100%; border-collapse:separate; border-spacing:0; table-layout:fixed; }
+    thead th{
+      background:var(--thead); color:var(--thead-text); text-transform:uppercase; letter-spacing:.6px;
+      font-weight:800; font-size:11px; padding:10px 8px; border-right:1px solid rgba(255,255,255,.08);
+      cursor:pointer;
+    }
+    thead th:first-child{ border-top-left-radius:3px; }
+    thead th:last-child{ border-top-right-radius:3px; border-right:none; }
+
+    tbody td{ background:var(--zebra); border-bottom:1px solid var(--grid); padding:10px 8px; vertical-align:top; }
+
+    .col-id{ width:66px; }
+    .col-title{ width:240px; }
+    .col-status{ width:120px; }
+    .col-priority{ width:92px; }
+    .col-createdby{ width:140px; }
+    .col-createdon{ width:110px; }
+    .col-completedon{ width:110px; }
+    .col-updated{ width:120px; }
+    .col-location{ width:180px; }
+    .col-asset{ width:200px; }
+    .col-categories{ width:200px; }
+
+    .id{ font-weight:700; }
+    .title-cell b{ display:block; font-weight:800; }
+
+    .chip-cat{ display:inline-block; color:var(--chip-cat-tx); border:1.8px solid var(--chip-cat-br); padding:2px 8px; border-radius:6px; background:#fff; margin:2px 6px 2px 0; font-weight:700; }
+
+    .ico{ width:16px; height:16px; vertical-align:-3px; margin-right:6px; }
+    .done{ color:var(--done-tx); font-weight:800; }
+    .open{ color:var(--open-tx); font-weight:800; }
+
+    footer{ margin-top:8px; color:var(--muted); font-size:11px; display:flex; justify-content:space-between; }
+
+    .controls{ display:flex; gap:12px; align-items:center; margin:8px 0 12px; font-size:12px; }
+    .controls input[type="file"], .controls textarea{ font:inherit; }
+    .controls textarea{ width:420px; height:100px; padding:8px; border:1px solid var(--grid); border-radius:6px; }
+    .btn{ padding:6px 10px; border:1px solid var(--als-blue); border-radius:8px; background:#fff; color:var(--als-blue); font-weight:700; cursor:pointer; }
+
+    @media print{
+      @page{ size: A4 landscape; margin: 10mm; }
+      body{ font-size:11px; }
+      thead{ display:table-header-group; }
+      table{ width:100% !important; table-layout:fixed; border-collapse:collapse; }
+      th, td{ box-sizing:border-box; overflow-wrap:anywhere; word-break:break-word; hyphens:auto; }
+      .title-cell, .col-categories{ break-inside:avoid; }
+      html{-webkit-print-color-adjust:exact;}
+      body{ -webkit-transform: scale(0.97); -webkit-transform-origin: top left; width: 103%; }
+      .controls{ display:none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="page-head">
+      <h1 class="title">Work Orders List</h1>
+      <img class="logo" alt="Aberdeen Laundry Services" src="f263340a-75d8-4075-a3bb-7fcef688d3c1.png">
+    </div>
+    <div class="top-rule"></div>
+
+    <div class="controls" aria-hidden="false">
+      <label class="btn" for="file">Upload CSV/TSV/JSON</label>
+      <input id="file" type="file" accept=".csv,.tsv,.json,application/json,text/csv,text/tab-separated-values" style="display:none" />
+      <button class="btn" id="pasteBtn" type="button">Paste data → render</button>
+      <textarea id="pasteBox" placeholder="Paste CSV (headers required) or JSON array here..."></textarea>
+    </div>
+
+    <table role="table" aria-label="Work Orders" id="workTable">
+      <thead>
+        <tr>
+          <th class="col-id" data-col="id">ID</th>
+          <th class="col-title" data-col="title">Title</th>
+          <th class="col-status" data-col="status">Status</th>
+          <th class="col-priority" data-col="priority">Priority</th>
+          <th class="col-createdby" data-col="createdBy">Created by</th>
+          <th class="col-createdon" data-col="createdOn">Created on</th>
+          <th class="col-completedon" data-col="completedOn">Completed on</th>
+          <th class="col-updated" data-col="updated">Last updated</th>
+          <th class="col-location" data-col="location">Location</th>
+          <th class="col-asset" data-col="asset">Asset</th>
+          <th class="col-categories" data-col="categories">Categories</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+
+    <footer>
+      <span></span>
+      <span></span>
+    </footer>
+  </div>
+
+  <script>
+    const MAP = {
+      id: ['ID','Id','WO','WO #','WO Number'],
+      title: ['Title','Task Summary','Name'],
+      status: ['Status'],
+      priority: ['Priority'],
+      createdBy: ['Created by','Created By','Author','Requested by','Requester'],
+      createdOn: ['Created on','Created On','Created','Raised','Raised on'],
+      completedOn: ['Completed on','Completed On','Completed','Date Completed'],
+      updated: ['Last updated','Last Updated','Updated','Modified','Last Modified'],
+      location: ['Location','Site','Factory','Site Name'],
+      asset: ['Asset','Asset Name'],
+      categories: ['Categories','Category','Tags']
+    };
+
+    let currentRows = [];
+    let sortState = {};
+
+    const elTbody = document.getElementById('tbody');
+
+    function pick(o, keys){
+      for(const k of keys||[]) if (k in o && o[k]!=='' && o[k]!=null) return o[k];
+      return '';
+    }
+
+    function toArray(val){
+      if(Array.isArray(val)) return val;
+      if(typeof val === 'string') return val.split(/[;,]\s*/).filter(Boolean);
+      return [];
+    }
+
+    function esc(s){ return String(s==null?'':s).replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+    function statusBadge(statusRaw){
+      const s = (statusRaw||'').toLowerCase();
+      if(/done|complete|closed/i.test(s)){
+        return `<span class="done"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>${esc(statusRaw)}</span>`;
+      }
+      return `<span class="open"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"/></svg>${esc(statusRaw)}</span>`;
+    }
+
+    function renderRows(rows){
+      currentRows = rows;
+      elTbody.innerHTML = rows.map(row => {
+        const id          = pick(row, MAP.id);
+        const title       = pick(row, MAP.title);
+        const status      = pick(row, MAP.status);
+        const priority    = pick(row, MAP.priority);
+        const createdBy   = pick(row, MAP.createdBy);
+        const createdOn   = pick(row, MAP.createdOn);
+        const completedOn = pick(row, MAP.completedOn);
+        const updated     = pick(row, MAP.updated);
+        const location    = pick(row, MAP.location);
+        const asset       = pick(row, MAP.asset);
+        const cats        = toArray(pick(row, MAP.categories));
+
+        const catsHtml = cats.map(c=>`<span class="chip-cat">${esc(c)}</span>`).join('');
+
+        return `
+        <tr>
+          <td class="id">${esc(id)}</td>
+          <td class="title-cell"><b>${esc(title)}</b></td>
+          <td>${statusBadge(status)}</td>
+          <td>${esc(priority)}</td>
+          <td>${esc(createdBy)}</td>
+          <td>${esc(createdOn)}</td>
+          <td>${esc(completedOn)}</td>
+          <td>${esc(updated)}</td>
+          <td>${esc(location)}</td>
+          <td>${esc(asset)}</td>
+          <td>${catsHtml}</td>
+        </tr>`;
+      }).join('\n');
+    }
+
+    function sortByColumn(col){
+      const direction = sortState[col] === 'asc' ? 'desc' : 'asc';
+      sortState[col] = direction;
+      const sorted = [...currentRows].sort((a,b)=>{
+        const va = (pick(a, MAP[col])||'').toString().toLowerCase();
+        const vb = (pick(b, MAP[col])||'').toString().toLowerCase();
+        if(va<vb) return direction==='asc'?-1:1;
+        if(va>vb) return direction==='asc'?1:-1;
+        return 0;
+      });
+      renderRows(sorted);
+    }
+
+    document.querySelectorAll('thead th[data-col]').forEach(th=>{
+      th.addEventListener('click', ()=>sortByColumn(th.dataset.col));
+    });
+
+    function parseDelimited(text){
+      const sep = text.includes('\t') ? '\t' : ',';
+      const rows = text.trim().split(/\r?\n/).map(r=>r.split(new RegExp(`${sep}(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)`)).map(c=>c.replace(/^\"|\"$/g,'')));
+      const headers = rows.shift();
+      return rows.map(r=>Object.fromEntries(r.map((v,i)=>[headers[i]||`col${i}`, v])));
+    }
+
+    function handleJSON(text){
+      const data = JSON.parse(text);
+      if(Array.isArray(data)) return data;
+      if(Array.isArray(data.rows)) return data.rows;
+      return [];
+    }
+
+    document.getElementById('file').addEventListener('change', e=>{
+      const f = e.target.files[0];
+      if(!f) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const text = reader.result;
+        let rows = [];
+        try{
+          if(/json$/i.test(f.name) || text.trim().startsWith('[') || text.trim().startsWith('{')){
+            rows = handleJSON(text);
+          } else {
+            rows = parseDelimited(text);
+          }
+        }catch(err){
+          alert('Could not parse file: '+err.message);
+        }
+        renderRows(rows);
+      };
+      reader.readAsText(f);
+    });
+
+    document.getElementById('pasteBtn').addEventListener('click', ()=>{
+      const text = document.getElementById('pasteBox').value;
+      if(!text.trim()) return;
+      let rows=[];
+      try{
+        if(text.trim().startsWith('[') || text.trim().startsWith('{')) rows = handleJSON(text); else rows = parseDelimited(text);
+      }catch(err){ alert('Parse error: '+err.message); }
+      renderRows(rows);
+    });
+
+    const demo = [
+      {
+        ID:'#8683', Title:'Ironer 1 – Grease and Check Oil Gearboxes', Status:'Done', Priority:'Medium',
+        'Created by':'Roger Hunter', 'Created on':'11/09/2025 09:05', 'Completed on':'12/09/2025 14:22', 'Last updated':'12/09/2025 14:26',
+        Location:'Cathkin (East Kilbride)', Asset:'Ironer 1 Baker Perkins - EK', Categories:'Inspection; Mechanical; Weekly Procedures'
+      },
+      {
+        ID:'#8731', Title:'Ironer 2 – Grease and Check Oil Gearboxes', Status:'Open', Priority:'Medium',
+        'Created by':'Roger Hunter', 'Created on':'12/09/2025 09:10', 'Completed on':'', 'Last updated':'13/09/2025 08:01',
+        Location:'Cathkin (East Kilbride)', Asset:'Ironer 2 Baker Perkins - EK', Categories:'Inspection; Mechanical'
+      }
+    ];
+
+    renderRows(demo);
+  </script>
+</body>
+</html>
