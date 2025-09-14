@@ -205,7 +205,7 @@
     let filteredRows = [];
     let sortState = {};
 
-    const elTbody = document.getElementById('tbody');
+    const tbody = document.getElementById('tbody');
     const filterStatusEl = document.getElementById('filterStatus');
     const filterLocationEl = document.getElementById('filterLocation');
     const filterPriorityEl = document.getElementById('filterPriority');
@@ -233,7 +233,7 @@
     }
 
     function renderRows(rows){
-      elTbody.innerHTML = rows.map(row => {
+      tbody.innerHTML = rows.map(row => {
         const id          = pick(row, MAP.id);
         const title       = pick(row, MAP.title);
         const status      = pick(row, MAP.status);
