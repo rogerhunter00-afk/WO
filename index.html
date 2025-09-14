@@ -120,6 +120,16 @@
     .title-cell b{ display:block; font-weight:800; }
 
     .chip-cat{ display:inline-block; color:var(--chip-cat-tx); border:1.8px solid var(--chip-cat-br); padding:2px 8px; border-radius:6px; background:var(--paper); margin:2px 6px 2px 0; font-weight:700; }
+    .chip-cat.mechanical{background:#f59e0b1a; color:#92400e; border-color:#f59e0b;}
+    .chip-cat.inspection{background:#3b82f61a; color:#1e40af; border-color:#3b82f6;}
+    .chip-cat.electrical{background:#10b9811a; color:#065f46; border-color:#10b981;}
+    .chip-cat.resin{background:#a855f71a; color:#6b21a8; border-color:#a855f7;}
+    .chip-cat.weekly-procedures{background:#ef44441a; color:#991b1b; border-color:#ef4444;}
+    .dark .chip-cat.mechanical{background:#f59e0b33; color:#fbbf24; border-color:#f59e0b;}
+    .dark .chip-cat.inspection{background:#3b82f633; color:#93c5fd; border-color:#3b82f6;}
+    .dark .chip-cat.electrical{background:#10b98133; color:#6ee7b7; border-color:#10b981;}
+    .dark .chip-cat.resin{background:#a855f733; color:#d8b4fe; border-color:#a855f7;}
+    .dark .chip-cat.weekly-procedures{background:#ef444433; color:#fca5a5; border-color:#ef4444;}
 
     .ico{ width:16px; height:16px; vertical-align:-3px; margin-right:6px; }
     .done{ color:var(--done-tx); font-weight:800; }
@@ -178,10 +188,22 @@
     let currentRows = [];
     let sortState = {};
 
+    const CATEGORY_COLORS = {
+      'Mechanical':'#f59e0b',
+      'Inspection':'#3b82f6',
+      'Electrical':'#10b981',
+      'Resin':'#a855f7',
+      'Weekly Procedures':'#ef4444'
+    };
+
     const elThead = document.getElementById('thead');
     const elTbody = document.getElementById('tbody');
 
     function esc(s){ return String(s==null?'':s).replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+    function slugify(str){
+      return str.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    }
 
     function renderHeader(headers){
       currentHeaders = headers;
@@ -200,7 +222,20 @@
     function renderRows(rows){
       currentRows = rows;
       elTbody.innerHTML = rows.map(row => {
-        return `<tr>${currentHeaders.map(h=>`<td>${esc(row[h])}</td>`).join('')}</tr>`;
+        return `<tr>${currentHeaders.map(h=>{
+          const v = row[h];
+          if(h === 'Categories'){
+            const cats = String(v||'').split(';').map(c=>c.trim()).filter(Boolean);
+            const chips = cats.map(cat=>{
+              const slug = slugify(cat);
+              const known = Object.prototype.hasOwnProperty.call(CATEGORY_COLORS, cat);
+              const cls = known ? `chip-cat ${slug}` : 'chip-cat';
+              return `<span class="${cls}">${esc(cat)}</span>`;
+            }).join('');
+            return `<td>${chips}</td>`;
+          }
+          return `<td>${esc(v)}</td>`;
+        }).join('')}</tr>`;
       }).join('\n');
     }
 
