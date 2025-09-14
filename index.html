@@ -6,19 +6,55 @@
   <title>Work Orders List – Aberdeen Laundry Services (Engineering)</title>
   <style>
     :root{
-      --ink:#0b0f1a;            
-      --muted:#6b7280;          
-      --als-blue:#0b67c2;       
+      --ink:#0b0f1a;
+      --muted:#6b7280;
+      --als-blue:#0b67c2;
       --als-blue-strong:#0a5cb0;
-      --thead:#0b67c2;          
-      --thead-text:#ffffff;     
-      --grid:#e6e9ef;           
-      --zebra:#ffffff;          
-      --chip-cat-tx:#0b67c2;    
-      --chip-cat-br:#0b67c2;    
-      --done-tx:#059669;        
-      --open-tx:#0b67c2;        
+      --thead:#0b67c2;
+      --thead-text:#ffffff;
+      --grid:#e6e9ef;
+      --zebra:#ffffff;
+      --chip-cat-tx:#0b67c2;
+      --chip-cat-br:#0b67c2;
+      --done-tx:#059669;
+      --open-tx:#0b67c2;
       --paper:#ffffff;
+    }
+
+    @media (prefers-color-scheme: dark){
+      :root{
+        color-scheme: dark;
+        --ink:#f3f4f6;
+        --muted:#9ca3af;
+        --als-blue:#3b82f6;
+        --als-blue-strong:#2563eb;
+        --thead:#1e3a8a;
+        --thead-text:#ffffff;
+        --grid:#374151;
+        --zebra:#1f2937;
+        --chip-cat-tx:#3b82f6;
+        --chip-cat-br:#3b82f6;
+        --done-tx:#10b981;
+        --open-tx:#3b82f6;
+        --paper:#111827;
+      }
+    }
+
+    .dark{
+      --ink:#f3f4f6;
+      --muted:#9ca3af;
+      --als-blue:#3b82f6;
+      --als-blue-strong:#2563eb;
+      --thead:#1e3a8a;
+      --thead-text:#ffffff;
+      --grid:#374151;
+      --zebra:#1f2937;
+      --chip-cat-tx:#3b82f6;
+      --chip-cat-br:#3b82f6;
+      --done-tx:#10b981;
+      --open-tx:#3b82f6;
+      --paper:#111827;
+      color-scheme: dark;
     }
 
     html,body{height:100%}
@@ -62,7 +98,7 @@
     .id{ font-weight:700; }
     .title-cell b{ display:block; font-weight:800; }
 
-    .chip-cat{ display:inline-block; color:var(--chip-cat-tx); border:1.8px solid var(--chip-cat-br); padding:2px 8px; border-radius:6px; background:#fff; margin:2px 6px 2px 0; font-weight:700; }
+    .chip-cat{ display:inline-block; color:var(--chip-cat-tx); border:1.8px solid var(--chip-cat-br); padding:2px 8px; border-radius:6px; background:var(--paper); margin:2px 6px 2px 0; font-weight:700; }
 
     .ico{ width:16px; height:16px; vertical-align:-3px; margin-right:6px; }
     .done{ color:var(--done-tx); font-weight:800; }
@@ -73,7 +109,7 @@
     .controls{ display:flex; gap:12px; align-items:center; margin:8px 0 12px; font-size:12px; }
     .controls input[type="file"], .controls textarea{ font:inherit; }
     .controls textarea{ width:420px; height:100px; padding:8px; border:1px solid var(--grid); border-radius:6px; }
-    .btn{ padding:6px 10px; border:1px solid var(--als-blue); border-radius:8px; background:#fff; color:var(--als-blue); font-weight:700; cursor:pointer; }
+    .btn{ padding:6px 10px; border:1px solid var(--als-blue); border-radius:8px; background:var(--paper); color:var(--als-blue); font-weight:700; cursor:pointer; }
 
     @media print{
       @page{ size: A4 landscape; margin: 10mm; }
@@ -100,6 +136,7 @@
       <label class="btn" for="file">Upload CSV/TSV/JSON</label>
       <input id="file" type="file" accept=".csv,.tsv,.json,application/json,text/csv,text/tab-separated-values" style="display:none" />
       <button class="btn" id="pasteBtn" type="button">Paste data → render</button>
+      <button class="btn" id="themeBtn" type="button">Dark mode</button>
       <textarea id="pasteBox" placeholder="Paste CSV (headers required) or JSON array here..."></textarea>
     </div>
 
@@ -263,6 +300,23 @@
         if(text.trim().startsWith('[') || text.trim().startsWith('{')) rows = handleJSON(text); else rows = parseDelimited(text);
       }catch(err){ alert('Parse error: '+err.message); }
       renderRows(rows);
+    });
+
+    const themeBtn = document.getElementById('themeBtn');
+
+    function applyTheme(isDark){
+      document.body.classList.toggle('dark', isDark);
+      themeBtn.textContent = isDark ? 'Light mode' : 'Dark mode';
+    }
+
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    applyTheme(savedTheme ? savedTheme === 'dark' : prefersDark);
+
+    themeBtn.addEventListener('click', ()=>{
+      const isDark = !document.body.classList.contains('dark');
+      applyTheme(isDark);
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
     });
 
     const demo = [
