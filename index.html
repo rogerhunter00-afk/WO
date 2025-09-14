@@ -197,6 +197,9 @@
       categories: ['Categories','Category','Tags']
     };
 
+    const PRIORITY_WEIGHTS = {critical:4, high:3, medium:2, low:1, '':0};
+    const DATE_COLS = ['createdOn','completedOn','updated'];
+
     let currentRows = [];
     let sortState = {};
 
@@ -267,21 +270,19 @@
     function sortByColumn(col){
       const direction = sortState[col] === 'asc' ? 'desc' : 'asc';
       sortState[col] = direction;
-      const priorityWeights = {critical:4, high:3, medium:2, low:1, '':0};
-      const dateCols = ['createdOn','completedOn','updated'];
       const sorted = [...currentRows].sort((a,b)=>{
         const vaRaw = pick(a, MAP[col]) || '';
         const vbRaw = pick(b, MAP[col]) || '';
         let va, vb;
         if(col === 'id'){
-          va = parseFloat(String(vaRaw).replace(/^#/, '')) || 0;
-          vb = parseFloat(String(vbRaw).replace(/^#/, '')) || 0;
-        } else if(dateCols.includes(col)){
-          va = parseDateDMYHM(vaRaw).getTime();
-          vb = parseDateDMYHM(vbRaw).getTime();
+          va = parseInt(String(vaRaw).replace(/^#/, ''), 10) || 0;
+          vb = parseInt(String(vbRaw).replace(/^#/, ''), 10) || 0;
+        } else if(DATE_COLS.includes(col)){
+          va = parseDateDMYHM(vaRaw).getTime() || 0;
+          vb = parseDateDMYHM(vbRaw).getTime() || 0;
         } else if(col === 'priority'){
-          va = priorityWeights[String(vaRaw).trim().toLowerCase()] || 0;
-          vb = priorityWeights[String(vbRaw).trim().toLowerCase()] || 0;
+          va = PRIORITY_WEIGHTS[String(vaRaw).trim().toLowerCase()] || 0;
+          vb = PRIORITY_WEIGHTS[String(vbRaw).trim().toLowerCase()] || 0;
         } else {
           va = String(vaRaw).toLowerCase();
           vb = String(vbRaw).toLowerCase();
