@@ -18,6 +18,10 @@
       --chip-cat-br:#0b67c2;
       --done-tx:#059669;
       --open-tx:#0b67c2;
+      --hold-tx:#b45309;
+      --done-bg:#0596691a;
+      --open-bg:#0b67c21a;
+      --hold-bg:#f59e0b1a;
       --paper:#ffffff;
     }
 
@@ -36,6 +40,10 @@
         --chip-cat-br:#3b82f6;
         --done-tx:#10b981;
         --open-tx:#3b82f6;
+        --hold-tx:#fbbf24;
+        --done-bg:#10b98133;
+        --open-bg:#3b82f633;
+        --hold-bg:#f59e0b33;
         --paper:#111827;
       }
     }
@@ -53,6 +61,10 @@
       --chip-cat-br:#3b82f6;
       --done-tx:#10b981;
       --open-tx:#3b82f6;
+      --hold-tx:#fbbf24;
+      --done-bg:#10b98133;
+      --open-bg:#3b82f633;
+      --hold-bg:#f59e0b33;
       --paper:#111827;
       color-scheme: dark;
     }
@@ -70,6 +82,10 @@
       --chip-cat-br:#0b67c2;
       --done-tx:#059669;
       --open-tx:#0b67c2;
+      --hold-tx:#b45309;
+      --done-bg:#0596691a;
+      --open-bg:#0b67c21a;
+      --hold-bg:#f59e0b1a;
       --paper:#ffffff;
       color-scheme: light;
     }
@@ -120,6 +136,17 @@
     .title-cell b{ display:block; font-weight:800; }
 
     .chip-cat{ display:inline-block; color:var(--chip-cat-tx); border:1.8px solid var(--chip-cat-br); padding:2px 8px; border-radius:6px; background:var(--paper); margin:2px 6px 2px 0; font-weight:700; }
+
+    .status-chip{ display:inline-flex; align-items:center; padding:2px 8px; border-radius:6px; font-weight:700; }
+    .status-chip::before{ margin-right:4px; }
+    .status-chip.done{ color:var(--done-tx); background:var(--done-bg); }
+    .status-chip.done::before{ content:'\2713'; }
+    .status-chip.open{ color:var(--open-tx); background:var(--open-bg); }
+    .status-chip.open::before{ content:'\26AA'; }
+    .status-chip.in-progress{ color:var(--open-tx); background:var(--open-bg); }
+    .status-chip.in-progress::before{ content:'\23F3'; }
+    .status-chip.on-hold{ color:var(--hold-tx); background:var(--hold-bg); }
+    .status-chip.on-hold::before{ content:'\23F8'; }
 
     .ico{ width:16px; height:16px; vertical-align:-3px; margin-right:6px; }
     .done{ color:var(--done-tx); font-weight:800; }
@@ -178,6 +205,36 @@
     let currentRows = [];
     let sortState = {};
 
+    const categoryColors = {
+      'mechanical': {
+        light: { background: '#f59e0b1a', border: '#f59e0b', color: '#92400e' },
+        dark: { background: '#f59e0b33', border: '#f59e0b', color: '#fbbf24' }
+      },
+      'inspection': {
+        light: { background: '#3b82f61a', border: '#3b82f6', color: '#1e40af' },
+        dark: { background: '#3b82f633', border: '#3b82f6', color: '#93c5fd' }
+      },
+      'electrical': {
+        light: { background: '#10b9811a', border: '#10b981', color: '#065f46' },
+        dark: { background: '#10b98133', border: '#10b981', color: '#6ee7b7' }
+      },
+      'resin': {
+        light: { background: '#a855f71a', border: '#a855f7', color: '#6b21a8' },
+        dark: { background: '#a855f733', border: '#a855f7', color: '#d8b4fe' }
+      },
+      'weekly-procedures': {
+        light: { background: '#ef44441a', border: '#ef4444', color: '#991b1b' },
+        dark: { background: '#ef444433', border: '#ef4444', color: '#fca5a5' }
+      }
+    };
+
+    const styleEl = document.createElement('style');
+    styleEl.textContent = Object.entries(categoryColors).map(([slug, colors]) => `
+      .chip-cat.cat-${slug}{background:${colors.light.background};color:${colors.light.color};border-color:${colors.light.border};}
+      .dark .chip-cat.cat-${slug}{background:${colors.dark.background};color:${colors.dark.color};border-color:${colors.dark.border};}
+    `).join('');
+    document.head.appendChild(styleEl);
+
     const elThead = document.getElementById('thead');
     const elTbody = document.getElementById('tbody');
 
@@ -223,6 +280,9 @@
                 return `<span class="chip-cat cat-${slug}">${esc(c)}</span>`;
               })
               .join('');
+          }else if(col === 'status'){
+            const slug = slugify(content);
+            content = `<span class="status-chip ${slug}">${esc(content)}</span>`;
           }else{
             content = esc(content);
           }
