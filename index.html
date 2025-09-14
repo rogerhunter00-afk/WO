@@ -183,6 +183,13 @@
 
     function esc(s){ return String(s==null?'':s).replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
+    function slugify(s){
+      return String(s)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g,'-')
+        .replace(/^-|-$/g,'');
+    }
+
     function renderHeader(headers){
       currentHeaders = headers;
       elThead.innerHTML = `<tr>${headers.map(h=>{
@@ -211,7 +218,10 @@
               .split(/[,;]+/)
               .map(c=>c.trim())
               .filter(Boolean)
-              .map(c=>`<span class="chip-cat">${esc(c)}</span>`)
+              .map(c=>{
+                const slug = slugify(c);
+                return `<span class="chip-cat cat-${slug}">${esc(c)}</span>`;
+              })
               .join('');
           }else{
             content = esc(content);
