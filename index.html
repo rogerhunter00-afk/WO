@@ -204,12 +204,13 @@
 
     let currentRows = [];
     let sortState = {};
+    let typeMap = {};
 
     const elTbody = document.getElementById('tbody');
 
-    function pick(o, keys){
-      for(const k of keys||[]) if (k in o && o[k]!=='' && o[k]!=null) return o[k];
-      return '';
+    function pick(o, keys, withKey){
+      for(const k of keys||[]) if (k in o && o[k]!=='' && o[k]!=null) return withKey?{value:o[k],key:k}:o[k];
+      return withKey?{value:'',key:''}:'';
     }
 
     function toArray(val){
@@ -219,6 +220,27 @@
     }
 
     function esc(s){ return String(s==null?'':s).replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+    function inferTypeMapFromRows(rows){
+      typeMap = {};
+      if(!rows.length) return;
+      const sample = rows[0];
+      Object.keys(sample).forEach(h=>{
+        const sampleValue = sample[h];
+        let t = 'text';
+        if(/date/i.test(h)) t = 'date';
+        else if(!isNaN(Number(sampleValue))) t = 'number';
+        typeMap[h] = t;
+      });
+      rows.forEach(r=>{
+        for(const h in typeMap){
+          const t = typeMap[h];
+          const v = r[h];
+          if(t==='date' && typeof v === 'string') r[h] = new Date(v);
+          else if(t==='number' && typeof v === 'string') r[h] = Number(v);
+        }
+      });
+    }
 
     function statusBadge(statusRaw){
       const s = (statusRaw||'').toLowerCase();
@@ -230,36 +252,54 @@
 
     function renderRows(rows){
       currentRows = rows;
-      elTbody.innerHTML = rows.map(row => {
-        const id          = pick(row, MAP.id);
-        const title       = pick(row, MAP.title);
-        const status      = pick(row, MAP.status);
-        const priority    = pick(row, MAP.priority);
-        const createdBy   = pick(row, MAP.createdBy);
-        const createdOn   = pick(row, MAP.createdOn);
-        const completedOn = pick(row, MAP.completedOn);
-        const updated     = pick(row, MAP.updated);
-        const location    = pick(row, MAP.location);
-        const asset       = pick(row, MAP.asset);
-        const cats        = toArray(pick(row, MAP.categories));
+      elTbody.innerHTML = rows.map((row,i) => {
+        const {value:id,          key:idKey}          = pick(row, MAP.id, true);
+        const {value:title,       key:titleKey}       = pick(row, MAP.title, true);
+        const {value:status,      key:statusKey}      = pick(row, MAP.status, true);
+        const {value:priority,    key:priorityKey}    = pick(row, MAP.priority, true);
+        const {value:createdBy,   key:createdByKey}   = pick(row, MAP.createdBy, true);
+        const {value:createdOn,   key:createdOnKey}   = pick(row, MAP.createdOn, true);
+        const {value:completedOn, key:completedOnKey} = pick(row, MAP.completedOn, true);
+        const {value:updated,     key:updatedKey}     = pick(row, MAP.updated, true);
+        const {value:location,    key:locationKey}    = pick(row, MAP.location, true);
+        const {value:asset,       key:assetKey}       = pick(row, MAP.asset, true);
+        const {value:categories,  key:categoriesKey}  = pick(row, MAP.categories, true);
 
-        const catsHtml = cats.map(c=>`<span class="chip-cat">${esc(c)}</span>`).join('');
+        function input(val, key){
+          const type = typeMap[key] || 'text';
+          let v = val;
+          if(type==='date' && v instanceof Date) v = v.toISOString().slice(0,10);
+          if(Array.isArray(v)) v = v.join('; ');
+          return `<input data-row="${i}" data-header="${esc(key)}" type="${type}" value="${esc(v)}">`;
+        }
 
         return `
         <tr>
-          <td class="id">${esc(id)}</td>
-          <td class="title-cell"><b>${esc(title)}</b></td>
-          <td>${statusBadge(status)}</td>
-          <td>${esc(priority)}</td>
-          <td>${esc(createdBy)}</td>
-          <td>${esc(createdOn)}</td>
-          <td>${esc(completedOn)}</td>
-          <td>${esc(updated)}</td>
-          <td>${esc(location)}</td>
-          <td>${esc(asset)}</td>
-          <td>${catsHtml}</td>
+          <td class="id">${input(id,idKey)}</td>
+          <td class="title-cell">${input(title,titleKey)}</td>
+          <td>${input(status,statusKey)}</td>
+          <td>${input(priority,priorityKey)}</td>
+          <td>${input(createdBy,createdByKey)}</td>
+          <td>${input(createdOn,createdOnKey)}</td>
+          <td>${input(completedOn,completedOnKey)}</td>
+          <td>${input(updated,updatedKey)}</td>
+          <td>${input(location,locationKey)}</td>
+          <td>${input(asset,assetKey)}</td>
+          <td>${input(categories,categoriesKey)}</td>
         </tr>`;
       }).join('\n');
+
+      elTbody.querySelectorAll('input').forEach(inp=>{
+        inp.addEventListener('change', ()=>{
+          const rowIdx = Number(inp.dataset.row);
+          const header = inp.dataset.header;
+          let val = inp.value;
+          const t = typeMap[header];
+          if(t==='number') val = Number(val);
+          else if(t==='date') val = new Date(val);
+          currentRows[rowIdx][header] = val;
+        });
+      });
     }
 
     function sortByColumn(col, th){
@@ -297,7 +337,9 @@
       const sep = text.includes('\t') ? '\t' : ',';
       const rows = text.trim().split(/\r?\n/).map(r=>r.split(new RegExp(`${sep}(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)`)).map(c=>c.replace(/^\"|\"$/g,'')));
       const headers = rows.shift();
-      return rows.map(r=>Object.fromEntries(r.map((v,i)=>[headers[i]||`col${i}`, v])));
+      const objs = rows.map(r=>Object.fromEntries(r.map((v,i)=>[headers[i]||`col${i}`, v])));
+      inferTypeMapFromRows(objs);
+      return objs;
     }
 
     function handleJSON(text){
@@ -317,6 +359,7 @@
         try{
           if(/json$/i.test(f.name) || text.trim().startsWith('[') || text.trim().startsWith('{')){
             rows = handleJSON(text);
+            inferTypeMapFromRows(rows);
           } else {
             rows = parseDelimited(text);
           }
@@ -333,7 +376,7 @@
       if(!text.trim()) return;
       let rows=[];
       try{
-        if(text.trim().startsWith('[') || text.trim().startsWith('{')) rows = handleJSON(text); else rows = parseDelimited(text);
+        if(text.trim().startsWith('[') || text.trim().startsWith('{')) { rows = handleJSON(text); inferTypeMapFromRows(rows); } else rows = parseDelimited(text);
       }catch(err){ alert('Parse error: '+err.message); }
       renderRows(rows);
     });
@@ -371,6 +414,7 @@
       }
     ];
 
+    inferTypeMapFromRows(demo);
     renderRows(demo);
   </script>
 </body>
