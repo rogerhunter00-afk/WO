@@ -95,6 +95,12 @@
       font-weight:800; font-size:11px; padding:10px 8px; border-right:1px solid rgba(255,255,255,.08);
       cursor:pointer;
     }
+    thead th .sort-arrow{
+      display:inline-block; margin-left:4px; width:0; height:0;
+      border-left:4px solid transparent; border-right:4px solid transparent;
+    }
+    thead th[data-sort="asc"] .sort-arrow{ border-bottom:6px solid currentColor; }
+    thead th[data-sort="desc"] .sort-arrow{ border-top:6px solid currentColor; }
     thead th:first-child{ border-top-left-radius:3px; }
     thead th:last-child{ border-top-right-radius:3px; border-right:none; }
 
@@ -164,17 +170,17 @@
     <table role="table" aria-label="Work Orders" id="workTable">
       <thead>
         <tr>
-          <th class="col-id" data-col="id">ID</th>
-          <th class="col-title" data-col="title">Title</th>
-          <th class="col-status" data-col="status">Status</th>
-          <th class="col-priority" data-col="priority">Priority</th>
-          <th class="col-createdby" data-col="createdBy">Created by</th>
-          <th class="col-createdon" data-col="createdOn">Created on</th>
-          <th class="col-completedon" data-col="completedOn">Completed on</th>
-          <th class="col-updated" data-col="updated">Last updated</th>
-          <th class="col-location" data-col="location">Location</th>
-          <th class="col-asset" data-col="asset">Asset</th>
-          <th class="col-categories" data-col="categories">Categories</th>
+          <th class="col-id" data-col="id" tabindex="0" aria-sort="none"><span>ID</span><span class="sort-arrow"></span></th>
+          <th class="col-title" data-col="title" tabindex="0" aria-sort="none"><span>Title</span><span class="sort-arrow"></span></th>
+          <th class="col-status" data-col="status" tabindex="0" aria-sort="none"><span>Status</span><span class="sort-arrow"></span></th>
+          <th class="col-priority" data-col="priority" tabindex="0" aria-sort="none"><span>Priority</span><span class="sort-arrow"></span></th>
+          <th class="col-createdby" data-col="createdBy" tabindex="0" aria-sort="none"><span>Created by</span><span class="sort-arrow"></span></th>
+          <th class="col-createdon" data-col="createdOn" tabindex="0" aria-sort="none"><span>Created on</span><span class="sort-arrow"></span></th>
+          <th class="col-completedon" data-col="completedOn" tabindex="0" aria-sort="none"><span>Completed on</span><span class="sort-arrow"></span></th>
+          <th class="col-updated" data-col="updated" tabindex="0" aria-sort="none"><span>Last updated</span><span class="sort-arrow"></span></th>
+          <th class="col-location" data-col="location" tabindex="0" aria-sort="none"><span>Location</span><span class="sort-arrow"></span></th>
+          <th class="col-asset" data-col="asset" tabindex="0" aria-sort="none"><span>Asset</span><span class="sort-arrow"></span></th>
+          <th class="col-categories" data-col="categories" tabindex="0" aria-sort="none"><span>Categories</span><span class="sort-arrow"></span></th>
         </tr>
       </thead>
       <tbody id="tbody"></tbody>
@@ -306,16 +312,30 @@
       });
     }
 
-    function sortByColumn(col){
+    function sortByColumn(col, th){
       const direction = sortState[col] === 'asc' ? 'desc' : 'asc';
-      sortState[col] = direction;
+      sortState = { [col]: direction };
       lastSortCol = col;
       filteredRows = sortRows(filteredRows, col, direction);
+      document.querySelectorAll('thead th[data-col]').forEach(h=>{
+        if(h!==th){
+          h.removeAttribute('data-sort');
+          h.setAttribute('aria-sort','none');
+        }
+      });
+      th.setAttribute('data-sort', direction);
+      th.setAttribute('aria-sort', direction==='asc'?'ascending':'descending');
       renderRows(filteredRows);
     }
 
     document.querySelectorAll('thead th[data-col]').forEach(th=>{
-      th.addEventListener('click', ()=>sortByColumn(th.dataset.col));
+      th.addEventListener('click', ()=>sortByColumn(th.dataset.col, th));
+      th.addEventListener('keydown', e=>{
+        if(e.key==='Enter' || e.key===' '){
+          e.preventDefault();
+          sortByColumn(th.dataset.col, th);
+        }
+      });
     });
 
     function parseDelimited(text){
