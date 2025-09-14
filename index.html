@@ -114,7 +114,7 @@
     .col-updated{ width:120px; }
     .col-location{ width:180px; }
     .col-asset{ width:200px; }
-    .col-categories{ width:200px; }
+    .col-categories{ width:200px; overflow-wrap:anywhere; }
 
     .id{ font-weight:700; }
     .title-cell b{ display:block; font-weight:800; }
@@ -185,7 +185,10 @@
 
     function renderHeader(headers){
       currentHeaders = headers;
-      elThead.innerHTML = `<tr>${headers.map(h=>`<th data-col="${esc(h)}" tabindex="0"><span>${esc(h)}</span><span class="sort-arrow"></span></th>`).join('')}</tr>`;
+      elThead.innerHTML = `<tr>${headers.map(h=>{
+        const col = h.replace(/\s+/g,'').toLowerCase();
+        return `<th class="col-${col}" data-col="${esc(h)}" tabindex="0"><span>${esc(h)}</span><span class="sort-arrow"></span></th>`;
+      }).join('')}</tr>`;
       elThead.querySelectorAll('th').forEach(th=>{
         th.addEventListener('click', ()=>sortByColumn(th.getAttribute('data-col'), th));
         th.addEventListener('keydown', e=>{
@@ -200,7 +203,20 @@
     function renderRows(rows){
       currentRows = rows;
       elTbody.innerHTML = rows.map(row => {
-        return `<tr>${currentHeaders.map(h=>`<td>${esc(row[h])}</td>`).join('')}</tr>`;
+        return `<tr>${currentHeaders.map(h=>{
+          const col = h.replace(/\s+/g,'').toLowerCase();
+          let content = row[h] ?? '';
+          if(col === 'categories'){
+            content = String(content)
+              .split(/[,;]+/)
+              .map(c=>`<span class="chip-cat">${esc(c.trim())}</span>`)
+              .join('');
+          }else{
+            content = esc(content);
+          }
+          const extra = col==='title' ? ' title-cell' : '';
+          return `<td class="col-${col}${extra}">${content}</td>`;
+        }).join('')}</tr>`;
       }).join('\n');
     }
 
