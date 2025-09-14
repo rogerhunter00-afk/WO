@@ -90,6 +90,7 @@
     .top-rule{ height:6px; background:var(--als-blue); border-bottom:1px solid var(--als-blue-strong); margin:8px 0 10px; }
 
     table{ width:100%; border-collapse:separate; border-spacing:0; table-layout:fixed; }
+    thead th { position: sticky; top: 0; z-index: 2; }
     thead th{
       background:var(--thead); color:var(--thead-text); text-transform:uppercase; letter-spacing:.6px;
       font-weight:800; font-size:11px; padding:10px 8px; border-right:1px solid rgba(255,255,255,.08);
@@ -137,6 +138,7 @@
       thead{ display:table-header-group; }
       table{ width:100% !important; table-layout:fixed; border-collapse:collapse; }
       th, td{ box-sizing:border-box; overflow-wrap:anywhere; word-break:break-word; hyphens:auto; }
+      thead th { position: static; }
       .title-cell, .col-categories{ break-inside:avoid; }
       html{-webkit-print-color-adjust:exact;}
       body{ -webkit-transform: scale(0.97); -webkit-transform-origin: top left; width: 103%; }
