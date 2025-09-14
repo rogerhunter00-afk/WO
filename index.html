@@ -209,7 +209,9 @@
           if(col === 'categories'){
             content = String(content)
               .split(/[,;]+/)
-              .map(c=>`<span class="chip-cat">${esc(c.trim())}</span>`)
+              .map(c=>c.trim())
+              .filter(Boolean)
+              .map(c=>`<span class="chip-cat">${esc(c)}</span>`)
               .join('');
           }else{
             content = esc(content);
