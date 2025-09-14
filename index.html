@@ -163,21 +163,7 @@
     </div>
 
     <table role="table" aria-label="Work Orders" id="workTable">
-      <thead>
-        <tr>
-          <th class="col-id" data-col="id" tabindex="0"><span>ID</span><span class="sort-arrow"></span></th>
-          <th class="col-title" data-col="title" tabindex="0"><span>Title</span><span class="sort-arrow"></span></th>
-          <th class="col-status" data-col="status" tabindex="0"><span>Status</span><span class="sort-arrow"></span></th>
-          <th class="col-priority" data-col="priority" tabindex="0"><span>Priority</span><span class="sort-arrow"></span></th>
-          <th class="col-createdby" data-col="createdBy" tabindex="0"><span>Created by</span><span class="sort-arrow"></span></th>
-          <th class="col-createdon" data-col="createdOn" tabindex="0"><span>Created on</span><span class="sort-arrow"></span></th>
-          <th class="col-completedon" data-col="completedOn" tabindex="0"><span>Completed on</span><span class="sort-arrow"></span></th>
-          <th class="col-updated" data-col="updated" tabindex="0"><span>Last updated</span><span class="sort-arrow"></span></th>
-          <th class="col-location" data-col="location" tabindex="0"><span>Location</span><span class="sort-arrow"></span></th>
-          <th class="col-asset" data-col="asset" tabindex="0"><span>Asset</span><span class="sort-arrow"></span></th>
-          <th class="col-categories" data-col="categories" tabindex="0"><span>Categories</span><span class="sort-arrow"></span></th>
-        </tr>
-      </thead>
+      <thead id="thead"></thead>
       <tbody id="tbody"></tbody>
     </table>
 
@@ -188,94 +174,45 @@
   </div>
 
   <script>
-    const MAP = {
-      id: ['ID','Id','WO','WO #','WO Number'],
-      title: ['Title','Task Summary','Name'],
-      status: ['Status'],
-      priority: ['Priority'],
-      createdBy: ['Created by','Created By','Author','Requested by','Requester'],
-      createdOn: ['Created on','Created On','Created','Raised','Raised on'],
-      completedOn: ['Completed on','Completed On','Completed','Date Completed'],
-      updated: ['Last updated','Last Updated','Updated','Modified','Last Modified'],
-      location: ['Location','Site','Factory','Site Name'],
-      asset: ['Asset','Asset Name'],
-      categories: ['Categories','Category','Tags']
-    };
-
-    const PRIORITY_WEIGHTS = {critical:4, high:3, medium:2, low:1, '':0};
-    const DATE_COLS = ['createdOn','completedOn','updated'];
-
+    let currentHeaders = [];
     let currentRows = [];
     let sortState = {};
 
+    const elThead = document.getElementById('thead');
     const elTbody = document.getElementById('tbody');
-
-    function pick(o, keys){
-      for(const k of keys||[]) if (k in o && o[k]!=='' && o[k]!=null) return o[k];
-      return '';
-    }
-
-    function toArray(val){
-      if(Array.isArray(val)) return val;
-      if(typeof val === 'string') return val.split(/[;,]\s*/).filter(Boolean);
-      return [];
-    }
 
     function esc(s){ return String(s==null?'':s).replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
-    function statusBadge(statusRaw){
-      const s = (statusRaw||'').toLowerCase();
-      if(/done|complete|closed/i.test(s)){
-        return `<span class="done"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>${esc(statusRaw)}</span>`;
-      }
-      return `<span class="open"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"/></svg>${esc(statusRaw)}</span>`;
-    }
-
-    function parseDateDMYHM(str){
-      const m = String(str).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})/);
-      if(!m) return new Date(NaN);
-      const [, d, mo, y, h, mi] = m;
-      return new Date(+y, +mo-1, +d, +h, +mi);
+    function renderHeader(headers){
+      currentHeaders = headers;
+      elThead.innerHTML = `<tr>${headers.map(h=>`<th data-col="${esc(h)}" tabindex="0"><span>${esc(h)}</span><span class="sort-arrow"></span></th>`).join('')}</tr>`;
+      elThead.querySelectorAll('th').forEach(th=>{
+        th.addEventListener('click', ()=>sortByColumn(th.getAttribute('data-col'), th));
+        th.addEventListener('keydown', e=>{
+          if(e.key==='Enter' || e.key===' '){
+            e.preventDefault();
+            sortByColumn(th.getAttribute('data-col'), th);
+          }
+        });
+      });
     }
 
     function renderRows(rows){
       currentRows = rows;
       elTbody.innerHTML = rows.map(row => {
-        const id          = pick(row, MAP.id);
-        const title       = pick(row, MAP.title);
-        const status      = pick(row, MAP.status);
-        const priority    = pick(row, MAP.priority);
-        const createdBy   = pick(row, MAP.createdBy);
-        const createdOn   = pick(row, MAP.createdOn);
-        const completedOn = pick(row, MAP.completedOn);
-        const updated     = pick(row, MAP.updated);
-        const location    = pick(row, MAP.location);
-        const asset       = pick(row, MAP.asset);
-        const cats        = toArray(pick(row, MAP.categories));
-
-        const catsHtml = cats.map(c=>`<span class="chip-cat">${esc(c)}</span>`).join('');
-
-        return `
-        <tr>
-          <td class="id">${esc(id)}</td>
-          <td class="title-cell"><b>${esc(title)}</b></td>
-          <td>${statusBadge(status)}</td>
-          <td>${esc(priority)}</td>
-          <td>${esc(createdBy)}</td>
-          <td>${esc(createdOn)}</td>
-          <td>${esc(completedOn)}</td>
-          <td>${esc(updated)}</td>
-          <td>${esc(location)}</td>
-          <td>${esc(asset)}</td>
-          <td>${catsHtml}</td>
-        </tr>`;
+        return `<tr>${currentHeaders.map(h=>`<td>${esc(row[h])}</td>`).join('')}</tr>`;
       }).join('\n');
+    }
+
+    function renderTable(headers, rows){
+      renderHeader(headers);
+      renderRows(rows);
     }
 
     function sortByColumn(col, th){
       const direction = sortState[col] === 'asc' ? 'desc' : 'asc';
       sortState = { [col]: direction };
-      document.querySelectorAll('thead th[data-col]').forEach(h=>{
+      document.querySelectorAll('thead th').forEach(h=>{
         if(h!==th){
           h.removeAttribute('data-sort');
           h.setAttribute('aria-sort','none');
@@ -284,55 +221,35 @@
       th.setAttribute('data-sort', direction);
       th.setAttribute('aria-sort', direction==='asc'?'ascending':'descending');
       const sorted = [...currentRows].sort((a,b)=>{
-        const vaRaw = pick(a, MAP[col]) || '';
-        const vbRaw = pick(b, MAP[col]) || '';
-        let va, vb;
-        if(col === 'id'){
-          va = parseInt(String(vaRaw).replace(/^#/, ''), 10) || 0;
-          vb = parseInt(String(vbRaw).replace(/^#/, ''), 10) || 0;
-        } else if(DATE_COLS.includes(col)){
-          va = parseDateDMYHM(vaRaw).getTime() || 0;
-          vb = parseDateDMYHM(vbRaw).getTime() || 0;
-        } else if(col === 'priority'){
-          va = PRIORITY_WEIGHTS[String(vaRaw).trim().toLowerCase()] || 0;
-          vb = PRIORITY_WEIGHTS[String(vbRaw).trim().toLowerCase()] || 0;
-        } else {
-          va = String(vaRaw).toLowerCase();
-          vb = String(vbRaw).toLowerCase();
+        const va = a[col] ?? '';
+        const vb = b[col] ?? '';
+        const nva = parseFloat(va);
+        const nvb = parseFloat(vb);
+        if(!isNaN(nva) && !isNaN(nvb)){
+          return direction==='asc'?nva-nvb:nvb-nva;
         }
-        if(va<vb) return direction==='asc'?-1:1;
-        if(va>vb) return direction==='asc'?1:-1;
-        const vaStr = String(vaRaw).toLowerCase();
-        const vbStr = String(vbRaw).toLowerCase();
-        if(vaStr<vbStr) return direction==='asc'?-1:1;
-        if(vaStr>vbStr) return direction==='asc'?1:-1;
-        return 0;
+        return direction==='asc'
+          ? String(va).localeCompare(String(vb))
+          : String(vb).localeCompare(String(va));
       });
       renderRows(sorted);
     }
 
-    document.querySelectorAll('thead th[data-col]').forEach(th=>{
-      th.addEventListener('click', ()=>sortByColumn(th.dataset.col, th));
-      th.addEventListener('keydown', e=>{
-        if(e.key==='Enter' || e.key===' '){
-          e.preventDefault();
-          sortByColumn(th.dataset.col, th);
-        }
-      });
-    });
-
     function parseDelimited(text){
       const sep = text.includes('\t') ? '\t' : ',';
       const rows = text.trim().split(/\r?\n/).map(r=>r.split(new RegExp(`${sep}(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)`)).map(c=>c.replace(/^\"|\"$/g,'')));
-      const headers = rows.shift();
-      return rows.map(r=>Object.fromEntries(r.map((v,i)=>[headers[i]||`col${i}`, v])));
+      const headers = rows.shift() || [];
+      const data = rows.map(r=>Object.fromEntries(r.map((v,i)=>[headers[i]||`col${i}`, v])));
+      return {headers, rows:data};
     }
 
     function handleJSON(text){
       const data = JSON.parse(text);
-      if(Array.isArray(data)) return data;
-      if(Array.isArray(data.rows)) return data.rows;
-      return [];
+      let rows = [];
+      if(Array.isArray(data)) rows = data;
+      else if(Array.isArray(data.rows)) rows = data.rows;
+      const headers = rows.length ? Object.keys(rows[0]) : [];
+      return {headers, rows};
     }
 
     document.getElementById('file').addEventListener('change', e=>{
@@ -341,17 +258,18 @@
       const reader = new FileReader();
       reader.onload = () => {
         const text = reader.result;
+        let headers = [];
         let rows = [];
         try{
-          if(/json$/i.test(f.name) || text.trim().startsWith('[') || text.trim().startsWith('{')){
-            rows = handleJSON(text);
-          } else {
-            rows = parseDelimited(text);
-          }
+          const result = (/json$/i.test(f.name) || text.trim().startsWith('[') || text.trim().startsWith('{'))
+            ? handleJSON(text)
+            : parseDelimited(text);
+          headers = result.headers;
+          rows = result.rows;
         }catch(err){
           alert('Could not parse file: '+err.message);
         }
-        renderRows(rows);
+        renderTable(headers, rows);
       };
       reader.readAsText(f);
     });
@@ -359,11 +277,14 @@
     document.getElementById('pasteBtn').addEventListener('click', ()=>{
       const text = document.getElementById('pasteBox').value;
       if(!text.trim()) return;
+      let headers = [];
       let rows=[];
       try{
-        if(text.trim().startsWith('[') || text.trim().startsWith('{')) rows = handleJSON(text); else rows = parseDelimited(text);
+        const result = (text.trim().startsWith('[') || text.trim().startsWith('{')) ? handleJSON(text) : parseDelimited(text);
+        headers = result.headers;
+        rows = result.rows;
       }catch(err){ alert('Parse error: '+err.message); }
-      renderRows(rows);
+      renderTable(headers, rows);
     });
 
       const themeBtn = document.getElementById('themeBtn');
@@ -399,7 +320,7 @@
       }
     ];
 
-    renderRows(demo);
+    renderTable(Object.keys(demo[0]||{}), demo);
   </script>
 </body>
 </html>
