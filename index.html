@@ -201,9 +201,10 @@
       categories: ['Categories','Category','Tags']
     };
 
-    let currentRows = [];
-    let filteredRows = [];
-    let sortState = {};
+let currentRows = [];
+let filteredRows = [];
+let sortState = {};
+let lastSortCol = null;
 
     const tbody = document.getElementById('tbody');
     const filterStatusEl = document.getElementById('filterStatus');
@@ -289,20 +290,27 @@
         const rp = pick(row, MAP.priority);
         return (!fs || rs === fs) && (!fl || rl === fl) && (!fp || rp === fp);
       });
+      if(lastSortCol){
+        filteredRows = sortRows(filteredRows, lastSortCol, sortState[lastSortCol]);
+      }
       renderRows(filteredRows);
     }
 
-    function sortByColumn(col){
-      const direction = sortState[col] === 'asc' ? 'desc' : 'asc';
-      sortState[col] = direction;
-      const sorted = [...filteredRows].sort((a,b)=>{
+    function sortRows(rows, col, direction){
+      return [...rows].sort((a,b)=>{
         const va = (pick(a, MAP[col])||'').toString().toLowerCase();
         const vb = (pick(b, MAP[col])||'').toString().toLowerCase();
         if(va<vb) return direction==='asc'?-1:1;
         if(va>vb) return direction==='asc'?1:-1;
         return 0;
       });
-      filteredRows = sorted;
+    }
+
+    function sortByColumn(col){
+      const direction = sortState[col] === 'asc' ? 'desc' : 'asc';
+      sortState[col] = direction;
+      lastSortCol = col;
+      filteredRows = sortRows(filteredRows, col, direction);
       renderRows(filteredRows);
     }
 
@@ -341,8 +349,10 @@
           alert('Could not parse file: '+err.message);
         }
         currentRows = rows;
+        sortState = {};
+        lastSortCol = null;
         populateFilters();
-        applyFilters();
+        resetFilters();
       };
       reader.readAsText(f);
     });
@@ -355,19 +365,22 @@
         if(text.trim().startsWith('[') || text.trim().startsWith('{')) rows = handleJSON(text); else rows = parseDelimited(text);
       }catch(err){ alert('Parse error: '+err.message); }
       currentRows = rows;
+      sortState = {};
+      lastSortCol = null;
       populateFilters();
-      applyFilters();
+      resetFilters();
     });
 
     filterStatusEl.addEventListener('change', applyFilters);
     filterLocationEl.addEventListener('change', applyFilters);
     filterPriorityEl.addEventListener('change', applyFilters);
-    clearFiltersBtn.addEventListener('click', ()=>{
+    function resetFilters(){
       filterStatusEl.value = '';
       filterLocationEl.value = '';
       filterPriorityEl.value = '';
       applyFilters();
-    });
+    }
+    clearFiltersBtn.addEventListener('click', resetFilters);
 
       const themeBtn = document.getElementById('themeBtn');
 
@@ -403,8 +416,10 @@
     ];
 
     currentRows = demo;
+    sortState = {};
+    lastSortCol = null;
     populateFilters();
-    applyFilters();
+    resetFilters();
   </script>
 </body>
 </html>
