@@ -124,7 +124,7 @@
     footer{ margin-top:8px; color:var(--muted); font-size:11px; display:flex; justify-content:space-between; }
 
     .controls{ display:flex; gap:12px; align-items:center; margin:8px 0 12px; font-size:12px; }
-    .controls input[type="file"], .controls textarea{ font:inherit; }
+    .controls input[type="file"], .controls textarea, .controls select{ font:inherit; }
     .controls textarea{ width:420px; height:100px; padding:8px; border:1px solid var(--grid); border-radius:6px; }
     .btn{ padding:6px 10px; border:1px solid var(--als-blue); border-radius:8px; background:var(--paper); color:var(--als-blue); font-weight:700; cursor:pointer; }
 
@@ -153,9 +153,13 @@
       <label class="btn" for="file">Upload CSV/TSV/JSON</label>
       <input id="file" type="file" accept=".csv,.tsv,.json,application/json,text/csv,text/tab-separated-values" style="display:none" />
       <button class="btn" id="pasteBtn" type="button">Paste data → render</button>
-      <button class="btn" id="themeBtn" type="button">Dark mode</button>
-      <textarea id="pasteBox" placeholder="Paste CSV (headers required) or JSON array here..."></textarea>
-    </div>
+        <button class="btn" id="themeBtn" type="button">Dark mode</button>
+        <select id="filterStatus"><option value="">All statuses</option></select>
+        <select id="filterLocation"><option value="">All locations</option></select>
+        <select id="filterPriority"><option value="">All priorities</option></select>
+        <button class="btn" id="clearFilters" type="button">Clear filters</button>
+        <textarea id="pasteBox" placeholder="Paste CSV (headers required) or JSON array here..."></textarea>
+      </div>
 
     <table role="table" aria-label="Work Orders" id="workTable">
       <thead>
@@ -198,9 +202,14 @@
     };
 
     let currentRows = [];
+    let filteredRows = [];
     let sortState = {};
 
     const elTbody = document.getElementById('tbody');
+    const filterStatusEl = document.getElementById('filterStatus');
+    const filterLocationEl = document.getElementById('filterLocation');
+    const filterPriorityEl = document.getElementById('filterPriority');
+    const clearFiltersBtn = document.getElementById('clearFilters');
 
     function pick(o, keys){
       for(const k of keys||[]) if (k in o && o[k]!=='' && o[k]!=null) return o[k];
@@ -224,7 +233,6 @@
     }
 
     function renderRows(rows){
-      currentRows = rows;
       elTbody.innerHTML = rows.map(row => {
         const id          = pick(row, MAP.id);
         const title       = pick(row, MAP.title);
@@ -257,17 +265,45 @@
       }).join('\n');
     }
 
+    function populateFilters(){
+      const statuses = new Set();
+      const locations = new Set();
+      const priorities = new Set();
+      currentRows.forEach(row=>{
+        const s = pick(row, MAP.status); if(s) statuses.add(s);
+        const l = pick(row, MAP.location); if(l) locations.add(l);
+        const p = pick(row, MAP.priority); if(p) priorities.add(p);
+      });
+      filterStatusEl.innerHTML = '<option value="">All statuses</option>' + Array.from(statuses).sort().map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+      filterLocationEl.innerHTML = '<option value="">All locations</option>' + Array.from(locations).sort().map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+      filterPriorityEl.innerHTML = '<option value="">All priorities</option>' + Array.from(priorities).sort().map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+    }
+
+    function applyFilters(){
+      const fs = filterStatusEl.value;
+      const fl = filterLocationEl.value;
+      const fp = filterPriorityEl.value;
+      filteredRows = currentRows.filter(row=>{
+        const rs = pick(row, MAP.status);
+        const rl = pick(row, MAP.location);
+        const rp = pick(row, MAP.priority);
+        return (!fs || rs === fs) && (!fl || rl === fl) && (!fp || rp === fp);
+      });
+      renderRows(filteredRows);
+    }
+
     function sortByColumn(col){
       const direction = sortState[col] === 'asc' ? 'desc' : 'asc';
       sortState[col] = direction;
-      const sorted = [...currentRows].sort((a,b)=>{
+      const sorted = [...filteredRows].sort((a,b)=>{
         const va = (pick(a, MAP[col])||'').toString().toLowerCase();
         const vb = (pick(b, MAP[col])||'').toString().toLowerCase();
         if(va<vb) return direction==='asc'?-1:1;
         if(va>vb) return direction==='asc'?1:-1;
         return 0;
       });
-      renderRows(sorted);
+      filteredRows = sorted;
+      renderRows(filteredRows);
     }
 
     document.querySelectorAll('thead th[data-col]').forEach(th=>{
@@ -304,7 +340,9 @@
         }catch(err){
           alert('Could not parse file: '+err.message);
         }
-        renderRows(rows);
+        currentRows = rows;
+        populateFilters();
+        applyFilters();
       };
       reader.readAsText(f);
     });
@@ -316,7 +354,19 @@
       try{
         if(text.trim().startsWith('[') || text.trim().startsWith('{')) rows = handleJSON(text); else rows = parseDelimited(text);
       }catch(err){ alert('Parse error: '+err.message); }
-      renderRows(rows);
+      currentRows = rows;
+      populateFilters();
+      applyFilters();
+    });
+
+    filterStatusEl.addEventListener('change', applyFilters);
+    filterLocationEl.addEventListener('change', applyFilters);
+    filterPriorityEl.addEventListener('change', applyFilters);
+    clearFiltersBtn.addEventListener('click', ()=>{
+      filterStatusEl.value = '';
+      filterLocationEl.value = '';
+      filterPriorityEl.value = '';
+      applyFilters();
     });
 
       const themeBtn = document.getElementById('themeBtn');
@@ -352,7 +402,9 @@
       }
     ];
 
-    renderRows(demo);
+    currentRows = demo;
+    populateFilters();
+    applyFilters();
   </script>
 </body>
 </html>
