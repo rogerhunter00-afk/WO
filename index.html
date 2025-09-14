@@ -120,16 +120,6 @@
     .title-cell b{ display:block; font-weight:800; }
 
     .chip-cat{ display:inline-block; color:var(--chip-cat-tx); border:1.8px solid var(--chip-cat-br); padding:2px 8px; border-radius:6px; background:var(--paper); margin:2px 6px 2px 0; font-weight:700; }
-    .chip-cat.mechanical{background:#f59e0b1a; color:#92400e; border-color:#f59e0b;}
-    .chip-cat.inspection{background:#3b82f61a; color:#1e40af; border-color:#3b82f6;}
-    .chip-cat.electrical{background:#10b9811a; color:#065f46; border-color:#10b981;}
-    .chip-cat.resin{background:#a855f71a; color:#6b21a8; border-color:#a855f7;}
-    .chip-cat.weekly-procedures{background:#ef44441a; color:#991b1b; border-color:#ef4444;}
-    .dark .chip-cat.mechanical{background:#f59e0b33; color:#fbbf24; border-color:#f59e0b;}
-    .dark .chip-cat.inspection{background:#3b82f633; color:#93c5fd; border-color:#3b82f6;}
-    .dark .chip-cat.electrical{background:#10b98133; color:#6ee7b7; border-color:#10b981;}
-    .dark .chip-cat.resin{background:#a855f733; color:#d8b4fe; border-color:#a855f7;}
-    .dark .chip-cat.weekly-procedures{background:#ef444433; color:#fca5a5; border-color:#ef4444;}
 
     .ico{ width:16px; height:16px; vertical-align:-3px; margin-right:6px; }
     .done{ color:var(--done-tx); font-weight:800; }
@@ -188,13 +178,35 @@
     let currentRows = [];
     let sortState = {};
 
-    const CATEGORY_COLORS = {
-      'Mechanical':'#f59e0b',
-      'Inspection':'#3b82f6',
-      'Electrical':'#10b981',
-      'Resin':'#a855f7',
-      'Weekly Procedures':'#ef4444'
+    const categoryColors = {
+      'mechanical': {
+        light: { background: '#f59e0b1a', border: '#f59e0b', color: '#92400e' },
+        dark: { background: '#f59e0b33', border: '#f59e0b', color: '#fbbf24' }
+      },
+      'inspection': {
+        light: { background: '#3b82f61a', border: '#3b82f6', color: '#1e40af' },
+        dark: { background: '#3b82f633', border: '#3b82f6', color: '#93c5fd' }
+      },
+      'electrical': {
+        light: { background: '#10b9811a', border: '#10b981', color: '#065f46' },
+        dark: { background: '#10b98133', border: '#10b981', color: '#6ee7b7' }
+      },
+      'resin': {
+        light: { background: '#a855f71a', border: '#a855f7', color: '#6b21a8' },
+        dark: { background: '#a855f733', border: '#a855f7', color: '#d8b4fe' }
+      },
+      'weekly-procedures': {
+        light: { background: '#ef44441a', border: '#ef4444', color: '#991b1b' },
+        dark: { background: '#ef444433', border: '#ef4444', color: '#fca5a5' }
+      }
     };
+
+    const styleEl = document.createElement('style');
+    styleEl.textContent = Object.entries(categoryColors).map(([slug, colors]) => `
+      .chip-cat.cat-${slug}{background:${colors.light.background};color:${colors.light.color};border-color:${colors.light.border};}
+      .dark .chip-cat.cat-${slug}{background:${colors.dark.background};color:${colors.dark.color};border-color:${colors.dark.border};}
+    `).join('');
+    document.head.appendChild(styleEl);
 
     const elThead = document.getElementById('thead');
     const elTbody = document.getElementById('tbody');
@@ -228,9 +240,7 @@
             const cats = String(v||'').split(';').map(c=>c.trim()).filter(Boolean);
             const chips = cats.map(cat=>{
               const slug = slugify(cat);
-              const known = Object.prototype.hasOwnProperty.call(CATEGORY_COLORS, cat);
-              const cls = known ? `chip-cat ${slug}` : 'chip-cat';
-              return `<span class="${cls}">${esc(cat)}</span>`;
+              return `<span class="chip-cat cat-${slug}">${esc(cat)}</span>`;
             }).join('');
             return `<td>${chips}</td>`;
           }
