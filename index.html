@@ -193,6 +193,46 @@
     }
     .controls .filter-group select:focus-visible{ outline:2px solid color-mix(in srgb, var(--als-blue) 65%, transparent); outline-offset:2px; }
     .controls textarea{ width:min(100%, 520px); height:100px; padding:8px; border:1px solid var(--grid); border-radius:6px; }
+
+    .active-filter-chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin:-4px 0 12px;
+      padding:0;
+    }
+    .active-filter-chips[hidden]{ display:none; }
+    .filter-chip{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 12px;
+      border-radius:999px;
+      border:1px solid color-mix(in srgb, var(--als-blue) 32%, var(--grid));
+      background:color-mix(in srgb, var(--als-blue) 14%, var(--paper));
+      color:var(--ink);
+      font-weight:600;
+      font-size:12px;
+      cursor:pointer;
+      max-width:100%;
+      text-align:left;
+      transition:background .2s ease, border-color .2s ease, color .2s ease;
+    }
+    .filter-chip:hover{
+      background:color-mix(in srgb, var(--als-blue) 22%, var(--paper));
+      border-color:color-mix(in srgb, var(--als-blue) 48%, var(--grid));
+    }
+    .filter-chip:focus-visible{
+      outline:2px solid color-mix(in srgb, var(--als-blue) 65%, transparent);
+      outline-offset:2px;
+    }
+    .filter-chip__label{
+      display:inline-block;
+      max-width:min(280px, 100%);
+      white-space:normal;
+      word-break:break-word;
+    }
+    .filter-chip__icon{ font-size:16px; line-height:1; }
     .btn{ padding:6px 10px; border:1px solid var(--als-blue); border-radius:8px; background:var(--paper); color:var(--als-blue); font-weight:700; cursor:pointer; }
 
 /* --- Per-site dashboards --- */
@@ -298,6 +338,8 @@ tbody td{ overflow-wrap:anywhere; }
       <textarea id="pasteBox" placeholder="Paste CSV (headers required) or JSON array here..."></textarea>
     </div>
 
+    <div id="activeFilterChips" class="active-filter-chips" hidden aria-live="polite"></div>
+
     <!-- Tabs -->
     <div class="nav" role="tablist" aria-label="Site dashboards">
       <button class="tab" role="tab" id="tab-all"   aria-controls="dash-all"   aria-selected="true">All Sites</button>
@@ -388,6 +430,107 @@ function detectType(col,rows){ const n=String(col||'').trim().toLowerCase(); con
 // Filters
 const $statusFilter = document.getElementById('statusFilter');
 const $priorityFilter = document.getElementById('priorityFilter');
+const $searchFilter = document.getElementById('searchFilter');
+const $activeFilterChips = document.getElementById('activeFilterChips');
+
+function humanizeFilterValue(value){
+  return String(value || '')
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function updateActiveFilterChips(filters){
+  if(!$activeFilterChips) return;
+
+  const chips=[];
+
+  if(filters.status){
+    const label=humanizeFilterValue(filters.status);
+    const text=filters.excludeStatus?`Status ≠ ${label}`:`Status: ${label}`;
+    const aria=filters.excludeStatus?`Clear status filter (not ${label})`:`Clear status filter: ${label}`;
+    chips.push({
+      key:'status',
+      text,
+      aria,
+      onRemove:()=>{
+        if($statusFilter){
+          $statusFilter.value='';
+          $statusFilter.dispatchEvent(new Event('change',{bubbles:true}));
+        }
+      }
+    });
+  }
+
+  if(filters.priority){
+    const label=humanizeFilterValue(filters.priority);
+    const text=`Priority: ${label}`;
+    const aria=`Clear priority filter: ${label}`;
+    chips.push({
+      key:'priority',
+      text,
+      aria,
+      onRemove:()=>{
+        if($priorityFilter){
+          $priorityFilter.value='';
+          $priorityFilter.dispatchEvent(new Event('change',{bubbles:true}));
+        }
+      }
+    });
+  }
+
+  if(filters.search){
+    const text=`Search: ${filters.search}`;
+    const aria=`Clear search filter: ${filters.search}`;
+    chips.push({
+      key:'search',
+      text,
+      aria,
+      onRemove:()=>{
+        if($searchFilter){
+          $searchFilter.value='';
+          const evtName=(($searchFilter.tagName)||'').toLowerCase()==='select'?'change':'input';
+          $searchFilter.dispatchEvent(new Event(evtName,{bubbles:true}));
+        }
+      }
+    });
+  }
+
+  if(!chips.length){
+    $activeFilterChips.innerHTML='';
+    $activeFilterChips.setAttribute('hidden','');
+    return;
+  }
+
+  const frag=document.createDocumentFragment();
+  chips.forEach(chip=>{
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='filter-chip';
+    btn.dataset.filter=chip.key;
+    btn.setAttribute('aria-label', chip.aria);
+    btn.title=chip.aria;
+
+    const label=document.createElement('span');
+    label.className='filter-chip__label';
+    label.textContent=chip.text;
+
+    const icon=document.createElement('span');
+    icon.className='filter-chip__icon';
+    icon.setAttribute('aria-hidden','true');
+    icon.textContent='×';
+
+    btn.append(label, icon);
+    btn.addEventListener('click', chip.onRemove);
+    frag.appendChild(btn);
+  });
+
+  $activeFilterChips.innerHTML='';
+  $activeFilterChips.removeAttribute('hidden');
+  $activeFilterChips.appendChild(frag);
+}
+
 function getFilters(){
   const rawStatus = ($statusFilter?.value || '').trim().toLowerCase();
   let status = '';
@@ -411,18 +554,24 @@ function getFilters(){
   return {
     status,
     excludeStatus,
-    priority: normalizePriority($priorityFilter?.value || '')
+    priority: normalizePriority($priorityFilter?.value || ''),
+    search: ($searchFilter?.value || '').trim()
   };
 }
 function applyFilters(rows){
-  const { status, excludeStatus, priority } = getFilters();
+  const filters = getFilters();
+  updateActiveFilterChips(filters);
+
+  const { status, excludeStatus, priority, search } = filters;
+  const searchTerm = search ? search.toLowerCase() : '';
   return rows.filter(r => {
     const rowStatus = statusClass(r['Status']);
     const okStatus = !status
       ? true
       : (excludeStatus ? rowStatus !== status : rowStatus === status);
     const okPrio   = !priority || normalizePriority(r['Priority']) === priority;
-    return okStatus && okPrio;
+    const matchesSearch = !searchTerm || Object.values(r).some(val => String(val ?? '').toLowerCase().includes(searchTerm));
+    return okStatus && okPrio && matchesSearch;
   });
 }
 
@@ -633,8 +782,17 @@ async function loadFromGoogleSheetCSV(){
 document.addEventListener('DOMContentLoaded', loadFromGoogleSheetCSV);
 
 // Re-render on filter change
-$statusFilter?.addEventListener('change', ()=>{ if(LAST_HEADERS && ALL_ROWS) ingestToDashboards(LAST_HEADERS, ALL_ROWS); });
-$priorityFilter?.addEventListener('change', ()=>{ if(LAST_HEADERS && ALL_ROWS) ingestToDashboards(LAST_HEADERS, ALL_ROWS); });
+function handleFilterChange(){
+  if(LAST_HEADERS && ALL_ROWS){
+    ingestToDashboards(LAST_HEADERS, ALL_ROWS);
+  }else{
+    updateActiveFilterChips(getFilters());
+  }
+}
+$statusFilter?.addEventListener('change', handleFilterChange);
+$priorityFilter?.addEventListener('change', handleFilterChange);
+$searchFilter?.addEventListener('input', handleFilterChange);
+$searchFilter?.addEventListener('change', handleFilterChange);
 </script>
 </body>
 </html>
