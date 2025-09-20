@@ -122,36 +122,37 @@
       overflow-x:auto;
       -webkit-overflow-scrolling:touch;
       margin-top:12px;
+      position:relative;
     }
 
-    table{ 
+    table{
       width:100%;
       min-width:1100px;
       border-collapse:separate;
       border-spacing:0;
-    table-layout:auto;}
+      table-layout:auto;
     }
-    
-    table th, table td{
-      overflow-wrap:anywhere; 
-      word-break:break-word;
-      hyphens:auto;
-    }
-    thead th { 
-      position: sticky; 
-      top: var(--sticky-controls-offset); 
-      z-index: 3; }
+
     thead th{
-      background:var(--thead); 
-      color:var(--thead-text); 
-      text-transform:uppercase; 
+      position:sticky;
+      top:var(--sticky-controls-offset);
+      z-index:100;
+      background:var(--thead);
+      color:var(--thead-text);
+      text-transform:uppercase;
       letter-spacing:.6px;
-      font-weight:800; 
-      font-size:11px; 
-      padding:10px 8px; 
+      font-weight:800;
+      font-size:11px;
+      padding:10px 8px;
       border-right:1px solid rgba(255,255,255,.08);
       cursor:pointer;
       box-shadow: 0 1px 0 var(--grid);
+      white-space:nowrap;
+      text-overflow:ellipsis;
+      overflow:hidden;
+    }
+    tbody td, tbody th{
+      position:static;
     }
     thead th .sort-arrow{ margin-left:4px; }
     thead th[data-sort="asc"] .sort-arrow::after{ content:'\25B2'; }
@@ -159,11 +160,15 @@
     thead th:first-child{ border-top-left-radius:3px; }
     thead th:last-child{ border-top-right-radius:3px; border-right:none; }
 
-    tbody td{ 
-      background:var(--zebra); 
-      border-bottom:1px solid var(--grid); 
-      padding:10px 8px; 
-      vertical-align:top; 
+    tbody td{
+      background:var(--zebra);
+      border-bottom:1px solid var(--grid);
+      padding:10px 8px;
+      vertical-align:top;
+      overflow-wrap:anywhere;
+      word-break:break-word;
+      hyphens:auto;
+      line-height:1.35;
     }
 
     .col-id{ width:66px; }
@@ -321,13 +326,6 @@
 .dash{ display:none; }
 .dash[data-active="true"]{ display:block; }
 
-/* keep table look consistent in the new dashboards */
-tbody td{ 
-  overflow-wrap:anywhere; 
-  word-break: break-word;
-  hyphens: auto;
-}
-
 /* a11y helper */
 .visually-hidden{
   position:absolute;
@@ -471,6 +469,29 @@ let ALL_ROWS = null;
 const ESC_MAP = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;'}; const ESC_RE=/[&<>"']/g;
 function esc(s){ return String(s==null?'':s).replace(ESC_RE, c => ESC_MAP[c]); }
 function slugify(str){ return str.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
+
+function applyColumnWidths(table, headers){
+  const widthMap = {
+    'ID':'66px',
+    'Title':'240px',
+    'Status':'120px',
+    'Priority':'92px',
+    'Assigned to':'200px',
+    'Created on':'110px',
+    'Completed on':'110px',
+    'Last updated':'120px',
+    'Location':'160px',
+    'Asset':'180px',
+    'Categories':'220px'
+  };
+  const colgroup = document.createElement('colgroup');
+  headers.forEach(h=>{
+    const col = document.createElement('col');
+    if(widthMap[h]) col.style.minWidth = widthMap[h];
+    colgroup.appendChild(col);
+  });
+  table.prepend(colgroup);
+}
 
 // Category presets + fallback coloring
 const CATEGORY_COLOR_PRESETS=[['Search','#E7F3FE','#1887FC'],['Cleaning','#FCEBFF','#EA7BFF'],['Commission','#E7DFFD','#855EF4'],['Contractor','#FFE6CC','#A24900'],['Daily Procedures','#FFE5DF','#FF7C60'],['Damage','#FFF5CC','#CC9900'],['Electrical','#FFE4D0','#FF7439'],['Eng Weekly Meeting','#FFE5DF','#FF7C60'],['Error Codes','#FFDBE6','#FF4A80'],['Fire Safety','#FFDBE6','#FF4A80'],['First Time Fix','#E7F3FE','#1887FC'],['General improvements','#E7DFFD','#855EF4'],['Inspection','#E7F3FE','#1887FC'],['James Indust Cleaner','#D9F5F1','#3FCBBB'],['Leak','#DDF9FC','#1887FC'],['Manufacturers Machine Service Procedure','#FCEBFF','#EA7BFF'],['Mechanical','#E7F3FE','#1A66CC'],['meters','#E7F3FE','#1570B8'],['Monthly Procedures','#FFE4D0','#FF7439'],['Ordering/Purchasing','#DDF9FC','#54DFF2'],['Planned Winter Project','#E7F3FE','#1887FC'],['Plumbing','#FCEBFF','#B24BEA'],['PPM','#E4F9E8','#2FB95A'],['Preventive','#E4F9E8','#2FB95A'],['Product Quality improvements','#E7F3FE','#1887FC'],['Programming','#FFE4D0','#D85E2E'],['Project','#E7F3FE','#2A7BEF'],['Reactive Maintenance','#DDF9FC','#2CCFE3'],['Refrigeration','#D9F5F1','#3FCBBB'],['Safety','#E7F3FE','#1870DA'],['Site maintenance responsabilities','#E7F3FE','#1868C0'],['Smart Check','#FFDBE6','#E43C75'],['Standard Operating Procedure','#FFDBE6','#E43C75'],['Top 5','#E7DFFD','#6D4CE6'],['Training','#E7F3FE','#1870DA'],['Weekly Procedures','#E7F3FE','#1870DA'],['Yearly Procedures','#FFF5CC','#8A6E00'],['Zero Emissions','#D9F5F1','#2AAE9E']];
@@ -722,18 +743,22 @@ function renderDashboard(container, headers, rows){
   }
 
   // Table
-  const table=document.createElement('table'); table.setAttribute('role','table'); table.setAttribute('aria-label','Work Orders');
+  const visibleHeaders = headers;
+  const table=document.createElement('table');
+  applyColumnWidths(table, visibleHeaders);
+  table.setAttribute('role','table');
+  table.setAttribute('aria-label','Work Orders');
   const tableWrap=document.createElement('div'); tableWrap.className='table-scroll';
   const thead=document.createElement('thead'); const tbody=document.createElement('tbody');
   table.appendChild(thead); table.appendChild(tbody); tableWrap.appendChild(table); container.appendChild(tableWrap);
 
-  thead.innerHTML=`<tr>${headers.map(h=>`<th scope="col" data-col="${esc(h)}" tabindex="0"><span>${esc(h)}</span><span class="sort-arrow" aria-hidden="true"></span></th>`).join('')}</tr>`;
+  thead.innerHTML=`<tr>${visibleHeaders.map(h=>`<th scope="col" data-col="${esc(h)}" tabindex="0"><span>${esc(h)}</span><span class="sort-arrow" aria-hidden="true"></span></th>`).join('')}</tr>`;
   thead.querySelectorAll('th').forEach(th=>{
-    th.addEventListener('click', ()=> sortScoped(th, tbody, headers, rows, container));
-    th.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); sortScoped(th, tbody, headers, rows, container); } });
+    th.addEventListener('click', ()=> sortScoped(th, tbody, visibleHeaders, rows, container));
+    th.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); sortScoped(th, tbody, visibleHeaders, rows, container); } });
   });
 
-  renderRowsScoped(tbody, headers, rows);
+  renderRowsScoped(tbody, visibleHeaders, rows);
   container.__rows = rows.slice();
 
 }
