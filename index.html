@@ -179,44 +179,46 @@
     .open{ color:var(--open-tx); font-weight:800; }
 
 
-    .controls{ display:flex; gap:12px; align-items:center; margin:8px 0 12px; font-size:12px; flex-wrap:wrap; }
-    .controls .search-input{
-      flex:1 1 280px;
-      min-width:220px;
-      max-width:460px;
-      order:-1;
-      padding:9px 16px;
-      border-radius:999px;
-      border:2px solid color-mix(in srgb, var(--als-blue) 65%, transparent);
-      background:color-mix(in srgb, var(--als-blue) 12%, var(--paper));
-      color:var(--ink);
-      font:inherit;
-      font-weight:600;
-      box-shadow:0 4px 10px color-mix(in srgb, var(--als-blue) 18%, transparent);
-      transition:border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
-      appearance:none;
-    }
-    .controls .search-input::placeholder{ color:color-mix(in srgb, var(--ink) 45%, transparent); font-weight:500; }
-    .controls .search-input:focus-visible{
-      outline:none;
-      border-color:var(--als-blue);
-      box-shadow:0 0 0 3px color-mix(in srgb, var(--als-blue) 30%, transparent);
-      background:color-mix(in srgb, var(--als-blue) 20%, var(--paper));
-    }
-    .controls input[type="file"], .controls textarea{ font:inherit; }
-    .controls .filter-group{ display:flex; align-items:center; gap:6px; font-weight:600; color:var(--ink); }
-    .controls .filter-group select{
-      font:inherit;
-      padding:6px 10px;
-      border:1px solid var(--grid);
-      border-radius:8px;
-      background:var(--paper);
-      color:inherit;
-      cursor:pointer;
-    }
-    .controls .filter-group select:focus-visible{ outline:2px solid color-mix(in srgb, var(--als-blue) 65%, transparent); outline-offset:2px; }
-    .controls textarea{ width:min(100%, 520px); height:100px; padding:8px; border:1px solid var(--grid); border-radius:6px; }
-    .btn{ padding:6px 10px; border:1px solid var(--als-blue); border-radius:8px; background:var(--paper); color:var(--als-blue); font-weight:700; cursor:pointer; }
+  .controls{ display:flex; gap:12px; align-items:center; margin:8px 0 12px; font-size:12px; flex-wrap:wrap; }
+
+.controls .search-input{
+  flex:1 1 280px;
+  min-width:220px;
+  max-width:460px;
+  order:-1;
+  padding:9px 16px;
+  border-radius:999px;
+  border:2px solid color-mix(in srgb, var(--als-blue) 65%, transparent);
+  background:color-mix(in srgb, var(--als-blue) 12%, var(--paper));
+  color:var(--ink);
+  font:inherit;
+  font-weight:600;
+  box-shadow:0 4px 10px color-mix(in srgb, var(--als-blue) 18%, transparent);
+  transition:border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+  appearance:none;
+}
+.controls .search-input::placeholder{ color:color-mix(in srgb, var(--ink) 45%, transparent); font-weight:500; }
+.controls .search-input:focus-visible{
+  outline:none;
+  border-color:var(--als-blue);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--als-blue) 30%, transparent);
+  background:color-mix(in srgb, var(--als-blue) 20%, var(--paper));
+}
+
+.controls input[type="file"], .controls textarea{ font:inherit; }
+
+.controls .filter-group{ display:flex; align-items:center; gap:6px; font-weight:600; color:var(--ink); }
+.controls .filter-group select{
+  font:inherit;
+  padding:6px 10px;
+  border:1px solid var(--grid);
+  border-radius:8px;
+  background:var(--paper);
+  color:inherit;
+  cursor:pointer;
+}
+.controls .filter-group select:focus-visible{ outline:2px solid color-mix(in srgb, var(--als-blue) 65%, transparent); outline-offset:2px; }
+.btn{ padding:6px 10px; border:1px solid var(--als-blue); border-radius:8px; background:var(--paper); color:var(--als-blue); font-weight:700; cursor:pointer; }
 
 /* --- Per-site dashboards --- */
 .nav{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 10px; }
@@ -293,11 +295,9 @@ tbody td{ overflow-wrap:anywhere; }
     </div>
     <div class="top-rule"></div>
 
-    <div class="controls" aria-hidden="false">
       <input type="search" id="globalSearch" class="search-input" placeholder="Search work orders" aria-label="Search work orders">
       <label class="btn" for="file">Upload CSV/TSV/JSON</label>
       <input id="file" type="file" accept=".csv,.tsv,.json,application/json,text/csv,text/tab-separated-values" style="display:none" />
-      <button class="btn" id="pasteBtn" type="button">Paste data → render</button>
       <button class="btn" id="themeBtn" type="button">Dark mode</button>
       <label class="filter-group">
         <span>Status</span>
@@ -320,7 +320,6 @@ tbody td{ overflow-wrap:anywhere; }
           <option value="low">Low</option>
         </select>
       </label>
-      <textarea id="pasteBox" placeholder="Paste CSV (headers required) or JSON array here..."></textarea>
     </div>
 
     <!-- Tabs -->
@@ -606,7 +605,7 @@ function setActiveDash(id){
   tabs.forEach(t => t.setAttribute('aria-selected', String(t.getAttribute('aria-controls')===id)));
 }
 
-// File & paste ingest (unchanged, but now reuses the same ingest/render)
+// File ingest (unchanged, but now reuses the same ingest/render)
 document.getElementById('file').addEventListener('change', e=>{
   const f=e.target.files[0]; if(!f) return;
   const reader=new FileReader();
@@ -619,15 +618,6 @@ document.getElementById('file').addEventListener('change', e=>{
     LAST_HEADERS=headers; ALL_ROWS=rows; ingestToDashboards(LAST_HEADERS, ALL_ROWS);
   };
   reader.readAsText(f);
-});
-document.getElementById('pasteBtn').addEventListener('click', ()=>{
-  const text=document.getElementById('pasteBox').value; if(!text.trim()) return;
-  let headers=[], rows=[];
-  try{
-    const result=(text.trim().startsWith('[')||text.trim().startsWith('{'))?handleJSON(text):parseDelimited(text);
-    headers=result.headers; rows=result.rows;
-  }catch(err){ alert('Parse error: '+err.message); return; }
-  LAST_HEADERS=headers; ALL_ROWS=rows; ingestToDashboards(LAST_HEADERS, ALL_ROWS);
 });
 
 // Theme toggle (unchanged)
