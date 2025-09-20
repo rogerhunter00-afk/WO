@@ -920,6 +920,12 @@ function ingestToDashboards(headers, rows){
 
   [['dash-all','all'],['dash-ek','ek'],['dash-mm','mm'],['dash-keith','keith'],['dash-by','by']].forEach(([id,key])=>{
     const el=document.getElementById(id);
+    if(!el){
+      if(typeof console!=='undefined' && typeof console.warn==='function'){
+        console.warn(`Skipping dashboard "${id}" – element not found.`);
+      }
+      return;
+    }
     renderDashboard(el, safeHeaders, groups[key]);
   });
 
