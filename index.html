@@ -120,7 +120,6 @@
 .table-scroll thead{
   position: sticky;
   top: var(--sticky-controls-offset);
-  z-index: 110;                  /* stays under .sticky-top (120), above rows */
 }
 
 /* Header cell visuals (no sticky here) */
@@ -250,26 +249,28 @@ table th, table td{
   box-shadow:0 1px 0 var(--grid);
 }
 
- /* Scrim under sticky controls */
+/* Scrim under sticky controls (doesn't affect layout) */
 .sticky-top::after{
-  pointer-events: none;
   content:"";
   position: sticky;
   top: 0;
   display:block;
+  width:100%;
 
-  /* height will be set dynamically by JS */
+  /* exact header height comes from JS */
   height: var(--thead-height, 40px);
 
-  margin-top: calc(var(--sticky-controls-offset));
+  /* overlay instead of pushing layout */
+  transform: translateY(var(--sticky-controls-offset));
+
   background: var(--paper);
-  z-index: 119; /* between controls (120) and thead (110) */
+  pointer-events: none;   /* don't eat clicks/hover */
+  z-index: 111;           /* between controls (120) and rows; keep below THEAD if you want THEAD above */
 }
 
-/* z-index layering */
-.table-scroll thead{ z-index:110; }
+/* keep stacking clear */
+.table-scroll thead{ z-index:112; }  /* put sticky THEAD above scrim */
 .sticky-top{ z-index:120; }
-
 
 .controls{
   display:flex;
@@ -824,6 +825,8 @@ function renderDashboard(container, headers, rows){
   });
 
   renderRowsScoped(tbody, visibleHeaders, rows);
+  // measure the sticky header height now that it exists
+  updateTheadHeight();
 }
 
 function renderRowsScoped(tbodyEl, headers, rows){
@@ -937,6 +940,7 @@ function setActiveDash(id){
   });
   tabs.forEach(t => t.setAttribute('aria-selected', String(t.getAttribute('aria-controls')===id)));
   updateStickyControlsOffset();
+    updateTheadHeight();
 }
 
 // File ingest (unchanged, but now reuses the same ingest/render)
