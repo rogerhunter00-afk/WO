@@ -142,7 +142,19 @@
     .id{ font-weight:700; }
     .title-cell b{ display:block; font-weight:800; }
 
-    .chip-cat{ display:inline-block; color:var(--chip-cat-tx); border:1.8px solid var(--chip-cat-br); padding:2px 8px; border-radius:6px; background:var(--paper); margin:2px 6px 2px 0; font-weight:700; }
+    .chip-cat{
+      display:inline-flex;
+      align-items:center;
+      border-radius:999px;
+      padding:4px 10px;
+      border:1px solid currentColor;
+      background:transparent;
+      margin:2px 6px 2px 0;
+      font-weight:600;
+      font-size:12px;
+      line-height:1;
+      white-space:nowrap;
+    }
 
     .status-chip{ display:inline-flex; align-items:center; padding:2px 8px; border-radius:6px; font-weight:700; }
     .status-chip::before{ margin-right:4px; }
@@ -267,58 +279,133 @@ tbody td{ overflow-wrap:anywhere; }
   </div>
 
 <script>
-  const categoryColors = {
-    'mechanical': {
-      light: { background: '#f59e0b1a', border: '#f59e0b', color: '#92400e' },
-      dark: { background: '#f59e0b33', border: '#f59e0b', color: '#fbbf24' }
-    },
-    'inspection': {
-      light: { background: '#3b82f61a', border: '#3b82f6', color: '#1e40af' },
-      dark: { background: '#3b82f633', border: '#3b82f6', color: '#93c5fd' }
-    },
-    'electrical': {
-      light: { background: '#10b9811a', border: '#10b981', color: '#065f46' },
-      dark: { background: '#10b98133', border: '#10b981', color: '#6ee7b7' }
-    },
-    'resin': {
-      light: { background: '#a855f71a', border: '#a855f7', color: '#6b21a8' },
-      dark: { background: '#a855f733', border: '#a855f7', color: '#d8b4fe' }
-    },
-    'weekly-procedures': {
-      light: { background: '#ef44441a', border: '#ef4444', color: '#991b1b' },
-      dark: { background: '#ef444433', border: '#ef4444', color: '#fca5a5' }
-    }
-  };
+  const CATEGORY_COLOR_PRESETS = [
+    ['Search', '#E7F3FE', '#1887FC'],
+    ['Cleaning', '#FCEBFF', '#EA7BFF'],
+    ['Commission', '#E7DFFD', '#855EF4'],
+    ['Contractor', '#DDF9FC', '#54DFF2'],
+    ['Daily Procedures', '#FFE5DF', '#FF7C60'],
+    ['Damage', '#FFF5CC', '#CC9900'],
+    ['Electrical', '#FFE4D0', '#FF7439'],
+    ['Eng Weekly Meeting', '#FFE5DF', '#FF7C60'],
+    ['Error Codes', '#FFDBE6', '#FF4A80'],
+    ['Fire Safety', '#FFDBE6', '#FF4A80'],
+    ['First Time Fix', '#E7F3FE', '#1887FC'],
+    ['General improvements', '#E7DFFD', '#855EF4'],
+    ['Inspection', '#E7F3FE', '#1887FC'],
+    ['James Indust Cleaner', '#D9F5F1', '#3FCBBB'],
+    ['Leak', '#DDF9FC', '#1887FC'],
+    ['Manufacturers Machine Service Procedure', '#FCEBFF', '#EA7BFF'],
+    ['Mechanical', '#E7F3FE', '#1A66CC'],
+    ['meters', '#E7F3FE', '#1570B8'],
+    ['Monthly Procedures', '#FFE4D0', '#FF7439'],
+    ['Ordering/Purchasing', '#DDF9FC', '#54DFF2'],
+    ['Planned Winter Project', '#E7F3FE', '#1887FC'],
+    ['Plumbing', '#FCEBFF', '#B24BEA'],
+    ['PPM', '#E4F9E8', '#2FB95A'],
+    ['Preventive', '#E4F9E8', '#2FB95A'],
+    ['Product Quality improvements', '#E7F3FE', '#1887FC'],
+    ['Programming', '#FFE4D0', '#D85E2E'],
+    ['Project', '#E7F3FE', '#2A7BEF'],
+    ['Reactive Maintenance', '#DDF9FC', '#2CCFE3'],
+    ['Refrigeration', '#D9F5F1', '#3FCBBB'],
+    ['Safety', '#E7F3FE', '#1870DA'],
+    ['Site maintenance responsabilities', '#E7F3FE', '#1868C0'],
+    ['Smart Check', '#FFDBE6', '#E43C75'],
+    ['Standard Operating Procedure', '#FFDBE6', '#E43C75'],
+    ['Top 5', '#E7DFFD', '#6D4CE6'],
+    ['Training', '#E7F3FE', '#1870DA'],
+    ['Weekly Procedures', '#E7F3FE', '#1870DA'],
+    ['Yearly Procedures', '#FFF5CC', '#8A6E00'],
+    ['Zero Emissions', '#D9F5F1', '#2AAE9E'],
+  ];
 
-  function hashColor(slug){
+  const categoryColors = CATEGORY_COLOR_PRESETS.reduce((acc, [label, background, foreground]) => {
+    const slug = slugify(label);
+    acc[slug] = { background, foreground };
+    return acc;
+  }, {});
+
+  function hashCategory(label){
     let hash = 0;
-    for(let i=0;i<slug.length;i++){
-      hash = ((hash << 5) - hash) + slug.charCodeAt(i);
+    const input = String(label || '');
+    for(let i = 0; i < input.length; i++){
+      hash = ((hash << 5) - hash) + input.charCodeAt(i);
       hash |= 0;
     }
-    const hue = Math.abs(hash) % 360;
-    const baseSat = 55 + (Math.abs(hash >> 7) % 25);
-    const baseLight = 65 + (Math.abs(hash >> 14) % 20);
-    const background = `hsl(${hue}, ${Math.max(40, baseSat - 15)}%, ${Math.min(95, baseLight + 10)}%)`;
-    const border = `hsl(${hue}, ${baseSat}%, ${Math.max(35, baseLight - 15)}%)`;
-    const text = `hsl(${hue}, ${Math.min(95, baseSat + 20)}%, ${Math.max(20, baseLight - 35)}%)`;
-    return { background, border, text };
+    return Math.abs(hash);
   }
 
-  function chipStyle(slug){
+  function hslToRgb(h, s, l){
+    const hue = ((h % 360) + 360) % 360;
+    const sat = Math.max(0, Math.min(100, s)) / 100;
+    const lig = Math.max(0, Math.min(100, l)) / 100;
+    const c = (1 - Math.abs(2 * lig - 1)) * sat;
+    const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
+    const m = lig - c / 2;
+    let r1 = 0, g1 = 0, b1 = 0;
+    if(hue < 60){ r1 = c; g1 = x; }
+    else if(hue < 120){ r1 = x; g1 = c; }
+    else if(hue < 180){ g1 = c; b1 = x; }
+    else if(hue < 240){ g1 = x; b1 = c; }
+    else if(hue < 300){ r1 = x; b1 = c; }
+    else { r1 = c; b1 = x; }
+    const r = r1 + m;
+    const g = g1 + m;
+    const b = b1 + m;
+    return [r, g, b];
+  }
+
+  function srgbToLinear(c){
+    return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  }
+
+  function relativeLuminance(rgb){
+    const [r, g, b] = rgb.map(v => srgbToLinear(Math.max(0, Math.min(1, v))));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+
+  function contrastRatio(bgHsl, fgHsl){
+    const bgRgb = hslToRgb(bgHsl.h, bgHsl.s, bgHsl.l);
+    const fgRgb = hslToRgb(fgHsl.h, fgHsl.s, fgHsl.l);
+    const lBg = relativeLuminance(bgRgb);
+    const lFg = relativeLuminance(fgRgb);
+    const light = Math.max(lBg, lFg);
+    const dark = Math.min(lBg, lFg);
+    return (light + 0.05) / (dark + 0.05);
+  }
+
+  function fallbackColors(label){
+    const hash = hashCategory(label);
+    const hue = hash % 360;
+    const bg = { h: hue, s: 45, l: 92 };
+    const fg = { h: hue, s: 60, l: 32 };
+    let currentFg = { ...fg };
+    let ratio = contrastRatio(bg, currentFg);
+    while(ratio < 4.5 && currentFg.l > 0){
+      currentFg = { ...currentFg, l: Math.max(0, currentFg.l - 10) };
+      ratio = contrastRatio(bg, currentFg);
+    }
+    return {
+      background: `hsl(${bg.h}, ${bg.s}%, ${bg.l}%)`,
+      foreground: `hsl(${currentFg.h}, ${currentFg.s}%, ${currentFg.l}%)`
+    };
+  }
+
+  function chipStyle(label, slugOverride){
+    const slug = slugOverride || slugify(label);
     const preset = categoryColors[slug];
     if(preset){
       return { className: `cat-${slug}`, style: '' };
     }
-    const colors = hashColor(slug);
-    const style = `background:${colors.background};border-color:${colors.border};color:${colors.text}`;
+    const colors = fallbackColors(label);
+    const style = `background:${colors.background};border-color:${colors.foreground};color:${colors.foreground}`;
     return { className: `cat-${slug}`, style };
   }
 
   const styleEl = document.createElement('style');
   styleEl.textContent = Object.entries(categoryColors).map(([slug, colors]) => `
-    .chip-cat.cat-${slug}{background:${colors.light.background};color:${colors.light.color};border-color:${colors.light.border};}
-    .dark .chip-cat.cat-${slug}{background:${colors.dark.background};color:${colors.dark.color};border-color:${colors.dark.border};}
+    .chip-cat.cat-${slug}{background:${colors.background};color:${colors.foreground};border-color:${colors.foreground};}
   `).join('');
   document.head.appendChild(styleEl);
 
@@ -488,13 +575,16 @@ tbody td{ overflow-wrap:anywhere; }
         const hNorm = norm(h);
 
         if (hNorm === 'categories'){
-          const chips = String(v||'').split(';').map(c=>c.trim()).filter(Boolean).map(cat=>{
+          const seen = new Set();
+          const chips = String(v||'').split(',').map(c => c.trim()).filter(Boolean).map(cat => {
             const slug = slugify(cat);
-            const { className, style } = chipStyle(slug);
+            if(seen.has(slug)) return '';
+            seen.add(slug);
+            const { className, style } = chipStyle(cat, slug);
             const styleAttr = style ? ` style="${style}"` : '';
             const classAttr = className ? ` ${className}` : '';
             return `<span class="chip-cat${classAttr}"${styleAttr}>${esc(cat)}</span>`;
-          }).join('');
+          }).filter(Boolean).join('');
           return `<td>${chips}</td>`;
         }
 
