@@ -117,13 +117,29 @@
 
     .top-rule{ height:6px; background:var(--als-blue); border-bottom:1px solid var(--als-blue-strong); margin:8px 0 10px; }
 
-    .table-scroll{
-      width:100%;
-      overflow-x:auto;
-      -webkit-overflow-scrolling:touch;
-      margin-top:12px;
-      position:relative;
-    }
+.table-scroll thead{
+  position: sticky;
+  top: var(--sticky-controls-offset);
+  z-index: 110;                  /* stays under .sticky-top (120), above rows */
+}
+
+/* Header cell visuals (no sticky here) */
+.table-scroll thead th{
+  position: static;              /* reset from the old sticky-per-th */
+  background:var(--thead);
+  color:var(--thead-text);
+  text-transform:uppercase;
+  letter-spacing:.6px;
+  font-weight:800;
+  font-size:11px;
+  padding:10px 8px;
+  border-right:1px solid rgba(255,255,255,.08);
+  cursor:pointer;
+  box-shadow: 0 1px 0 var(--grid);
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  overflow:hidden;
+}
 
 /* ✅ Merged table + cell styles */
 table{
@@ -141,9 +157,6 @@ table th, table td{
 }
 
     thead th{
-      position:sticky;
-      top:var(--sticky-controls-offset);
-      z-index:100;
       background:var(--thead);
       color:var(--thead-text);
       text-transform:uppercase;
