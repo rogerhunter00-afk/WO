@@ -214,11 +214,10 @@ thead th{
     .done{ color:var(--done-tx); font-weight:800; }
     .open{ color:var(--open-tx); font-weight:800; }
 
-
-/* Controls + sticky + search + filter chips (merged) */
+/* Controls + sticky + search + filter chips + view-options */
 .controls{
   position: sticky;
-  top: 0;                /* stick to the top of the page container */
+  top: 0;
   z-index: 10;
   background: var(--paper);
   display:flex;
@@ -228,11 +227,11 @@ thead th{
   padding:10px 0;
   font-size:12px;
   flex-wrap:wrap;
-  box-shadow:0 1px 0 var(--grid); /* subtle divider under sticky bar */
+  box-shadow:0 1px 0 var(--grid);
 }
 .controls input[type="file"], .controls textarea{ font:inherit; }
 
-/* Search input (works whether or not it’s inside .controls, but it is) */
+/* Search */
 .search-input{
   flex:1 1 280px;
   min-width:220px;
@@ -273,29 +272,34 @@ thead th{
 /* Buttons */
 .btn{ padding:6px 10px; border:1px solid var(--als-blue); border-radius:8px; background:var(--paper); color:var(--als-blue); font-weight:700; cursor:pointer; }
 
-/* Active filter chips row (non-sticky) */
+/* View Options dropdown */
+.view-options{ position:relative; }
+.view-options__trigger{ display:inline-flex; align-items:center; gap:6px; }
+.view-options__menu{
+  position:absolute; right:0; top:calc(100% + 6px);
+  background:var(--paper); border:1px solid var(--grid); border-radius:12px;
+  padding:12px; box-shadow:0 12px 28px rgba(15,23,42,.18);
+  min-width:190px; max-width:240px; z-index:40;
+}
+.view-options__menu[hidden]{ display:none; }
+.view-options fieldset{ border:none; padding:0; margin:0; display:flex; flex-direction:column; gap:10px; }
+.view-options__group-label{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); }
+.view-options__options{ display:flex; flex-direction:column; gap:6px; max-height:min(240px, 55vh); overflow:auto; padding-right:4px; }
+.view-options__option{ display:flex; align-items:center; gap:8px; font-weight:600; color:var(--ink); white-space:nowrap; }
+.view-options__option input{ margin:0; accent-color:var(--als-blue); }
+
+/* Active filter chips */
 .active-filter-chips{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  margin:-4px 0 12px;
-  padding:0;
+  display:flex; flex-wrap:wrap; gap:8px;
+  margin:-4px 0 12px; padding:0;
 }
 .active-filter-chips[hidden]{ display:none; }
 .filter-chip{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  padding:6px 12px;
-  border-radius:999px;
+  display:inline-flex; align-items:center; gap:6px;
+  padding:6px 12px; border-radius:999px;
   border:1px solid color-mix(in srgb, var(--als-blue) 32%, var(--grid));
   background:color-mix(in srgb, var(--als-blue) 14%, var(--paper));
-  color:var(--ink);
-  font-weight:600;
-  font-size:12px;
-  cursor:pointer;
-  max-width:100%;
-  text-align:left;
+  color:var(--ink); font-weight:600; font-size:12px; cursor:pointer; max-width:100%; text-align:left;
   transition:background .2s ease, border-color .2s ease, color .2s ease;
 }
 .filter-chip:hover{
@@ -306,12 +310,7 @@ thead th{
   outline:2px solid color-mix(in srgb, var(--als-blue) 65%, transparent);
   outline-offset:2px;
 }
-.filter-chip__label{
-  display:inline-block;
-  max-width:min(280px, 100%);
-  white-space:normal;
-  word-break:break-word;
-}
+.filter-chip__label{ display:inline-block; max-width:min(280px, 100%); white-space:normal; word-break:break-word; }
 .filter-chip__icon{ font-size:16px; line-height:1; }
 
 /* --- Per-site dashboards --- */
@@ -370,6 +369,8 @@ tbody td{
   .controls{ gap:10px; }
   .controls textarea{ width:100%; min-width:0; }
   .controls .search-input{ flex-basis:100%; max-width:none; }
+  .view-options__menu{ left:0; right:auto; } /* open from left on mobile */
+
 }
 
     @media print{
@@ -383,6 +384,7 @@ tbody td{
       html{-webkit-print-color-adjust:exact;}
       .controls{ display:none !important; }
       .active-filter-chips{ display:none !important; }
+      .view-options{ display:none !important; }
     }
   </style>
 </head>
@@ -399,6 +401,16 @@ tbody td{
       <label class="btn" for="file">Upload CSV/TSV/JSON</label>
       <input id="file" type="file" accept=".csv,.tsv,.json,application/json,text/csv,text/tab-separated-values" style="display:none" />
       <button class="btn" id="themeBtn" type="button">Dark mode</button>
+      <div class="view-options" id="viewOptions">
+        <button class="btn view-options__trigger" id="viewOptionsBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="viewOptionsMenu">⚙️ View Options</button>
+        <div class="view-options__menu" id="viewOptionsMenu" hidden>
+          <fieldset>
+            <legend class="visually-hidden">Toggle table columns</legend>
+            <span class="view-options__group-label">Columns</span>
+            <div class="view-options__options" id="columnToggleWrap"></div>
+          </fieldset>
+        </div>
+      </div>
 
       <label class="filter-group">
         <span>Status</span>
@@ -470,11 +482,129 @@ if('ResizeObserver' in window && $controlsBar){
 // --- State cache for rendering ---
 let LAST_HEADERS = null;
 let ALL_ROWS = null;
+const COLUMN_VISIBILITY_KEY = 'als-dashboard-column-visibility';
+let COLUMN_VISIBILITY = {};
+if(typeof localStorage !== 'undefined'){
+  try{
+    const stored = JSON.parse(localStorage.getItem(COLUMN_VISIBILITY_KEY) || 'null');
+    if(stored && typeof stored === 'object'){
+      COLUMN_VISIBILITY = stored;
+    }
+  }catch(err){
+    console.warn('Could not parse saved column visibility state', err);
+  }
+}
+const $viewOptions = document.getElementById('viewOptions');
+const $viewOptionsBtn = document.getElementById('viewOptionsBtn');
+const $viewOptionsMenu = document.getElementById('viewOptionsMenu');
+const $columnToggleWrap = document.getElementById('columnToggleWrap');
 
 // ---------- Utility + theming (unchanged bits you already had) ----------
 const ESC_MAP = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;'}; const ESC_RE=/[&<>"']/g;
 function esc(s){ return String(s==null?'':s).replace(ESC_RE, c => ESC_MAP[c]); }
 function slugify(str){ return str.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
+
+function persistColumnVisibility(){
+  if(typeof localStorage === 'undefined') return;
+  try{
+    localStorage.setItem(COLUMN_VISIBILITY_KEY, JSON.stringify(COLUMN_VISIBILITY));
+  }catch(err){
+    console.warn('Could not store column visibility state', err);
+  }
+}
+function ensureColumnVisibility(headers){
+  let mutated=false;
+  headers.forEach(h => {
+    if(!Object.prototype.hasOwnProperty.call(COLUMN_VISIBILITY, h)){
+      COLUMN_VISIBILITY[h]=true;
+      mutated=true;
+    }
+  });
+  if(headers.length && !headers.some(h => COLUMN_VISIBILITY[h] !== false)){
+    headers.forEach(h => { COLUMN_VISIBILITY[h] = true; });
+    mutated=true;
+  }
+  if(mutated){
+    persistColumnVisibility();
+  }
+}
+function getVisibleHeaders(headers){
+  ensureColumnVisibility(headers);
+  return headers.filter(h => COLUMN_VISIBILITY[h] !== false);
+}
+function syncColumnToggleUI(headers){
+  if(!$columnToggleWrap) return;
+  const activeEl=document.activeElement;
+  const shouldRestoreFocus=$viewOptionsMenu && activeEl && $viewOptionsMenu.contains(activeEl);
+  const activeToggleId=shouldRestoreFocus ? activeEl.id : '';
+  ensureColumnVisibility(headers);
+  const frag=document.createDocumentFragment();
+  headers.forEach((h, idx)=>{
+    const option=document.createElement('label');
+    option.className='view-options__option';
+    const input=document.createElement('input');
+    input.type='checkbox';
+    const baseSlug=slugify(h);
+    const inputId=baseSlug ? `col-toggle-${baseSlug}-${idx}` : `col-toggle-col-${idx}`;
+    input.id=inputId;
+    input.checked=COLUMN_VISIBILITY[h] !== false;
+    input.setAttribute('data-col', h);
+    const text=document.createElement('span');
+    text.textContent=h;
+    option.append(input, text);
+    frag.append(option);
+  });
+  $columnToggleWrap.innerHTML='';
+  $columnToggleWrap.appendChild(frag);
+  $columnToggleWrap.querySelectorAll('input[type="checkbox"]').forEach(input=>{
+    input.addEventListener('change', ()=> handleColumnToggleChange(input));
+  });
+  if(activeToggleId){
+    const focusTarget=document.getElementById(activeToggleId);
+    if(focusTarget instanceof HTMLElement){
+      focusTarget.focus();
+    }
+  }
+}
+function handleColumnToggleChange(input){
+  const col=input.getAttribute('data-col');
+  if(!col) return;
+  if(!input.checked){
+    const remaining=Array.from($columnToggleWrap.querySelectorAll('input[type="checkbox"]')).filter(cb=>cb.checked).length;
+    if(remaining===0){
+      input.checked=true;
+      return;
+    }
+  }
+  COLUMN_VISIBILITY[col]=input.checked;
+  persistColumnVisibility();
+  rerenderDashboards();
+}
+function setViewOptionsOpen(open){
+  if(!$viewOptionsBtn || !$viewOptionsMenu) return;
+  $viewOptionsBtn.setAttribute('aria-expanded', String(open));
+  $viewOptionsMenu.hidden = !open;
+  if($viewOptions){
+    $viewOptions.classList.toggle('open', open);
+  }
+}
+$viewOptionsBtn?.addEventListener('click', e=>{
+  e.stopPropagation();
+  const isOpen=$viewOptionsBtn.getAttribute('aria-expanded')==='true';
+  setViewOptionsOpen(!isOpen);
+});
+$viewOptionsMenu?.addEventListener('click', e=> e.stopPropagation());
+document.addEventListener('click', e=>{
+  if(!$viewOptionsMenu || $viewOptionsMenu.hidden) return;
+  if($viewOptions && $viewOptions.contains(e.target)) return;
+  setViewOptionsOpen(false);
+});
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape' && $viewOptionsMenu && !$viewOptionsMenu.hidden){
+    setViewOptionsOpen(false);
+    $viewOptionsBtn?.focus();
+  }
+});
 
 // Category presets + fallback coloring
 const CATEGORY_COLOR_PRESETS=[['Search','#E7F3FE','#1887FC'],['Cleaning','#FCEBFF','#EA7BFF'],['Commission','#E7DFFD','#855EF4'],['Contractor','#FFE6CC','#A24900'],['Daily Procedures','#FFE5DF','#FF7C60'],['Damage','#FFF5CC','#CC9900'],['Electrical','#FFE4D0','#FF7439'],['Eng Weekly Meeting','#FFE5DF','#FF7C60'],['Error Codes','#FFDBE6','#FF4A80'],['Fire Safety','#FFDBE6','#FF4A80'],['First Time Fix','#E7F3FE','#1887FC'],['General improvements','#E7DFFD','#855EF4'],['Inspection','#E7F3FE','#1887FC'],['James Indust Cleaner','#D9F5F1','#3FCBBB'],['Leak','#DDF9FC','#1887FC'],['Manufacturers Machine Service Procedure','#FCEBFF','#EA7BFF'],['Mechanical','#E7F3FE','#1A66CC'],['meters','#E7F3FE','#1570B8'],['Monthly Procedures','#FFE4D0','#FF7439'],['Ordering/Purchasing','#DDF9FC','#54DFF2'],['Planned Winter Project','#E7F3FE','#1887FC'],['Plumbing','#FCEBFF','#B24BEA'],['PPM','#E4F9E8','#2FB95A'],['Preventive','#E4F9E8','#2FB95A'],['Product Quality improvements','#E7F3FE','#1887FC'],['Programming','#FFE4D0','#D85E2E'],['Project','#E7F3FE','#2A7BEF'],['Reactive Maintenance','#DDF9FC','#2CCFE3'],['Refrigeration','#D9F5F1','#3FCBBB'],['Safety','#E7F3FE','#1870DA'],['Site maintenance responsabilities','#E7F3FE','#1868C0'],['Smart Check','#FFDBE6','#E43C75'],['Standard Operating Procedure','#FFDBE6','#E43C75'],['Top 5','#E7DFFD','#6D4CE6'],['Training','#E7F3FE','#1870DA'],['Weekly Procedures','#E7F3FE','#1870DA'],['Yearly Procedures','#FFF5CC','#8A6E00'],['Zero Emissions','#D9F5F1','#2AAE9E']];
@@ -697,9 +827,23 @@ function applyFilters(rows){
   });
 }
 
+function rerenderDashboards(){
+  if (LAST_HEADERS && ALL_ROWS) {
+    ingestToDashboards(LAST_HEADERS, ALL_ROWS);
+  } else {
+    updateActiveFilterChips(getFilters());
+  }
+}
+
+$statusFilter?.addEventListener('change', rerenderDashboards);
+$priorityFilter?.addEventListener('change', rerenderDashboards);
+$searchInput?.addEventListener('input', rerenderDashboards);
+$searchInput?.addEventListener('change', rerenderDashboards);
+
 // Rendering
 function renderDashboard(container, headers, rows){
   container.innerHTML='';
+  container.__rows = rows.slice();
   // KPIs
   const kpiWrap=document.createElement('div'); kpiWrap.className='kpis';
   const total=rows.length;
@@ -707,7 +851,6 @@ function renderDashboard(container, headers, rows){
   const prog =rows.filter(r=>/^in\s*progress$/i.test(r.Status)).length;
   const hold =rows.filter(r=>/^on\s*hold$/i.test(r.Status)).length;
   const done =rows.filter(r=>/^done$/i.test(r.Status)).length;
-  const lastUpd=rows.map(r=>parseDateLoose(r['Last updated'])).filter(Boolean).sort((a,b)=>b-a)[0];
   kpiWrap.appendChild(kpiCard('Total WOs', total));
   kpiWrap.appendChild(kpiCard('Open', open));
   kpiWrap.appendChild(kpiCard('In Progress', prog));
@@ -716,11 +859,20 @@ function renderDashboard(container, headers, rows){
   container.appendChild(kpiWrap);
 
   if(rows.length===0){
-    container.__rows=rows.slice();
     const msg=document.createElement('div');
     msg.style.margin='8px 0';
     msg.style.color='var(--muted)';
     msg.textContent='No work orders match the current filters.';
+    container.appendChild(msg);
+    return;
+  }
+
+  const visibleHeaders=getVisibleHeaders(headers);
+  if(visibleHeaders.length===0){
+    const msg=document.createElement('div');
+    msg.style.margin='8px 0';
+    msg.style.color='var(--muted)';
+    msg.textContent='All columns are hidden. Use View Options to show at least one column.';
     container.appendChild(msg);
     return;
   }
@@ -731,14 +883,13 @@ function renderDashboard(container, headers, rows){
   const thead=document.createElement('thead'); const tbody=document.createElement('tbody');
   table.appendChild(thead); table.appendChild(tbody); tableWrap.appendChild(table); container.appendChild(tableWrap);
 
-  thead.innerHTML=`<tr>${headers.map(h=>`<th scope="col" data-col="${esc(h)}" tabindex="0"><span>${esc(h)}</span><span class="sort-arrow" aria-hidden="true"></span></th>`).join('')}</tr>`;
+  thead.innerHTML=`<tr>${visibleHeaders.map(h=>`<th scope="col" data-col="${esc(h)}" tabindex="0"><span>${esc(h)}</span><span class="sort-arrow" aria-hidden="true"></span></th>`).join('')}</tr>`;
   thead.querySelectorAll('th').forEach(th=>{
-    th.addEventListener('click', ()=> sortScoped(th, tbody, headers, rows, container));
-    th.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); sortScoped(th, tbody, headers, rows, container); } });
+    th.addEventListener('click', ()=> sortScoped(th, tbody, visibleHeaders, rows, container));
+    th.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); sortScoped(th, tbody, visibleHeaders, rows, container); } });
   });
 
-  renderRowsScoped(tbody, headers, rows);
-  container.__rows = rows.slice();
+  renderRowsScoped(tbody, visibleHeaders, rows);
 
 }
 
@@ -801,12 +952,16 @@ function ingestToDashboards(headers, rows){
   const expected=['ID','Title','Status','Priority','Assigned to','Created by','Created on','Completed on','Last updated','Location','Asset','Categories'];
   const present = expected.filter(h => headers.includes(h));
   const safeHeaders = present.length ? present : expected;
+  const activeDashEl=document.querySelector('.dash[data-active="true"]');
+  const activeDashId=activeDashEl?.id || 'dash-all';
 
   const normalized = rows.map(r => {
     const o={}; expected.forEach(h => { o[h] = r[h] ?? ''; }); return o;
   });
 
   const filtered = applyFilters(normalized);
+
+  syncColumnToggleUI(safeHeaders);
 
   const groups={
     all  : filtered,
@@ -821,7 +976,7 @@ function ingestToDashboards(headers, rows){
     renderDashboard(el, safeHeaders, groups[key]);
   });
 
-  setActiveDash('dash-all');
+  setActiveDash(activeDashId);
 }
 
 // Tabs
@@ -885,18 +1040,6 @@ async function loadFromGoogleSheetCSV(){
 }
 document.addEventListener('DOMContentLoaded', loadFromGoogleSheetCSV);
 
-// Re-render on filter change
-function handleFilterChange(){
-  if(LAST_HEADERS && ALL_ROWS){
-    ingestToDashboards(LAST_HEADERS, ALL_ROWS);
-  }else{
-    updateActiveFilterChips(getFilters());
-  }
-}
-$statusFilter?.addEventListener('change', handleFilterChange);
-$priorityFilter?.addEventListener('change', handleFilterChange);
-$searchInput?.addEventListener('input', handleFilterChange);
-$searchInput?.addEventListener('change', handleFilterChange);
 </script>
 </body>
 </html>
