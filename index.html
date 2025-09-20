@@ -361,7 +361,17 @@ function handleJSON(text){
 function toSiteKey(loc){ const s=String(loc||'').toLowerCase(); if(s.includes('byron'))return'by'; if(s.includes('mugiemoss')||s.includes('bucksburn'))return'mm'; if(s.includes('keith'))return'keith'; if(s.includes('cathkin')||s.includes('east kilbride')||s.includes('ek'))return'ek'; return'other'; }
 function kpiCard(label,val){ const el=document.createElement('div'); el.className='card'; el.innerHTML=`<h3>${esc(label)}</h3><div class="big">${esc(val)}</div>`; return el; }
 const PRIORITY_ORDER=['critical','high','medium','low','']; const STATUS_ORDER=['open','in-progress','on-hold','done',''];
-function parseDateLoose(v){ if(!v) return null; const m=String(v).match(/^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?$/); if(!m) return null; const [,d,M,y,hh='00',mm='00']=m; const dt=new Date(`${y}-${M}-${d}T${hh}:${mm}:00`); return isNaN(dt.getTime())?null:dt; }
+function parseDateLoose(v){
+  if(!v) return null;
+  const m=String(v).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/);
+  if(!m) return null;
+  let [,d,M,y,hh='00',mm='00']=m;
+  d=d.padStart(2,'0');
+  M=M.padStart(2,'0');
+  hh=hh.padStart(2,'0');
+  const dt=new Date(`${y}-${M}-${d}T${hh}:${mm}:00`);
+  return isNaN(dt.getTime())?null:dt;
+}
 function normalizePriority(v){ if(v==null) return ''; let slug=slugify(String(v).trim()); if(!slug) return''; if(slug.endsWith('-priority')) slug=slug.replace(/-priority$/,''); if(slug==='med'||slug==='normal') slug='medium'; if(slug==='urgent'||slug==='emergency') slug='critical'; return slug; }
 function cmpPriority(a,b){ const ia=PRIORITY_ORDER.indexOf(normalizePriority(a)), ib=PRIORITY_ORDER.indexOf(normalizePriority(b)); const safe=i=>(i===-1?PRIORITY_ORDER.length:i); const diff=safe(ia)-safe(ib); return diff||String(a??'').localeCompare(String(b??''),undefined,{numeric:true,sensitivity:'base'}); }
 function statusClass(v){ const map=new Map([['done','done'],['complete','done'],['completed','done'],['open','open'],['in-progress','in-progress'],['in progress','in-progress'],['progress','in-progress'],['inprogress','in-progress'],['on-hold','on-hold'],['on hold','on-hold'],['hold','on-hold'],['onhold','on-hold']]); const s=slugify(String(v||'')); return map.get(s)||s; }
@@ -405,13 +415,24 @@ function renderDashboard(container, headers, rows){
   kpiWrap.appendChild(kpiCard('Done', done));
   container.appendChild(kpiWrap);
 
-  if (!rows.length) {
-  const msg = document.createElement('div');
-  msg.style.margin = '8px 0';
-  msg.style.color = 'var(--muted)';
-  msg.textContent = 'No work orders match the current filters.';
-  container.appendChild(msg);
-}
+  const ftL=document.querySelector('footer span:first-child');
+  const ftR=document.querySelector('footer span:last-child');
+  if(ftL){
+    ftL.textContent=lastUpd?`Last update: ${lastUpd.toLocaleString()}`:'';
+  }
+  if(ftR){
+    ftR.textContent=`${total} work orders`;
+  }
+
+  if(rows.length===0){
+    container.__rows=rows.slice();
+    const msg=document.createElement('div');
+    msg.style.margin='8px 0';
+    msg.style.color='var(--muted)';
+    msg.textContent='No work orders match the current filters.';
+    container.appendChild(msg);
+    return;
+  }
 
   // Table
   const table=document.createElement('table'); table.setAttribute('role','table'); table.setAttribute('aria-label','Work Orders');
@@ -427,10 +448,6 @@ function renderDashboard(container, headers, rows){
   renderRowsScoped(tbody, headers, rows);
   container.__rows = rows.slice();
 
-  const ftL=document.querySelector('footer span:first-child');
-  const ftR=document.querySelector('footer span:last-child');
-  if(ftL && lastUpd) ftL.textContent = `Last update: ${lastUpd.toLocaleString()}`;
-  if(ftR) ftR.textContent = `${total} work orders`;
 }
 
 function renderRowsScoped(tbodyEl, headers, rows){
@@ -573,6 +590,9 @@ async function loadFromGoogleSheetCSV(){
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const text=await res.text();
     const { headers, rows } = parseDelimited(text);
+    const REQUIRED=['ID','Title','Status','Priority','Assigned to','Created by','Created on','Completed on','Last updated','Location','Asset','Categories'];
+    const missing=REQUIRED.filter(h=>!headers.includes(h));
+    if(missing.length>0) console.warn('Missing expected headers:', missing);
     LAST_HEADERS=headers; ALL_ROWS=rows;
     ingestToDashboards(LAST_HEADERS, ALL_ROWS);
   }catch(err){
