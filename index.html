@@ -23,6 +23,7 @@
       --open-bg:#0b67c21a;
       --hold-bg:#f59e0b1a;
       --paper:#ffffff;
+      --sticky-controls-offset:0px;
     }
 
     @media (prefers-color-scheme: dark){
@@ -120,7 +121,7 @@
 
     table{ width:100%; min-width:900px; border-collapse:separate; border-spacing:0; }
     table th, table td{ overflow-wrap:anywhere; word-break:break-word; }
-    thead th { position: sticky; top: 0; z-index: 3; }
+    thead th { position: sticky; top: var(--sticky-controls-offset); z-index: 3; }
     thead th{
       background:var(--thead); color:var(--thead-text); text-transform:uppercase; letter-spacing:.6px;
       font-weight:800; font-size:11px; padding:10px 8px; border-right:1px solid rgba(255,255,255,.08);
@@ -179,7 +180,20 @@
     .open{ color:var(--open-tx); font-weight:800; }
 
 
-    .controls{ display:flex; gap:12px; align-items:center; margin:8px 0 12px; font-size:12px; flex-wrap:wrap; }
+    .controls{
+      position:sticky;
+      top:0;
+      z-index:10;
+      background:var(--paper);
+      display:flex;
+      gap:12px;
+      align-items:center;
+      margin:0 0 12px;
+      padding:10px 0;
+      font-size:12px;
+      flex-wrap:wrap;
+      box-shadow:0 1px 0 var(--grid);
+    }
     .controls input[type="file"], .controls textarea{ font:inherit; }
     .controls .filter-group{ display:flex; align-items:center; gap:6px; font-weight:600; color:var(--ink); }
     .controls .filter-group select{
@@ -319,6 +333,24 @@ tbody td{ overflow-wrap:anywhere; }
 // --- CONFIG: Google Sheet (Published CSV) ---
 const SHEET_CSV_URL =
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vRJocigDhxneJtrUmezFU7FcWpzSSah8-Wb6Rce8NA1f7jKcINgYU29iYRqt5QQymWATX5zs5k8_rK0/pub?output=csv';
+
+// --- Layout helpers ---
+const $controlsBar = document.querySelector('.controls');
+const rootStyle = document.documentElement.style;
+function updateStickyControlsOffset(){
+  if(!$controlsBar || !rootStyle) return;
+  const styles = getComputedStyle($controlsBar);
+  const marginBottom = parseFloat(styles.marginBottom) || 0;
+  const offset = $controlsBar.getBoundingClientRect().height + marginBottom;
+  rootStyle.setProperty('--sticky-controls-offset', `${offset}px`);
+}
+updateStickyControlsOffset();
+window.addEventListener('resize', updateStickyControlsOffset);
+window.addEventListener('load', updateStickyControlsOffset);
+if('ResizeObserver' in window && $controlsBar){
+  const observer = new ResizeObserver(updateStickyControlsOffset);
+  observer.observe($controlsBar);
+}
 
 // --- State cache for rendering ---
 let LAST_HEADERS = null;
