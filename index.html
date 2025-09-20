@@ -97,13 +97,18 @@
       -webkit-print-color-adjust: exact; print-color-adjust: exact;
     }
 
-    .page{
-      --page-pad-top:40px;
-      --page-pad-inline:48px;
-      --page-pad-bottom:56px;
-      padding:var(--page-pad-top) var(--page-pad-inline) var(--page-pad-bottom);
-      box-sizing:border-box;
-    }
+.page{
+  /* existing vars + padding kept */
+  --page-pad-top:40px;
+  --page-pad-inline:48px;
+  --page-pad-bottom:56px;
+  padding:var(--page-pad-top) var(--page-pad-inline) var(--page-pad-bottom);
+  box-sizing:border-box;
+
+  /* NEW: center the page and cap width */
+  max-width: clamp(960px, 96vw, 1280px);
+  margin-inline: auto;
+}
 
     .page-head{ display:flex; align-items:flex-start; justify-content:space-between; }
     .title{ font-size:28px; font-weight:800; color:var(--ink); margin:0 0 8px; }
@@ -179,61 +184,92 @@
     .open{ color:var(--open-tx); font-weight:800; }
 
 
-    .controls{ display:flex; gap:12px; align-items:center; margin:8px 0 12px; font-size:12px; flex-wrap:wrap; }
-    .controls input[type="file"], .controls textarea{ font:inherit; }
-    .controls .filter-group{ display:flex; align-items:center; gap:6px; font-weight:600; color:var(--ink); }
-    .controls .filter-group select{
-      font:inherit;
-      padding:6px 10px;
-      border:1px solid var(--grid);
-      border-radius:8px;
-      background:var(--paper);
-      color:inherit;
-      cursor:pointer;
-    }
-    .controls .filter-group select:focus-visible{ outline:2px solid color-mix(in srgb, var(--als-blue) 65%, transparent); outline-offset:2px; }
-    .controls textarea{ width:min(100%, 520px); height:100px; padding:8px; border:1px solid var(--grid); border-radius:6px; }
+/* Controls + search + filter chips (merged) */
+.controls{ display:flex; gap:12px; align-items:center; margin:8px 0 12px; font-size:12px; flex-wrap:wrap; }
 
-    .active-filter-chips{
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      margin:-4px 0 12px;
-      padding:0;
-    }
-    .active-filter-chips[hidden]{ display:none; }
-    .filter-chip{
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      padding:6px 12px;
-      border-radius:999px;
-      border:1px solid color-mix(in srgb, var(--als-blue) 32%, var(--grid));
-      background:color-mix(in srgb, var(--als-blue) 14%, var(--paper));
-      color:var(--ink);
-      font-weight:600;
-      font-size:12px;
-      cursor:pointer;
-      max-width:100%;
-      text-align:left;
-      transition:background .2s ease, border-color .2s ease, color .2s ease;
-    }
-    .filter-chip:hover{
-      background:color-mix(in srgb, var(--als-blue) 22%, var(--paper));
-      border-color:color-mix(in srgb, var(--als-blue) 48%, var(--grid));
-    }
-    .filter-chip:focus-visible{
-      outline:2px solid color-mix(in srgb, var(--als-blue) 65%, transparent);
-      outline-offset:2px;
-    }
-    .filter-chip__label{
-      display:inline-block;
-      max-width:min(280px, 100%);
-      white-space:normal;
-      word-break:break-word;
-    }
-    .filter-chip__icon{ font-size:16px; line-height:1; }
-    .btn{ padding:6px 10px; border:1px solid var(--als-blue); border-radius:8px; background:var(--paper); color:var(--als-blue); font-weight:700; cursor:pointer; }
+/* Make search-input work whether or not it's inside .controls */
+.search-input{
+  flex:1 1 280px;
+  min-width:220px;
+  max-width:460px;
+  order:-1;
+  padding:9px 16px;
+  border-radius:999px;
+  border:2px solid color-mix(in srgb, var(--als-blue) 65%, transparent);
+  background:color-mix(in srgb, var(--als-blue) 12%, var(--paper));
+  color:var(--ink);
+  font:inherit;
+  font-weight:600;
+  box-shadow:0 4px 10px color-mix(in srgb, var(--als-blue) 18%, transparent);
+  transition:border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+  appearance:none;
+}
+.search-input::placeholder{ color:color-mix(in srgb, var(--ink) 45%, transparent); font-weight:500; }
+.search-input:focus-visible{
+  outline:none;
+  border-color:var(--als-blue);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--als-blue) 30%, transparent);
+  background:color-mix(in srgb, var(--als-blue) 20%, var(--paper));
+}
+
+.controls input[type="file"], .controls textarea{ font:inherit; }
+
+/* Remove dependency on .controls ancestor so your existing markup still styles */
+.filter-group{ display:flex; align-items:center; gap:6px; font-weight:600; color:var(--ink); }
+.filter-group select{
+  font:inherit;
+  padding:6px 10px;
+  border:1px solid var(--grid);
+  border-radius:8px;
+  background:var(--paper);
+  color:inherit;
+  cursor:pointer;
+}
+.filter-group select:focus-visible{ outline:2px solid color-mix(in srgb, var(--als-blue) 65%, transparent); outline-offset:2px; }
+
+/* Active filter chips */
+.active-filter-chips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:-4px 0 12px;
+  padding:0;
+}
+.active-filter-chips[hidden]{ display:none; }
+.filter-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 12px;
+  border-radius:999px;
+  border:1px solid color-mix(in srgb, var(--als-blue) 32%, var(--grid));
+  background:color-mix(in srgb, var(--als-blue) 14%, var(--paper));
+  color:var(--ink);
+  font-weight:600;
+  font-size:12px;
+  cursor:pointer;
+  max-width:100%;
+  text-align:left;
+  transition:background .2s ease, border-color .2s ease, color .2s ease;
+}
+.filter-chip:hover{
+  background:color-mix(in srgb, var(--als-blue) 22%, var(--paper));
+  border-color:color-mix(in srgb, var(--als-blue) 48%, var(--grid));
+}
+.filter-chip:focus-visible{
+  outline:2px solid color-mix(in srgb, var(--als-blue) 65%, transparent);
+  outline-offset:2px;
+}
+.filter-chip__label{
+  display:inline-block;
+  max-width:min(280px, 100%);
+  white-space:normal;
+  word-break:break-word;
+}
+.filter-chip__icon{ font-size:16px; line-height:1; }
+
+.btn{ padding:6px 10px; border:1px solid var(--als-blue); border-radius:8px; background:var(--paper); color:var(--als-blue); font-weight:700; cursor:pointer; }
+
 
 /* --- Per-site dashboards --- */
 .nav{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 10px; }
@@ -286,6 +322,7 @@ tbody td{ overflow-wrap:anywhere; }
   .logo{ height:42px; }
   .controls{ gap:10px; }
   .controls textarea{ width:100%; min-width:0; }
+  .controls .search-input{ flex-basis:100%; max-width:none; }
 }
 
     @media print{
@@ -298,6 +335,7 @@ tbody td{ overflow-wrap:anywhere; }
       .title-cell, .col-categories{ break-inside:avoid; }
       html{-webkit-print-color-adjust:exact;}
       .controls{ display:none !important; }
+      .active-filter-chips{ display:none !important; }
     }
   </style>
 </head>
@@ -307,13 +345,14 @@ tbody td{ overflow-wrap:anywhere; }
       <h1 class="title">Work Orders List</h1>
       <img class="logo" alt="Aberdeen Laundry Services" src="LOGOlesswhitespace.png">
     </div>
-    <div class="top-rule"></div>
+        <div class="top-rule"></div>
 
-    <div class="controls" aria-hidden="false">
+    <div class="controls" role="region" aria-label="Table controls">
+      <input type="search" id="globalSearch" class="search-input" placeholder="Search work orders" aria-label="Search work orders">
       <label class="btn" for="file">Upload CSV/TSV/JSON</label>
       <input id="file" type="file" accept=".csv,.tsv,.json,application/json,text/csv,text/tab-separated-values" style="display:none" />
-      <button class="btn" id="pasteBtn" type="button">Paste data → render</button>
       <button class="btn" id="themeBtn" type="button">Dark mode</button>
+
       <label class="filter-group">
         <span>Status</span>
         <select id="statusFilter" name="status-filter">
@@ -325,6 +364,7 @@ tbody td{ overflow-wrap:anywhere; }
           <option value="not:done">Not: Done</option>
         </select>
       </label>
+
       <label class="filter-group">
         <span>Priority</span>
         <select id="priorityFilter" name="priority-filter">
@@ -335,10 +375,10 @@ tbody td{ overflow-wrap:anywhere; }
           <option value="low">Low</option>
         </select>
       </label>
-      <textarea id="pasteBox" placeholder="Paste CSV (headers required) or JSON array here..."></textarea>
     </div>
 
     <div id="activeFilterChips" class="active-filter-chips" hidden aria-live="polite"></div>
+
 
     <!-- Tabs -->
     <div class="nav" role="tablist" aria-label="Site dashboards">
@@ -428,9 +468,9 @@ function cmpId(a,b){ const na=parseInt(String(a).replace(/\D+/g,''),10)||0; cons
 function detectType(col,rows){ const n=String(col||'').trim().toLowerCase(); const sample=rows.slice(0,10).map(r=>r[col]); const allDates=sample.length&&sample.every(v=>parseDateLoose(v)!==null); const allNums=sample.length&&sample.every(v=>typeof v==='number'||/^\s*[-+]?\d+(\.\d+)?\s*$/.test(String(v))); if(allDates)return'date'; if(allNums)return'number'; if(n==='id')return'id'; if(n==='priority')return'priority'; if(n==='status')return'status'; return'string'; }
 
 // Filters
+const $searchInput = document.getElementById('globalSearch');
 const $statusFilter = document.getElementById('statusFilter');
 const $priorityFilter = document.getElementById('priorityFilter');
-const $searchFilter = document.getElementById('searchFilter');
 const $activeFilterChips = document.getElementById('activeFilterChips');
 
 function humanizeFilterValue(value){
@@ -450,17 +490,17 @@ function updateActiveFilterChips(filters){
     const label=humanizeFilterValue(filters.status);
     const text=filters.excludeStatus?`Status ≠ ${label}`:`Status: ${label}`;
     const aria=filters.excludeStatus?`Clear status filter (not ${label})`:`Clear status filter: ${label}`;
-    chips.push({
-      key:'status',
-      text,
-      aria,
-      onRemove:()=>{
-        if($statusFilter){
-          $statusFilter.value='';
-          $statusFilter.dispatchEvent(new Event('change',{bubbles:true}));
-        }
-      }
-    });
+   chips.push({
+  key:'status',
+  text,
+  aria,
+  onRemove:()=>{
+    if($statusFilter){
+      $statusFilter.value='';
+      $statusFilter.dispatchEvent(new Event('change',{bubbles:true}));
+    }
+  }
+});
   }
 
   if(filters.priority){
@@ -484,17 +524,17 @@ function updateActiveFilterChips(filters){
     const text=`Search: ${filters.search}`;
     const aria=`Clear search filter: ${filters.search}`;
     chips.push({
-      key:'search',
-      text,
-      aria,
-      onRemove:()=>{
-        if($searchFilter){
-          $searchFilter.value='';
-          const evtName=(($searchFilter.tagName)||'').toLowerCase()==='select'?'change':'input';
-          $searchFilter.dispatchEvent(new Event(evtName,{bubbles:true}));
-        }
-      }
-    });
+  key:'search',
+  text,
+  aria,
+  onRemove:()=>{
+    if($searchInput){
+      $searchInput.value='';
+      // fire input so filtering runs immediately
+      $searchInput.dispatchEvent(new Event('input',{bubbles:true}));
+    }
+  }
+});
   }
 
   if(!chips.length){
@@ -536,6 +576,9 @@ function getFilters(){
   let status = '';
   let excludeStatus = false;
 
+  // use the real input you have in the HTML
+  const searchTerm = ($searchInput?.value || '').trim();
+
   if(rawStatus){
     const negMatch = rawStatus.match(/^(?:not[:\s]+|!)(.+)$/);
     if(negMatch){
@@ -555,23 +598,37 @@ function getFilters(){
     status,
     excludeStatus,
     priority: normalizePriority($priorityFilter?.value || ''),
-    search: ($searchFilter?.value || '').trim()
+    searchTerm
   };
 }
+
+const SEARCHABLE_FIELDS = ['ID','Title','Status','Priority','Assigned to','Created by','Created on','Completed on','Last updated','Location','Asset','Categories'];
+
 function applyFilters(rows){
   const filters = getFilters();
-  updateActiveFilterChips(filters);
+  // keep the nice chips UI updated
+  updateActiveFilterChips({
+    status: filters.status,
+    excludeStatus: filters.excludeStatus,
+    priority: filters.priority,
+    search: filters.searchTerm
+  });
 
-  const { status, excludeStatus, priority, search } = filters;
-  const searchTerm = search ? search.toLowerCase() : '';
+  const { status, excludeStatus, priority, searchTerm } = filters;
+  const tokens = searchTerm ? searchTerm.toLowerCase().split(/\s+/).filter(Boolean) : [];
+
   return rows.filter(r => {
     const rowStatus = statusClass(r['Status']);
-    const okStatus = !status
-      ? true
-      : (excludeStatus ? rowStatus !== status : rowStatus === status);
+    const okStatus = !status ? true : (excludeStatus ? rowStatus !== status : rowStatus === status);
     const okPrio   = !priority || normalizePriority(r['Priority']) === priority;
-    const matchesSearch = !searchTerm || Object.values(r).some(val => String(val ?? '').toLowerCase().includes(searchTerm));
-    return okStatus && okPrio && matchesSearch;
+
+    let okSearch = true;
+    if(tokens.length){
+      const haystack = SEARCHABLE_FIELDS.map(key => String(r[key] ?? '')).join(' ').toLowerCase();
+      okSearch = tokens.every(t => haystack.includes(t));
+    }
+
+    return okStatus && okPrio && okSearch;
   });
 }
 
@@ -719,7 +776,7 @@ function setActiveDash(id){
   tabs.forEach(t => t.setAttribute('aria-selected', String(t.getAttribute('aria-controls')===id)));
 }
 
-// File & paste ingest (unchanged, but now reuses the same ingest/render)
+// File ingest (unchanged, but now reuses the same ingest/render)
 document.getElementById('file').addEventListener('change', e=>{
   const f=e.target.files[0]; if(!f) return;
   const reader=new FileReader();
@@ -732,15 +789,6 @@ document.getElementById('file').addEventListener('change', e=>{
     LAST_HEADERS=headers; ALL_ROWS=rows; ingestToDashboards(LAST_HEADERS, ALL_ROWS);
   };
   reader.readAsText(f);
-});
-document.getElementById('pasteBtn').addEventListener('click', ()=>{
-  const text=document.getElementById('pasteBox').value; if(!text.trim()) return;
-  let headers=[], rows=[];
-  try{
-    const result=(text.trim().startsWith('[')||text.trim().startsWith('{'))?handleJSON(text):parseDelimited(text);
-    headers=result.headers; rows=result.rows;
-  }catch(err){ alert('Parse error: '+err.message); return; }
-  LAST_HEADERS=headers; ALL_ROWS=rows; ingestToDashboards(LAST_HEADERS, ALL_ROWS);
 });
 
 // Theme toggle (unchanged)
@@ -791,8 +839,8 @@ function handleFilterChange(){
 }
 $statusFilter?.addEventListener('change', handleFilterChange);
 $priorityFilter?.addEventListener('change', handleFilterChange);
-$searchFilter?.addEventListener('input', handleFilterChange);
-$searchFilter?.addEventListener('change', handleFilterChange);
+$searchInput?.addEventListener('input', handleFilterChange);
+$searchInput?.addEventListener('change', handleFilterChange);
 </script>
 </body>
 </html>
