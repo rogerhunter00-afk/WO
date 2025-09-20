@@ -23,6 +23,7 @@
       --open-bg:#0b67c21a;
       --hold-bg:#f59e0b1a;
       --paper:#ffffff;
+      --sticky-controls-offset:0px;
     }
 
     @media (prefers-color-scheme: dark){
@@ -125,11 +126,12 @@
 
     table{ width:100%; min-width:900px; border-collapse:separate; border-spacing:0; }
     table th, table td{ overflow-wrap:anywhere; word-break:break-word; }
-    thead th { position: sticky; top: 0; z-index: 3; }
+    thead th { position: sticky; top: var(--sticky-controls-offset); z-index: 3; }
     thead th{
       background:var(--thead); color:var(--thead-text); text-transform:uppercase; letter-spacing:.6px;
       font-weight:800; font-size:11px; padding:10px 8px; border-right:1px solid rgba(255,255,255,.08);
       cursor:pointer;
+      box-shadow: 0 1px 0 var(--grid);
     }
     thead th .sort-arrow{ margin-left:4px; }
     thead th[data-sort="asc"] .sort-arrow::after{ content:'\25B2'; }
@@ -184,10 +186,24 @@
     .open{ color:var(--open-tx); font-weight:800; }
 
 
-/* Controls + search + filter chips (merged) */
-.controls{ display:flex; gap:12px; align-items:center; margin:8px 0 12px; font-size:12px; flex-wrap:wrap; }
+/* Controls + sticky + search + filter chips (merged) */
+.controls{
+  position: sticky;
+  top: 0;                /* stick to the top of the page container */
+  z-index: 10;
+  background: var(--paper);
+  display:flex;
+  gap:12px;
+  align-items:center;
+  margin:0 0 12px;
+  padding:10px 0;
+  font-size:12px;
+  flex-wrap:wrap;
+  box-shadow:0 1px 0 var(--grid); /* subtle divider under sticky bar */
+}
+.controls input[type="file"], .controls textarea{ font:inherit; }
 
-/* Make search-input work whether or not it's inside .controls */
+/* Search input (works whether or not it’s inside .controls, but it is) */
 .search-input{
   flex:1 1 280px;
   min-width:220px;
@@ -212,9 +228,7 @@
   background:color-mix(in srgb, var(--als-blue) 20%, var(--paper));
 }
 
-.controls input[type="file"], .controls textarea{ font:inherit; }
-
-/* Remove dependency on .controls ancestor so your existing markup still styles */
+/* Filter selects */
 .filter-group{ display:flex; align-items:center; gap:6px; font-weight:600; color:var(--ink); }
 .filter-group select{
   font:inherit;
@@ -227,7 +241,10 @@
 }
 .filter-group select:focus-visible{ outline:2px solid color-mix(in srgb, var(--als-blue) 65%, transparent); outline-offset:2px; }
 
-/* Active filter chips */
+/* Buttons */
+.btn{ padding:6px 10px; border:1px solid var(--als-blue); border-radius:8px; background:var(--paper); color:var(--als-blue); font-weight:700; cursor:pointer; }
+
+/* Active filter chips row (non-sticky) */
 .active-filter-chips{
   display:flex;
   flex-wrap:wrap;
@@ -267,9 +284,6 @@
   word-break:break-word;
 }
 .filter-chip__icon{ font-size:16px; line-height:1; }
-
-.btn{ padding:6px 10px; border:1px solid var(--als-blue); border-radius:8px; background:var(--paper); color:var(--als-blue); font-weight:700; cursor:pointer; }
-
 
 /* --- Per-site dashboards --- */
 .nav{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 10px; }
@@ -401,6 +415,24 @@ tbody td{ overflow-wrap:anywhere; }
 // --- CONFIG: Google Sheet (Published CSV) ---
 const SHEET_CSV_URL =
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vRJocigDhxneJtrUmezFU7FcWpzSSah8-Wb6Rce8NA1f7jKcINgYU29iYRqt5QQymWATX5zs5k8_rK0/pub?output=csv';
+
+// --- Layout helpers ---
+const $controlsBar = document.querySelector('.controls');
+const rootStyle = document.documentElement.style;
+function updateStickyControlsOffset(){
+  if(!$controlsBar || !rootStyle) return;
+  const styles = getComputedStyle($controlsBar);
+  const marginBottom = parseFloat(styles.marginBottom) || 0;
+  const offset = $controlsBar.getBoundingClientRect().height + marginBottom;
+  rootStyle.setProperty('--sticky-controls-offset', `${offset}px`);
+}
+updateStickyControlsOffset();
+window.addEventListener('resize', updateStickyControlsOffset);
+window.addEventListener('load', updateStickyControlsOffset);
+if('ResizeObserver' in window && $controlsBar){
+  const observer = new ResizeObserver(updateStickyControlsOffset);
+  observer.observe($controlsBar);
+}
 
 // --- State cache for rendering ---
 let LAST_HEADERS = null;
@@ -649,15 +681,6 @@ function renderDashboard(container, headers, rows){
   kpiWrap.appendChild(kpiCard('On Hold', hold));
   kpiWrap.appendChild(kpiCard('Done', done));
   container.appendChild(kpiWrap);
-
-  const ftL=document.querySelector('footer span:first-child');
-  const ftR=document.querySelector('footer span:last-child');
-  if(ftL){
-    ftL.textContent=lastUpd?`Last update: ${lastUpd.toLocaleString()}`:'';
-  }
-  if(ftR){
-    ftR.textContent=`${total} work orders`;
-  }
 
   if(rows.length===0){
     container.__rows=rows.slice();
