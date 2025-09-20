@@ -913,18 +913,23 @@ function ingestToDashboards(headers, rows){
     by   : filtered.filter(r=>toSiteKey(r.Location)==='by'),
   };
 
-  // ✅ Skip panels that don't exist
-  [
-    ['dash-all','all'],
-    ['dash-ek','ek'],
-    ['dash-mm','mm'],
-    ['dash-keith','keith'],
-    ['dash-by','by']
-  ].forEach(([id,key])=>{
-    const el = document.getElementById(id);
-    if (!el) return;
-    renderDashboard(el, safeHeaders, groups[key]);
-  });
+// ✅ Guard against missing dashboard containers
+[
+  ['dash-all','all'],
+  ['dash-ek','ek'],
+  ['dash-mm','mm'],
+  ['dash-keith','keith'],
+  ['dash-by','by']
+].forEach(([id, key]) => {
+  const el = document.getElementById(id);
+  if (!el){
+    if (typeof console !== 'undefined' && typeof console.warn === 'function'){
+      console.warn(`Skipping dashboard "${id}" – element not found.`);
+    }
+    return;
+  }
+  renderDashboard(el, safeHeaders, groups[key]);
+});
 
   // pick the first available dashboard
   if (document.getElementById('dash-all')) {
