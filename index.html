@@ -334,9 +334,15 @@ tbody td{ overflow-wrap:anywhere; }
 
   function parseDelimited(text){
     const sep = text.includes('\t') ? '\t' : ',';
-    const rows = text.trim().split(/\r?\n/).map(r=>r.split(new RegExp(`${sep}(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)`)).map(c=>c.replace(/^\"|\"$/g,'')));
-    const headers = rows.shift() || [];
-    const data = rows.map(r=>Object.fromEntries(r.map((v,i)=>[headers[i]||`col${i}`, v])));
+    const rows = text.trim().split(/\r?\n/).map(r =>
+      r.split(new RegExp(`${sep}(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)`)).map(c => c.replace(/^\"|\"$/g,''))
+    );
+    const rawHeaders = rows.shift() || [];
+    const headers = rawHeaders.map((h, i) => {
+      const cleaned = String(h == null ? '' : h).replace(/^\uFEFF/, '').trim();
+      return cleaned || `col${i}`;
+    });
+    const data = rows.map(r => Object.fromEntries(r.map((v, i) => [headers[i] || `col${i}`, v])));
     return {headers, rows:data};
   }
 
