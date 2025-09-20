@@ -238,7 +238,13 @@
     const elThead = document.getElementById('thead');
     const elTbody = document.getElementById('tbody');
 
-    function esc(s){ return String(s==null?'':s).replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+    const ESC_MAP = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'};
+    ESC_MAP["'"] = '&#39;';
+    const ESC_RE = /[&<>"']/g;
+
+    function esc(s){
+      return String(s==null?'':s).replace(ESC_RE, c => ESC_MAP[c]);
+    }
 
     function slugify(str){
       return str.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
