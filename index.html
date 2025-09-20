@@ -228,6 +228,31 @@
       }
     };
 
+    function hashColor(slug){
+      let hash = 0;
+      for(let i=0;i<slug.length;i++){
+        hash = ((hash << 5) - hash) + slug.charCodeAt(i);
+        hash |= 0;
+      }
+      const hue = Math.abs(hash) % 360;
+      const baseSat = 55 + (Math.abs(hash >> 7) % 25);
+      const baseLight = 65 + (Math.abs(hash >> 14) % 20);
+      const background = `hsl(${hue}, ${Math.max(40, baseSat - 15)}%, ${Math.min(95, baseLight + 10)}%)`;
+      const border = `hsl(${hue}, ${baseSat}%, ${Math.max(35, baseLight - 15)}%)`;
+      const text = `hsl(${hue}, ${Math.min(95, baseSat + 20)}%, ${Math.max(20, baseLight - 35)}%)`;
+      return { background, border, text };
+    }
+
+    function chipStyle(slug){
+      const preset = categoryColors[slug];
+      if(preset){
+        return { className: `cat-${slug}`, style: '' };
+      }
+      const colors = hashColor(slug);
+      const style = `background:${colors.background};border-color:${colors.border};color:${colors.text}`;
+      return { className: `cat-${slug}`, style };
+    }
+
     const styleEl = document.createElement('style');
     styleEl.textContent = Object.entries(categoryColors).map(([slug, colors]) => `
       .chip-cat.cat-${slug}{background:${colors.light.background};color:${colors.light.color};border-color:${colors.light.border};}
@@ -267,7 +292,10 @@
             const cats = String(v||'').split(';').map(c=>c.trim()).filter(Boolean);
             const chips = cats.map(cat=>{
               const slug = slugify(cat);
-              return `<span class="chip-cat cat-${slug}">${esc(cat)}</span>`;
+              const { className, style } = chipStyle(slug);
+              const styleAttr = style ? ` style="${style}"` : '';
+              const classAttr = className ? ` ${className}` : '';
+              return `<span class="chip-cat${classAttr}"${styleAttr}>${esc(cat)}</span>`;
             }).join('');
             return `<td>${chips}</td>`;
           }
