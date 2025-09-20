@@ -180,6 +180,29 @@
 
 
     .controls{ display:flex; gap:12px; align-items:center; margin:8px 0 12px; font-size:12px; flex-wrap:wrap; }
+    .controls .search-input{
+      flex:1 1 280px;
+      min-width:220px;
+      max-width:460px;
+      order:-1;
+      padding:9px 16px;
+      border-radius:999px;
+      border:2px solid color-mix(in srgb, var(--als-blue) 65%, transparent);
+      background:color-mix(in srgb, var(--als-blue) 12%, var(--paper));
+      color:var(--ink);
+      font:inherit;
+      font-weight:600;
+      box-shadow:0 4px 10px color-mix(in srgb, var(--als-blue) 18%, transparent);
+      transition:border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+      appearance:none;
+    }
+    .controls .search-input::placeholder{ color:color-mix(in srgb, var(--ink) 45%, transparent); font-weight:500; }
+    .controls .search-input:focus-visible{
+      outline:none;
+      border-color:var(--als-blue);
+      box-shadow:0 0 0 3px color-mix(in srgb, var(--als-blue) 30%, transparent);
+      background:color-mix(in srgb, var(--als-blue) 20%, var(--paper));
+    }
     .controls input[type="file"], .controls textarea{ font:inherit; }
     .controls .filter-group{ display:flex; align-items:center; gap:6px; font-weight:600; color:var(--ink); }
     .controls .filter-group select{
@@ -246,6 +269,7 @@ tbody td{ overflow-wrap:anywhere; }
   .logo{ height:42px; }
   .controls{ gap:10px; }
   .controls textarea{ width:100%; min-width:0; }
+  .controls .search-input{ flex-basis:100%; max-width:none; }
 }
 
     @media print{
@@ -270,6 +294,7 @@ tbody td{ overflow-wrap:anywhere; }
     <div class="top-rule"></div>
 
     <div class="controls" aria-hidden="false">
+      <input type="search" id="globalSearch" class="search-input" placeholder="Search work orders" aria-label="Search work orders">
       <label class="btn" for="file">Upload CSV/TSV/JSON</label>
       <input id="file" type="file" accept=".csv,.tsv,.json,application/json,text/csv,text/tab-separated-values" style="display:none" />
       <button class="btn" id="pasteBtn" type="button">Paste data → render</button>
@@ -386,12 +411,15 @@ function cmpId(a,b){ const na=parseInt(String(a).replace(/\D+/g,''),10)||0; cons
 function detectType(col,rows){ const n=String(col||'').trim().toLowerCase(); const sample=rows.slice(0,10).map(r=>r[col]); const allDates=sample.length&&sample.every(v=>parseDateLoose(v)!==null); const allNums=sample.length&&sample.every(v=>typeof v==='number'||/^\s*[-+]?\d+(\.\d+)?\s*$/.test(String(v))); if(allDates)return'date'; if(allNums)return'number'; if(n==='id')return'id'; if(n==='priority')return'priority'; if(n==='status')return'status'; return'string'; }
 
 // Filters
+const $searchInput = document.getElementById('globalSearch');
 const $statusFilter = document.getElementById('statusFilter');
 const $priorityFilter = document.getElementById('priorityFilter');
 function getFilters(){
   const rawStatus = ($statusFilter?.value || '').trim().toLowerCase();
   let status = '';
   let excludeStatus = false;
+
+  const searchTerm = ($searchInput?.value || '').trim().toLowerCase();
 
   if(rawStatus){
     const negMatch = rawStatus.match(/^(?:not[:\s]+|!)(.+)$/);
@@ -411,18 +439,26 @@ function getFilters(){
   return {
     status,
     excludeStatus,
-    priority: normalizePriority($priorityFilter?.value || '')
+    priority: normalizePriority($priorityFilter?.value || ''),
+    searchTerm
   };
 }
+const SEARCHABLE_FIELDS = ['ID','Title','Status','Priority','Assigned to','Created by','Created on','Completed on','Last updated','Location','Asset','Categories'];
 function applyFilters(rows){
-  const { status, excludeStatus, priority } = getFilters();
+  const { status, excludeStatus, priority, searchTerm } = getFilters();
+  const searchTokens = searchTerm ? searchTerm.split(/\s+/).filter(Boolean) : [];
   return rows.filter(r => {
     const rowStatus = statusClass(r['Status']);
     const okStatus = !status
       ? true
       : (excludeStatus ? rowStatus !== status : rowStatus === status);
     const okPrio   = !priority || normalizePriority(r['Priority']) === priority;
-    return okStatus && okPrio;
+    let okSearch = true;
+    if(searchTokens.length){
+      const haystack = SEARCHABLE_FIELDS.map(key => String(r[key] ?? '')).join(' ').toLowerCase();
+      okSearch = searchTokens.every(token => haystack.includes(token));
+    }
+    return okStatus && okPrio && okSearch;
   });
 }
 
@@ -635,6 +671,7 @@ document.addEventListener('DOMContentLoaded', loadFromGoogleSheetCSV);
 // Re-render on filter change
 $statusFilter?.addEventListener('change', ()=>{ if(LAST_HEADERS && ALL_ROWS) ingestToDashboards(LAST_HEADERS, ALL_ROWS); });
 $priorityFilter?.addEventListener('change', ()=>{ if(LAST_HEADERS && ALL_ROWS) ingestToDashboards(LAST_HEADERS, ALL_ROWS); });
+$searchInput?.addEventListener('input', ()=>{ if(LAST_HEADERS && ALL_ROWS) ingestToDashboards(LAST_HEADERS, ALL_ROWS); });
 </script>
 </body>
 </html>
