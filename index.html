@@ -244,6 +244,38 @@
       return str.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
     }
 
+    const STATUS_CLASS = {
+      'done': 'done',
+      'complete': 'done',
+      'completed': 'done',
+      'finished': 'done',
+      'closed': 'done',
+      'resolved': 'done',
+      'open': 'open',
+      'new': 'open',
+      'to-do': 'open',
+      'todo': 'open',
+      'not-started': 'open',
+      'in-progress': 'in-progress',
+      'inprogress': 'in-progress',
+      'progress': 'in-progress',
+      'working': 'in-progress',
+      'started': 'in-progress',
+      'wip': 'in-progress',
+      'on-hold': 'on-hold',
+      'onhold': 'on-hold',
+      'hold': 'on-hold',
+      'paused': 'on-hold',
+      'waiting': 'on-hold',
+      'deferred': 'on-hold'
+    };
+
+    function statusClass(value){
+      const slug = slugify(String(value||''));
+      if(!slug) return '';
+      return STATUS_CLASS[slug] || slug;
+    }
+
     function renderHeader(headers){
       currentHeaders = headers;
       elThead.innerHTML = `<tr>${headers.map(h=>`<th data-col="${esc(h)}" tabindex="0"><span>${esc(h)}</span><span class="sort-arrow"></span></th>`).join('')}</tr>`;
@@ -272,8 +304,9 @@
             return `<td>${chips}</td>`;
           }
           if(h === 'Status'){
-            const slug = slugify(String(v||''));
-            return `<td><span class="status-chip ${slug}">${esc(v)}</span></td>`;
+            const label = String(v ?? '');
+            const statusCls = statusClass(label);
+            return `<td><span class="status-chip ${statusCls}">${esc(label)}</span></td>`;
           }
           return `<td>${esc(v)}</td>`;
         }).join('')}</tr>`;
