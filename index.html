@@ -517,7 +517,9 @@ tbody td{ overflow-wrap:anywhere; }
 
     const normalized = rows.map(r => {
       const o = {};
-      expected.forEach(h => o[h] = r[h] ?? '';
+      expected.forEach(h => {
+        o[h] = r[h] ?? '';
+      });
       return o;
     });
 
