@@ -224,19 +224,25 @@ table th, table td{
 
 
 /* Controls + sticky + search + filter chips (merged) */
-.controls{
+.sticky-top{
   position: sticky;
-  top: 0;                /* stick to the top of the page container */
-  z-index: 10;
+  top: 0;
+  z-index: 120;
   background: var(--paper);
+  margin:0 0 12px;
+  padding:10px 0 14px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  box-shadow:0 1px 0 var(--grid);
+}
+
+.controls{
   display:flex;
   gap:12px;
   align-items:center;
-  margin:0 0 12px;
-  padding:10px 0;
   font-size:12px;
   flex-wrap:wrap;
-  box-shadow:0 1px 0 var(--grid); /* subtle divider under sticky bar */
 }
 .controls input[type="file"], .controls textarea{ font:inherit; }
 
@@ -286,7 +292,7 @@ table th, table td{
   display:flex;
   flex-wrap:wrap;
   gap:8px;
-  margin:-4px 0 12px;
+  margin:-4px 0 0;
   padding:0;
 }
 .active-filter-chips[hidden]{ display:none; }
@@ -323,10 +329,12 @@ table th, table td{
 .filter-chip__icon{ font-size:16px; line-height:1; }
 
 /* --- Per-site dashboards --- */
-.nav{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 10px; }
+.nav{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 0; }
 .nav .tab{ padding:8px 12px; border:1px solid var(--grid); border-radius:999px; cursor:pointer; background:var(--paper); color:var(--ink); font-weight:700; }
 .nav .tab[aria-selected="true"]{ border-color:var(--als-blue); box-shadow:0 0 0 2px color-mix(in srgb, var(--als-blue) 25%, transparent); }
-.kpis{ display:grid; grid-template-columns: repeat(5, minmax(140px,1fr)); gap:10px; margin:12px 0; }
+.kpi-panels{ min-height:72px; }
+.dash-kpis[hidden]{ display:none !important; }
+.kpis{ display:grid; grid-template-columns: repeat(5, minmax(140px,1fr)); gap:10px; margin:0; }
 .card{ background:var(--paper); border:1px solid var(--grid); border-radius:14px; padding:12px; }
 .card h3{ margin:0 0 6px; font-size:12px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); }
 .card .big{ font-size:22px; font-weight:900; }
@@ -395,54 +403,64 @@ table th, table td{
     </div>
         <div class="top-rule"></div>
 
-    <div class="controls" role="region" aria-label="Table controls">
-      <input type="search" id="globalSearch" class="search-input" placeholder="Search work orders" aria-label="Search work orders">
-      <label class="btn" for="file">Upload CSV/TSV/JSON</label>
-      <input id="file" type="file" accept=".csv,.tsv,.json,application/json,text/csv,text/tab-separated-values" style="display:none" />
-      <button class="btn" id="themeBtn" type="button">Dark mode</button>
+    <div class="sticky-top" role="region" aria-label="Table controls and overview">
+      <div class="controls" role="region" aria-label="Table controls">
+        <input type="search" id="globalSearch" class="search-input" placeholder="Search work orders" aria-label="Search work orders">
+        <label class="btn" for="file">Upload CSV/TSV/JSON</label>
+        <input id="file" type="file" accept=".csv,.tsv,.json,application/json,text/csv,text/tab-separated-values" style="display:none" />
+        <button class="btn" id="themeBtn" type="button">Dark mode</button>
 
-      <label class="filter-group">
-        <span>Status</span>
-        <select id="statusFilter" name="status-filter">
-          <option value="">All</option>
-          <option value="open">Open</option>
-          <option value="in-progress">In Progress</option>
-          <option value="on-hold">On Hold</option>
-          <option value="done">Done</option>
-          <option value="not:done">Not: Done</option>
-        </select>
-      </label>
+        <label class="filter-group">
+          <span>Status</span>
+          <select id="statusFilter" name="status-filter">
+            <option value="">All</option>
+            <option value="open">Open</option>
+            <option value="in-progress">In Progress</option>
+            <option value="on-hold">On Hold</option>
+            <option value="done">Done</option>
+            <option value="not:done">Not: Done</option>
+          </select>
+        </label>
 
-      <label class="filter-group">
-        <span>Priority</span>
-        <select id="priorityFilter" name="priority-filter">
-          <option value="">All</option>
-          <option value="critical">Critical</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
-        </select>
-      </label>
-    </div>
+        <label class="filter-group">
+          <span>Priority</span>
+          <select id="priorityFilter" name="priority-filter">
+            <option value="">All</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </label>
+      </div>
 
-    <div id="activeFilterChips" class="active-filter-chips" hidden aria-live="polite"></div>
+      <div id="activeFilterChips" class="active-filter-chips" hidden aria-live="polite"></div>
 
 
-    <!-- Tabs -->
-    <div class="nav" role="tablist" aria-label="Site dashboards">
-      <button class="tab" role="tab" id="tab-all"   aria-controls="dash-all"   aria-selected="true">All Sites</button>
-      <button class="tab" role="tab" id="tab-ek"    aria-controls="dash-ek"    aria-selected="false">EK / Cathkin</button>
-      <button class="tab" role="tab" id="tab-mm"    aria-controls="dash-mm"    aria-selected="false">Mugiemoss</button>
-      <button class="tab" role="tab" id="tab-keith" aria-controls="dash-keith" aria-selected="false">Keith</button>
-      <button class="tab" role="tab" id="tab-by"    aria-controls="dash-by"    aria-selected="false">Byron</button>
+      <!-- Tabs -->
+      <div class="nav" role="tablist" aria-label="Site dashboards">
+        <button class="tab" role="tab" id="tab-all"   aria-controls="dash-all"   aria-selected="true">All Sites</button>
+        <button class="tab" role="tab" id="tab-ek"    aria-controls="dash-ek"    aria-selected="false">EK / Cathkin</button>
+        <button class="tab" role="tab" id="tab-mm"    aria-controls="dash-mm"    aria-selected="false">Mugiemoss</button>
+        <button class="tab" role="tab" id="tab-keith" aria-controls="dash-keith" aria-selected="false">Keith</button>
+        <button class="tab" role="tab" id="tab-by"    aria-controls="dash-by"    aria-selected="false">Byron</button>
+      </div>
+
+      <div class="kpi-panels" aria-live="polite">
+        <section id="kpi-all"   class="dash dash-kpis" data-kind="kpis" data-site="all"   data-active="true"  aria-labelledby="tab-all"></section>
+        <section id="kpi-ek"    class="dash dash-kpis" data-kind="kpis" data-site="ek"    data-active="false" aria-labelledby="tab-ek" hidden></section>
+        <section id="kpi-mm"    class="dash dash-kpis" data-kind="kpis" data-site="mm"    data-active="false" aria-labelledby="tab-mm" hidden></section>
+        <section id="kpi-keith" class="dash dash-kpis" data-kind="kpis" data-site="keith" data-active="false" aria-labelledby="tab-keith" hidden></section>
+        <section id="kpi-by"    class="dash dash-kpis" data-kind="kpis" data-site="by"    data-active="false" aria-labelledby="tab-by" hidden></section>
+      </div>
     </div>
 
     <!-- Dashboards -->
-    <section id="dash-all"   class="dash" data-active="true"  role="tabpanel" aria-labelledby="tab-all"></section>
-    <section id="dash-ek"    class="dash" data-active="false" role="tabpanel" aria-labelledby="tab-ek"></section>
-    <section id="dash-mm"    class="dash" data-active="false" role="tabpanel" aria-labelledby="tab-mm"></section>
-    <section id="dash-keith" class="dash" data-active="false" role="tabpanel" aria-labelledby="tab-keith"></section>
-    <section id="dash-by"    class="dash" data-active="false" role="tabpanel" aria-labelledby="tab-by"></section>
+    <section id="dash-all"   class="dash dash-table" data-kind="table" data-site="all"   data-active="true"  role="tabpanel" aria-labelledby="tab-all"></section>
+    <section id="dash-ek"    class="dash dash-table" data-kind="table" data-site="ek"    data-active="false" role="tabpanel" aria-labelledby="tab-ek" hidden></section>
+    <section id="dash-mm"    class="dash dash-table" data-kind="table" data-site="mm"    data-active="false" role="tabpanel" aria-labelledby="tab-mm" hidden></section>
+    <section id="dash-keith" class="dash dash-table" data-kind="table" data-site="keith" data-active="false" role="tabpanel" aria-labelledby="tab-keith" hidden></section>
+    <section id="dash-by"    class="dash dash-table" data-kind="table" data-site="by"    data-active="false" role="tabpanel" aria-labelledby="tab-by" hidden></section>
   </div>
 
 <script>
@@ -451,21 +469,21 @@ const SHEET_CSV_URL =
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vRJocigDhxneJtrUmezFU7FcWpzSSah8-Wb6Rce8NA1f7jKcINgYU29iYRqt5QQymWATX5zs5k8_rK0/pub?output=csv';
 
 // --- Layout helpers ---
-const $controlsBar = document.querySelector('.controls');
+const $stickyTop = document.querySelector('.sticky-top');
 const rootStyle = document.documentElement.style;
 function updateStickyControlsOffset(){
-  if(!$controlsBar || !rootStyle) return;
-  const styles = getComputedStyle($controlsBar);
+  if(!$stickyTop || !rootStyle) return;
+  const styles = getComputedStyle($stickyTop);
   const marginBottom = parseFloat(styles.marginBottom) || 0;
-  const offset = $controlsBar.getBoundingClientRect().height + marginBottom;
+  const offset = $stickyTop.getBoundingClientRect().height + marginBottom;
   rootStyle.setProperty('--sticky-controls-offset', `${offset}px`);
 }
 updateStickyControlsOffset();
 window.addEventListener('resize', updateStickyControlsOffset);
 window.addEventListener('load', updateStickyControlsOffset);
-if('ResizeObserver' in window && $controlsBar){
+if('ResizeObserver' in window && $stickyTop){
   const observer = new ResizeObserver(updateStickyControlsOffset);
-  observer.observe($controlsBar);
+  observer.observe($stickyTop);
 }
 
 // --- State cache for rendering ---
@@ -724,6 +742,8 @@ function applyFilters(rows){
 // Rendering
 function renderDashboard(container, headers, rows){
   container.innerHTML='';
+  const siteKey = container.dataset.site || container.id.replace(/^dash-/, '');
+  const kpiContainer = siteKey ? document.querySelector(`.dash-kpis[data-site="${siteKey}"]`) : null;
   // KPIs
   const kpiWrap=document.createElement('div'); kpiWrap.className='kpis';
   const total=rows.length;
@@ -737,10 +757,14 @@ function renderDashboard(container, headers, rows){
   kpiWrap.appendChild(kpiCard('In Progress', prog));
   kpiWrap.appendChild(kpiCard('On Hold', hold));
   kpiWrap.appendChild(kpiCard('Done', done));
-  container.appendChild(kpiWrap);
+  if(kpiContainer){
+    kpiContainer.innerHTML='';
+    kpiContainer.appendChild(kpiWrap);
+  }
+
+  container.__rows = rows.slice();
 
   if(rows.length===0){
-    container.__rows=rows.slice();
     const msg=document.createElement('div');
     msg.style.margin='8px 0';
     msg.style.color='var(--muted)';
@@ -766,8 +790,6 @@ function renderDashboard(container, headers, rows){
   });
 
   renderRowsScoped(tbody, visibleHeaders, rows);
-  container.__rows = rows.slice();
-
 }
 
 function renderRowsScoped(tbodyEl, headers, rows){
@@ -856,8 +878,16 @@ function ingestToDashboards(headers, rows){
 const tabs = Array.from(document.querySelectorAll('.nav .tab'));
 tabs.forEach(btn => btn.addEventListener('click', ()=> setActiveDash(btn.getAttribute('aria-controls'))));
 function setActiveDash(id){
-  document.querySelectorAll('.dash').forEach(sec => sec.setAttribute('data-active', String(sec.id===id)));
+  const active = document.getElementById(id);
+  if(!active) return;
+  const site = active.dataset.site || active.id.replace(/^dash-/, '');
+  document.querySelectorAll('.dash').forEach(sec => {
+    const isMatch = sec.dataset.site === site;
+    sec.setAttribute('data-active', String(isMatch));
+    sec.hidden = !isMatch;
+  });
   tabs.forEach(t => t.setAttribute('aria-selected', String(t.getAttribute('aria-controls')===id)));
+  updateStickyControlsOffset();
 }
 
 // File ingest (unchanged, but now reuses the same ingest/render)
