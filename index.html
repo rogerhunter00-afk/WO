@@ -250,6 +250,26 @@ table th, table td{
   box-shadow:0 1px 0 var(--grid);
 }
 
+ /* Scrim under sticky controls */
+.sticky-top::after{
+  content:"";
+  position: sticky;
+  top: 0;
+  display:block;
+
+  /* height will be set dynamically by JS */
+  height: var(--thead-height, 40px);
+
+  margin-top: calc(var(--sticky-controls-offset));
+  background: var(--paper);
+  z-index: 119; /* between controls (120) and thead (110) */
+}
+
+/* z-index layering */
+.table-scroll thead{ z-index:110; }
+.sticky-top{ z-index:120; }
+
+
 .controls{
   display:flex;
   gap:12px;
@@ -858,6 +878,21 @@ function sortScoped(th, tbodyEl, headers, rows, container){
   container.__rows = sorted;
   renderRowsScoped(tbodyEl, headers, sorted);
 }
+  
+// --- Auto-set thead height for scrim ---
+function updateTheadHeight(){
+  const thead = document.querySelector('.table-scroll thead');
+  if(thead){
+    const h = thead.getBoundingClientRect().height;
+    document.documentElement.style.setProperty('--thead-height', `${h}px`);
+  }
+}
+
+// Run on load
+document.addEventListener('DOMContentLoaded', updateTheadHeight);
+
+// Run on resize
+window.addEventListener('resize', updateTheadHeight);
 
 // Ingest + dashboards
 function ingestToDashboards(headers, rows){
