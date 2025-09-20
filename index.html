@@ -124,21 +124,36 @@
       margin-top:12px;
     }
 
-    table{ width:100%; min-width:900px; border-collapse:separate; border-spacing:0; }
-    table th, table td{ overflow-wrap:normal; word-break:normal; }
-    tbody td:nth-child(2),
-    tbody td:nth-child(5),
-    tbody td:nth-child(6),
-    tbody td:nth-child(10),
-    tbody td:nth-child(11),
-    tbody td:nth-child(12){
-      overflow-wrap:anywhere;
-      word-break:break-word;
-    }
-    thead th { position: sticky; top: var(--sticky-controls-offset); z-index: 3; }
+/* ✅ Merged table styles */
+table{
+  width:100%;
+  min-width:1100px;           /* from main (gives more room for columns) */
+  border-collapse:separate;
+  border-spacing:0;
+  table-layout:auto;          /* explicit instead of broken brace in main */
+}
+
+table th, table td{
+  overflow-wrap:anywhere;     /* unify behavior (was mixed normal/anywhere) */
+  word-break:break-word;
+  hyphens:auto;
+}
+
+thead th{
+  position: sticky;
+  top: var(--sticky-controls-offset);
+  z-index: 3;
+}
+
     thead th{
-      background:var(--thead); color:var(--thead-text); text-transform:uppercase; letter-spacing:.6px;
-      font-weight:800; font-size:11px; padding:10px 8px; border-right:1px solid rgba(255,255,255,.08);
+      background:var(--thead); 
+      color:var(--thead-text); 
+      text-transform:uppercase; 
+      letter-spacing:.6px;
+      font-weight:800; 
+      font-size:11px; 
+      padding:10px 8px; 
+      border-right:1px solid rgba(255,255,255,.08);
       cursor:pointer;
       box-shadow: 0 1px 0 var(--grid);
     }
@@ -148,10 +163,15 @@
     thead th:first-child{ border-top-left-radius:3px; }
     thead th:last-child{ border-top-right-radius:3px; border-right:none; }
 
-    tbody td{ background:var(--zebra); border-bottom:1px solid var(--grid); padding:10px 8px; vertical-align:top; }
+    tbody td{ 
+      background:var(--zebra); 
+      border-bottom:1px solid var(--grid); 
+      padding:10px 8px; 
+      vertical-align:top; 
+    }
 
     .col-id{ width:66px; }
-    .col-title{ width:240px; }
+    .col-title{ width:280px; }
     .col-status{ width:120px; }
     .col-priority{ width:92px; }
     .col-createdby{ width:140px; }
@@ -159,8 +179,8 @@
     .col-completedon{ width:110px; }
     .col-updated{ width:120px; }
     .col-location{ width:180px; }
-    .col-asset{ width:200px; }
-    .col-categories{ width:200px; }
+    .col-asset{ width:220px; }
+    .col-categories{ width:240px; }
 
     .id{ font-weight:700; }
     .title-cell b{ display:block; font-weight:800; }
@@ -306,7 +326,11 @@
 .dash[data-active="true"]{ display:block; }
 
 /* keep table look consistent in the new dashboards */
-tbody td{ overflow-wrap:anywhere; }
+tbody td{ 
+  overflow-wrap:anywhere; 
+  word-break: break-word;
+  hyphens: auto;
+}
 
 /* a11y helper */
 .visually-hidden{
@@ -322,7 +346,7 @@ tbody td{ overflow-wrap:anywhere; }
 }
 
 @media (min-width: 960px){
-  table{ table-layout:fixed; }
+  table{ table-layout:auto; }
 }
 
 /* responsive tweaks */
