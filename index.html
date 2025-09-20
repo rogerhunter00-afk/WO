@@ -175,6 +175,17 @@
 
     .controls{ display:flex; gap:12px; align-items:center; margin:8px 0 12px; font-size:12px; flex-wrap:wrap; }
     .controls input[type="file"], .controls textarea{ font:inherit; }
+    .controls .filter-group{ display:flex; align-items:center; gap:6px; font-weight:600; color:var(--ink); }
+    .controls .filter-group select{
+      font:inherit;
+      padding:6px 10px;
+      border:1px solid var(--grid);
+      border-radius:8px;
+      background:var(--paper);
+      color:inherit;
+      cursor:pointer;
+    }
+    .controls .filter-group select:focus-visible{ outline:2px solid color-mix(in srgb, var(--als-blue) 65%, transparent); outline-offset:2px; }
     .controls textarea{ width:min(100%, 520px); height:100px; padding:8px; border:1px solid var(--grid); border-radius:6px; }
     .btn{ padding:6px 10px; border:1px solid var(--als-blue); border-radius:8px; background:var(--paper); color:var(--als-blue); font-weight:700; cursor:pointer; }
 
@@ -253,6 +264,26 @@ tbody td{ overflow-wrap:anywhere; }
       <input id="file" type="file" accept=".csv,.tsv,.json,application/json,text/csv,text/tab-separated-values" style="display:none" />
       <button class="btn" id="pasteBtn" type="button">Paste data → render</button>
       <button class="btn" id="themeBtn" type="button">Dark mode</button>
+      <label class="filter-group">
+        <span>Status</span>
+        <select id="statusFilter" name="status-filter">
+          <option value="">All</option>
+          <option value="open">Open</option>
+          <option value="in-progress">In Progress</option>
+          <option value="on-hold">On Hold</option>
+          <option value="done">Done</option>
+        </select>
+      </label>
+      <label class="filter-group">
+        <span>Priority</span>
+        <select id="priorityFilter" name="priority-filter">
+          <option value="">All</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </label>
       <textarea id="pasteBox" placeholder="Paste CSV (headers required) or JSON array here..."></textarea>
     </div>
 
