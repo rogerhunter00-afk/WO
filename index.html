@@ -373,8 +373,8 @@ tbody td{ overflow-wrap:anywhere; }
     return el;
   }
 
-  const PRIORITY_ORDER = ['Critical','High','Medium','Low','—','',null,undefined];
-  const STATUS_ORDER   = ['Open','In Progress','On Hold','Done','—','',null,undefined];
+  const PRIORITY_ORDER = ['critical','high','medium','low',''];
+  const STATUS_ORDER   = ['open','in-progress','on-hold','done',''];
 
   function parseDateLoose(v){
     if(!v) return null;
@@ -384,13 +384,29 @@ tbody td{ overflow-wrap:anywhere; }
     const dt = new Date(`${y}-${M}-${d}T${hh}:${mm}:00`);
     return isNaN(dt.getTime()) ? null : dt;
   }
+  function normalizePriority(v){
+    if(v == null) return '';
+    let slug = slugify(String(v).trim());
+    if(!slug) return '';
+    if(slug.endsWith('-priority')) slug = slug.replace(/-priority$/,'');
+    if(slug === 'med') slug = 'medium';
+    if(slug === 'normal') slug = 'medium';
+    if(slug === 'urgent' || slug === 'emergency') slug = 'critical';
+    return slug;
+  }
   function cmpPriority(a,b){
-    const ia = PRIORITY_ORDER.indexOf(a), ib = PRIORITY_ORDER.indexOf(b);
-    return (ia===-1?99:ia) - (ib===-1?99:ib);
+    const ia = PRIORITY_ORDER.indexOf(normalizePriority(a));
+    const ib = PRIORITY_ORDER.indexOf(normalizePriority(b));
+    const safe = idx => (idx === -1 ? PRIORITY_ORDER.length : idx);
+    const diff = safe(ia) - safe(ib);
+    return diff || String(a??'').localeCompare(String(b??''), undefined, {numeric:true, sensitivity:'base'});
   }
   function cmpStatus(a,b){
-    const ia = STATUS_ORDER.indexOf(a), ib = STATUS_ORDER.indexOf(b);
-    return (ia===-1?99:ia) - (ib===-1?99:ib);
+    const ia = STATUS_ORDER.indexOf(statusClass(a));
+    const ib = STATUS_ORDER.indexOf(statusClass(b));
+    const safe = idx => (idx === -1 ? STATUS_ORDER.length : idx);
+    const diff = safe(ia) - safe(ib);
+    return diff || String(a??'').localeCompare(String(b??''), undefined, {numeric:true, sensitivity:'base'});
   }
   function cmpId(a,b){
     const na = parseInt(String(a).replace(/\D+/g,''),10) || 0;
@@ -398,22 +414,23 @@ tbody td{ overflow-wrap:anywhere; }
     return na - nb;
   }
   function detectType(col, rows){
+    const colNorm = String(col||'').trim().toLowerCase();
     const sample = rows.slice(0, 10).map(r => r[col]);
     const allDates   = sample.length && sample.every(v => parseDateLoose(v) !== null);
     const allNumbers = sample.length && sample.every(v => typeof v === 'number' || /^\s*[-+]?\d+(\.\d+)?\s*$/.test(String(v)));
     if (allDates) return 'date';
     if (allNumbers) return 'number';
-    if (col === 'ID') return 'id';
-    if (col === 'Priority') return 'priority';
-    if (col === 'Status') return 'status';
+    if (colNorm === 'id') return 'id';
+    if (colNorm === 'priority') return 'priority';
+    if (colNorm === 'status') return 'status';
     return 'string';
   }
   function statusClass(v){
     const map = new Map([
       ['done','done'], ['complete','done'], ['completed','done'],
       ['open','open'],
-      ['in-progress','in-progress'], ['in progress','in-progress'], ['progress','in-progress'],
-      ['on-hold','on-hold'], ['on hold','on-hold'], ['hold','on-hold']
+      ['in-progress','in-progress'], ['in progress','in-progress'], ['progress','in-progress'], ['inprogress','in-progress'],
+      ['on-hold','on-hold'], ['on hold','on-hold'], ['hold','on-hold'], ['onhold','on-hold']
     ]);
     const s = slugify(String(v||'')); return map.get(s) || s;
   }
