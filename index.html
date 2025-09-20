@@ -159,6 +159,20 @@
     .controls textarea{ width:420px; height:100px; padding:8px; border:1px solid var(--grid); border-radius:6px; }
     .btn{ padding:6px 10px; border:1px solid var(--als-blue); border-radius:8px; background:var(--paper); color:var(--als-blue); font-weight:700; cursor:pointer; }
 
+    /* --- Per-site dashboards --- */
+    .nav{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 10px; }
+    .nav .tab{ padding:8px 12px; border:1px solid var(--grid); border-radius:999px; cursor:pointer; background:var(--paper); color:var(--ink); font-weight:700; }
+    .nav .tab[aria-selected="true"]{ border-color:var(--als-blue); box-shadow:0 0 0 2px color-mix(in srgb, var(--als-blue) 25%, transparent); }
+    .kpis{ display:grid; grid-template-columns: repeat(5, minmax(140px,1fr)); gap:10px; margin:12px 0; }
+    .card{ background:var(--paper); border:1px solid var(--grid); border-radius:14px; padding:12px; }
+    .card h3{ margin:0 0 6px; font-size:12px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); }
+    .card .big{ font-size:22px; font-weight:900; }
+    .dash{ display:none; }
+    .dash[data-active="true"]{ display:block; }
+
+    /* keep table look consistent in the new dashboards */
+    tbody td{ overflow-wrap:anywhere; }
+
     @media print{
       @page{ size: A4 landscape; margin: 10mm; }
       body{ font-size:11px; }
@@ -189,10 +203,21 @@
       <textarea id="pasteBox" placeholder="Paste CSV (headers required) or JSON array here..."></textarea>
     </div>
 
-    <table role="table" aria-label="Work Orders" id="workTable">
-      <thead id="thead"></thead>
-      <tbody id="tbody"></tbody>
-    </table>
+    <!-- Tabs -->
+    <div class="nav" role="tablist" aria-label="Site dashboards">
+      <button class="tab" role="tab" id="tab-all"   aria-controls="dash-all"   aria-selected="true">All Sites</button>
+      <button class="tab" role="tab" id="tab-ek"    aria-controls="dash-ek"    aria-selected="false">EK / Cathkin</button>
+      <button class="tab" role="tab" id="tab-mm"    aria-controls="dash-mm"    aria-selected="false">Mugiemoss</button>
+      <button class="tab" role="tab" id="tab-keith" aria-controls="dash-keith" aria-selected="false">Keith</button>
+      <button class="tab" role="tab" id="tab-by"    aria-controls="dash-by"    aria-selected="false">Byron</button>
+    </div>
+
+    <!-- Dashboards -->
+    <section id="dash-all"   class="dash" data-active="true"  role="tabpanel" aria-labelledby="tab-all"></section>
+    <section id="dash-ek"    class="dash" data-active="false" role="tabpanel" aria-labelledby="tab-ek"></section>
+    <section id="dash-mm"    class="dash" data-active="false" role="tabpanel" aria-labelledby="tab-mm"></section>
+    <section id="dash-keith" class="dash" data-active="false" role="tabpanel" aria-labelledby="tab-keith"></section>
+    <section id="dash-by"    class="dash" data-active="false" role="tabpanel" aria-labelledby="tab-by"></section>
 
     <footer>
       <span></span>
@@ -201,10 +226,6 @@
   </div>
 
   <script>
-    let currentHeaders = [];
-    let currentRows = [];
-    let sortState = {};
-
     const categoryColors = {
       'mechanical': {
         light: { background: '#f59e0b1a', border: '#f59e0b', color: '#92400e' },
@@ -235,80 +256,10 @@
     `).join('');
     document.head.appendChild(styleEl);
 
-    const elThead = document.getElementById('thead');
-    const elTbody = document.getElementById('tbody');
-
     function esc(s){ return String(s==null?'':s).replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
     function slugify(str){
       return str.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
-    }
-
-    function renderHeader(headers){
-      currentHeaders = headers;
-      elThead.innerHTML = `<tr>${headers.map(h=>`<th data-col="${esc(h)}" tabindex="0"><span>${esc(h)}</span><span class="sort-arrow"></span></th>`).join('')}</tr>`;
-      elThead.querySelectorAll('th').forEach(th=>{
-        th.addEventListener('click', ()=>sortByColumn(th.getAttribute('data-col'), th));
-        th.addEventListener('keydown', e=>{
-          if(e.key==='Enter' || e.key===' '){
-            e.preventDefault();
-            sortByColumn(th.getAttribute('data-col'), th);
-          }
-        });
-      });
-    }
-
-    function renderRows(rows){
-      currentRows = rows;
-      elTbody.innerHTML = rows.map(row => {
-        return `<tr>${currentHeaders.map(h=>{
-          const v = row[h];
-          if(h === 'Categories'){
-            const cats = String(v||'').split(';').map(c=>c.trim()).filter(Boolean);
-            const chips = cats.map(cat=>{
-              const slug = slugify(cat);
-              return `<span class="chip-cat cat-${slug}">${esc(cat)}</span>`;
-            }).join('');
-            return `<td>${chips}</td>`;
-          }
-          if(h === 'Status'){
-            const slug = slugify(String(v||''));
-            return `<td><span class="status-chip ${slug}">${esc(v)}</span></td>`;
-          }
-          return `<td>${esc(v)}</td>`;
-        }).join('')}</tr>`;
-      }).join('\n');
-    }
-
-    function renderTable(headers, rows){
-      renderHeader(headers);
-      renderRows(rows);
-    }
-
-    function sortByColumn(col, th){
-      const direction = sortState[col] === 'asc' ? 'desc' : 'asc';
-      sortState = { [col]: direction };
-      document.querySelectorAll('thead th').forEach(h=>{
-        if(h!==th){
-          h.removeAttribute('data-sort');
-          h.setAttribute('aria-sort','none');
-        }
-      });
-      th.setAttribute('data-sort', direction);
-      th.setAttribute('aria-sort', direction==='asc'?'ascending':'descending');
-      const sorted = [...currentRows].sort((a,b)=>{
-        const va = a[col] ?? '';
-        const vb = b[col] ?? '';
-        const nva = parseFloat(va);
-        const nvb = parseFloat(vb);
-        if(!isNaN(nva) && !isNaN(nvb)){
-          return direction==='asc'?nva-nvb:nvb-nva;
-        }
-        return direction==='asc'
-          ? String(va).localeCompare(String(vb))
-          : String(vb).localeCompare(String(va));
-      });
-      renderRows(sorted);
     }
 
     function parseDelimited(text){
@@ -328,6 +279,210 @@
       return {headers, rows};
     }
 
+    /* ---------- Per-site Dashboards: helpers ---------- */
+
+    // Map Location text to site key
+    function toSiteKey(location){
+      const s = String(location||'').toLowerCase();
+      if (s.includes('byron')) return 'by';
+      if (s.includes('mugiemoss') || s.includes('bucksburn')) return 'mm';
+      if (s.includes('keith')) return 'keith';
+      if (s.includes('cathkin') || s.includes('east kilbride') || s.includes('ek')) return 'ek';
+      return 'other';
+    }
+
+    // Small KPI card
+    function kpiCard(label, value){
+      const el = document.createElement('div');
+      el.className = 'card';
+      el.innerHTML = `<h3>${esc(label)}</h3><div class="big">${esc(value)}</div>`;
+      return el;
+    }
+
+    // Build a <table> with sortable headers (scoped, does not touch your global thead/tbody)
+    const PRIORITY_ORDER = ['Critical','High','Medium','Low','—','',null,undefined];
+    const STATUS_ORDER   = ['Open','In Progress','On Hold','Done','—','',null,undefined];
+
+    function parseDateLoose(v){
+      if(!v) return null;
+      // supports "DD/MM/YYYY HH:mm" or "DD/MM/YYYY"
+      const m = String(v).match(/^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?$/);
+      if (!m) return null;
+      const [ , d, M, y, hh='00', mm='00'] = m;
+      const dt = new Date(`${y}-${M}-${d}T${hh}:${mm}:00`);
+      return isNaN(dt.getTime()) ? null : dt;
+    }
+    function cmpPriority(a,b){
+      const ia = PRIORITY_ORDER.indexOf(a), ib = PRIORITY_ORDER.indexOf(b);
+      return (ia===-1?99:ia) - (ib===-1?99:ib);
+    }
+    function cmpStatus(a,b){
+      const ia = STATUS_ORDER.indexOf(a), ib = STATUS_ORDER.indexOf(b);
+      return (ia===-1?99:ia) - (ib===-1?99:ib);
+    }
+    function cmpId(a,b){
+      const na = parseInt(String(a).replace(/\D+/g,''),10) || 0;
+      const nb = parseInt(String(b).replace(/\D+/g,''),10) || 0;
+      return na - nb;
+    }
+    function detectType(col, rows){
+      const sample = rows.slice(0, 10).map(r => r[col]);
+      const allDates   = sample.length && sample.every(v => parseDateLoose(v) !== null);
+      const allNumbers = sample.length && sample.every(v => typeof v === 'number' || /^\s*[-+]?\d+(\.\d+)?\s*$/.test(String(v)));
+      if (allDates) return 'date';
+      if (allNumbers) return 'number';
+      if (col === 'ID') return 'id';
+      if (col === 'Priority') return 'priority';
+      if (col === 'Status') return 'status';
+      return 'string';
+    }
+    function statusClass(v){
+      const map = new Map([
+        ['done','done'], ['complete','done'], ['completed','done'],
+        ['open','open'],
+        ['in-progress','in-progress'], ['in progress','in-progress'], ['progress','in-progress'],
+        ['on-hold','on-hold'], ['on hold','on-hold'], ['hold','on-hold']
+      ]);
+      const s = slugify(String(v||'')); return map.get(s) || s;
+    }
+
+    // Render a full dashboard (KPIs + table) into a container
+    function renderDashboard(container, headers, rows){
+      container.innerHTML = '';
+
+      // KPIs
+      const kpiWrap = document.createElement('div'); kpiWrap.className = 'kpis';
+      const total = rows.length;
+      const open  = rows.filter(r => /^open$/i.test(r.Status)).length;
+      const prog  = rows.filter(r => /^in\s*progress$/i.test(r.Status)).length;
+      const hold  = rows.filter(r => /^on\s*hold$/i.test(r.Status)).length;
+      const done  = rows.filter(r => /^done$/i.test(r.Status)).length;
+      const lastUpd = rows.map(r => parseDateLoose(r['Last updated'])).filter(Boolean).sort((a,b)=>b-a)[0];
+
+      kpiWrap.appendChild(kpiCard('Total WOs', total));
+      kpiWrap.appendChild(kpiCard('Open', open));
+      kpiWrap.appendChild(kpiCard('In Progress', prog));
+      kpiWrap.appendChild(kpiCard('On Hold', hold));
+      kpiWrap.appendChild(kpiCard('Done', done));
+
+      container.appendChild(kpiWrap);
+
+      // Table
+      const table = document.createElement('table'); table.setAttribute('role','table'); table.setAttribute('aria-label','Work Orders');
+      const thead = document.createElement('thead'); const tbody = document.createElement('tbody');
+      table.appendChild(thead); table.appendChild(tbody); container.appendChild(table);
+
+      // Scoped header with sort
+      thead.innerHTML = `<tr>${headers.map(h=>`<th scope="col" data-col="${esc(h)}" tabindex="0"><span>${esc(h)}</span><span class="sort-arrow" aria-hidden="true"></span></th>`).join('')}</tr>`;
+      thead.querySelectorAll('th').forEach(th=>{
+        th.addEventListener('click', ()=> sortScoped(th, tbody, headers, rows, container));
+        th.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); sortScoped(th, tbody, headers, rows, container); } });
+      });
+
+      // Rows
+      renderRowsScoped(tbody, headers, rows);
+
+      // Keep a copy for re-sorting later
+      container.__rows = rows.slice();
+
+      // Footer stamps (if you keep your existing footer)
+      const ftL = document.querySelector('footer span:first-child');
+      const ftR = document.querySelector('footer span:last-child');
+      if (ftL && lastUpd) ftL.textContent = `Last update: ${lastUpd.toLocaleString()}`;
+      if (ftR) ftR.textContent = `${total} work orders`;
+    }
+
+    function renderRowsScoped(tbodyEl, headers, rows){
+      const norm = s => String(s||'').trim().toLowerCase();
+      tbodyEl.innerHTML = rows.map(row => {
+        return `<tr>${headers.map(h=>{
+          const v = row[h]; const hNorm = norm(h);
+          if (hNorm === 'categories'){
+            const chips = String(v||'').split(';').map(c=>c.trim()).filter(Boolean).map(cat=>{
+              const slug = slugify(cat);
+              return `<span class="chip-cat cat-${slug}">${esc(cat)}</span>`;
+            }).join('');
+            return `<td>${chips}</td>`;
+          }
+          if (hNorm === 'status'){
+            const cls = statusClass(v);
+            return `<td><span class="status-chip ${cls}">${esc(v)}</span></td>`;
+          }
+          return `<td>${esc(v)}</td>`;
+        }).join('')}</tr>`;
+      }).join('\n');
+    }
+
+    function sortScoped(th, tbodyEl, headers, rows, container){
+      const col = th.getAttribute('data-col');
+      const dir = th.getAttribute('data-sort') === 'asc' ? 'desc' : 'asc';
+      Array.from(th.parentElement.children).forEach(h=>{ if(h!==th){ h.removeAttribute('data-sort'); h.setAttribute('aria-sort','none'); }});
+      th.setAttribute('data-sort', dir); th.setAttribute('aria-sort', dir==='asc'?'ascending':'descending');
+
+      const type = detectType(col, rows);
+      const f = dir === 'asc' ? 1 : -1;
+
+      const sorted = [...(container.__rows || rows)].sort((a,b)=>{
+        const va=a[col], vb=b[col];
+        if(type==='date'){ const da=parseDateLoose(va), db=parseDateLoose(vb); return f * (((da?.getTime()||0)-(db?.getTime()||0))); }
+        if(type==='number'){ return f * ((parseFloat(va)||0)-(parseFloat(vb)||0)); }
+        if(type==='priority'){ return f * cmpPriority(va, vb); }
+        if(type==='status'){ return f * cmpStatus(va, vb); }
+        if(type==='id'){ return f * cmpId(va, vb); }
+        return f * String(va??'').localeCompare(String(vb??''), undefined, {numeric:true, sensitivity:'base'});
+      });
+
+      container.__rows = sorted;
+      renderRowsScoped(tbodyEl, headers, sorted);
+    }
+
+    /* ---------- Ingest + dispatch to the 5 dashboards ---------- */
+
+    // Call this instead of your old renderTable(...) finalization
+    function ingestToDashboards(headers, rows){
+      // Keep only known/expected columns if present
+      const expected = ['ID','Title','Status','Priority','Assigned to','Created by','Created on','Completed on','Last updated','Location','Asset','Categories'];
+      const present = expected.filter(h => headers.includes(h));
+      const safeHeaders = present.length ? present : expected;
+
+      const normalized = rows.map(r => {
+        const o = {};
+        expected.forEach(h => o[h] = r[h] ?? '');
+        return o;
+      });
+
+      const groups = {
+        all: normalized,
+        ek: normalized.filter(r => toSiteKey(r.Location) === 'ek'),
+        mm: normalized.filter(r => toSiteKey(r.Location) === 'mm'),
+        keith: normalized.filter(r => toSiteKey(r.Location) === 'keith'),
+        by: normalized.filter(r => toSiteKey(r.Location) === 'by')
+      };
+
+      const map = [
+        ['dash-all','all'],
+        ['dash-ek','ek'],
+        ['dash-mm','mm'],
+        ['dash-keith','keith'],
+        ['dash-by','by']
+      ];
+
+      map.forEach(([id,key])=>{
+        const el = document.getElementById(id);
+        renderDashboard(el, safeHeaders, groups[key]);
+      });
+
+      setActiveDash('dash-all'); // default
+    }
+
+    // Tabs wiring
+    const tabs = Array.from(document.querySelectorAll('.nav .tab'));
+    tabs.forEach(btn => btn.addEventListener('click', ()=> setActiveDash(btn.getAttribute('aria-controls'))));
+    function setActiveDash(id){
+      document.querySelectorAll('.dash').forEach(sec => sec.setAttribute('data-active', String(sec.id===id)));
+      tabs.forEach(t => t.setAttribute('aria-selected', String(t.getAttribute('aria-controls')===id)));
+    }
+
     document.getElementById('file').addEventListener('change', e=>{
       const f = e.target.files[0];
       if(!f) return;
@@ -345,7 +500,7 @@
         }catch(err){
           alert('Could not parse file: '+err.message);
         }
-        renderTable(headers, rows);
+        ingestToDashboards(headers, rows);
       };
       reader.readAsText(f);
     });
@@ -360,7 +515,7 @@
         headers = result.headers;
         rows = result.rows;
       }catch(err){ alert('Parse error: '+err.message); }
-      renderTable(headers, rows);
+      ingestToDashboards(headers, rows);
     });
 
       const themeBtn = document.getElementById('themeBtn');
@@ -396,7 +551,7 @@
       }
     ];
 
-    renderTable(Object.keys(demo[0]||{}), demo);
+    ingestToDashboards(Object.keys(demo[0]||{}), demo);
   </script>
 </body>
 </html>
