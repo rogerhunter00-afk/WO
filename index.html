@@ -272,6 +272,7 @@ tbody td{ overflow-wrap:anywhere; }
           <option value="in-progress">In Progress</option>
           <option value="on-hold">On Hold</option>
           <option value="done">Done</option>
+          <option value="not:done">Not: Done</option>
         </select>
       </label>
       <label class="filter-group">
@@ -383,15 +384,38 @@ function detectType(col,rows){ const n=String(col||'').trim().toLowerCase(); con
 const $statusFilter = document.getElementById('statusFilter');
 const $priorityFilter = document.getElementById('priorityFilter');
 function getFilters(){
+  const rawStatus = ($statusFilter?.value || '').trim().toLowerCase();
+  let status = '';
+  let excludeStatus = false;
+
+  if(rawStatus){
+    const negMatch = rawStatus.match(/^(?:not[:\s]+|!)(.+)$/);
+    if(negMatch){
+      status = negMatch[1].trim();
+      excludeStatus = true;
+    }else{
+      status = rawStatus;
+    }
+  }
+
+  status = status ? statusClass(status) : '';
+  if(!status){
+    excludeStatus = false;
+  }
+
   return {
-    status: ($statusFilter?.value || '').trim().toLowerCase(),  // expects slug (open/in-progress/etc.)
+    status,
+    excludeStatus,
     priority: normalizePriority($priorityFilter?.value || '')
   };
 }
 function applyFilters(rows){
-  const { status, priority } = getFilters();
+  const { status, excludeStatus, priority } = getFilters();
   return rows.filter(r => {
-    const okStatus = !status || statusClass(r['Status']) === status;
+    const rowStatus = statusClass(r['Status']);
+    const okStatus = !status
+      ? true
+      : (excludeStatus ? rowStatus !== status : rowStatus === status);
     const okPrio   = !priority || normalizePriority(r['Priority']) === priority;
     return okStatus && okPrio;
   });
