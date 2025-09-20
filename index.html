@@ -124,23 +124,27 @@
       margin-top:12px;
     }
 
-    table{ 
-      width:100%;
-      min-width:1100px;
-      border-collapse:separate;
-      border-spacing:0;
-    table-layout:auto;}
-    }
-    
-    table th, table td{
-      overflow-wrap:anywhere; 
-      word-break:break-word;
-      hyphens:auto;
-    }
-    thead th { 
-      position: sticky; 
-      top: var(--sticky-controls-offset); 
-      z-index: 3; }
+/* ✅ Merged table styles */
+table{
+  width:100%;
+  min-width:1100px;           /* from main (gives more room for columns) */
+  border-collapse:separate;
+  border-spacing:0;
+  table-layout:auto;          /* explicit instead of broken brace in main */
+}
+
+table th, table td{
+  overflow-wrap:anywhere;     /* unify behavior (was mixed normal/anywhere) */
+  word-break:break-word;
+  hyphens:auto;
+}
+
+thead th{
+  position: sticky;
+  top: var(--sticky-controls-offset);
+  z-index: 3;
+}
+
     thead th{
       background:var(--thead); 
       color:var(--thead-text); 
@@ -195,7 +199,7 @@
       white-space:nowrap;
     }
 
-    .status-chip{ display:inline-flex; align-items:center; padding:2px 8px; border-radius:6px; font-weight:700; }
+    .status-chip{ display:inline-flex; align-items:center; padding:2px 8px; border-radius:6px; font-weight:700; white-space:nowrap; }
     .status-chip::before{ margin-right:4px; }
     .status-chip.done{ color:var(--done-tx); background:var(--done-bg); }
     .status-chip.done::before{ content:'\2713'; }
