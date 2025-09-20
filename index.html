@@ -117,9 +117,18 @@
 
     .top-rule{ height:6px; background:var(--als-blue); border-bottom:1px solid var(--als-blue-strong); margin:8px 0 10px; }
 
+.table-scroll{
+  height: calc(100vh - var(--sticky-controls-offset) - 24px);
+  overflow:auto;
+  border:1px solid var(--grid);
+  border-radius:12px;
+}
+
 .table-scroll thead{
   position: sticky;
-  top: var(--sticky-controls-offset);
+  top: 0;
+  z-index:112;
+  background:var(--thead);
 }
 
 /* Header cell visuals (no sticky here) */
@@ -263,7 +272,6 @@ table th, table td{
 }
 
 /* keep these */
-.table-scroll thead{ position: sticky; top: var(--sticky-controls-offset); z-index:112; }
 .sticky-top{ z-index:120; }
 
 /* optional: keep vertical scrollbar width constant on all pages */
