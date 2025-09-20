@@ -249,28 +249,25 @@ table th, table td{
   box-shadow:0 1px 0 var(--grid);
 }
 
-/* Scrim under sticky controls (doesn't affect layout) */
+/* Scrim under sticky controls — pure overlay, no layout impact */
 .sticky-top::after{
   content:"";
-  position: sticky;
-  top: 0;
-  display:block;
-  width:100%;
-
-  /* exact header height comes from JS */
+  position: fixed;                 /* overlay, not part of layout */
+  left: 0;
+  right: 0;                        /* avoids 100vw jitter */
+  top: var(--sticky-controls-offset);
   height: var(--thead-height, 40px);
-
-  /* overlay instead of pushing layout */
-  transform: translateY(var(--sticky-controls-offset));
-
   background: var(--paper);
-  pointer-events: none;   /* don't eat clicks/hover */
-  z-index: 111;           /* between controls (120) and rows; keep below THEAD if you want THEAD above */
+  pointer-events: none;
+  z-index: 111;                    /* below sticky thead (112), below controls (120) */
 }
 
-/* keep stacking clear */
-.table-scroll thead{ z-index:112; }  /* put sticky THEAD above scrim */
+/* keep these */
+.table-scroll thead{ position: sticky; top: var(--sticky-controls-offset); z-index:112; }
 .sticky-top{ z-index:120; }
+
+/* optional: keep vertical scrollbar width constant on all pages */
+html{ overflow-y: scroll; }
 
 .controls{
   display:flex;
@@ -883,13 +880,13 @@ function sortScoped(th, tbodyEl, headers, rows, container){
   renderRowsScoped(tbodyEl, headers, sorted);
 }
   
-// --- Auto-set thead height for scrim ---
 function updateTheadHeight(){
-  const thead = document.querySelector('.table-scroll thead');
-  if(thead){
-    const h = thead.getBoundingClientRect().height;
-    document.documentElement.style.setProperty('--thead-height', `${h}px`);
-  }
+  // thead inside the currently active (visible) dashboard
+  const activeDash = document.querySelector('.dash[data-active="true"]:not([hidden])');
+  const thead = activeDash?.querySelector('.table-scroll thead');
+  const h = thead ? thead.getBoundingClientRect().height : 0;
+  document.documentElement.style.setProperty('--thead-height', `${h}px`);
+}
 }
 
 // Run on load
@@ -898,7 +895,6 @@ document.addEventListener('DOMContentLoaded', updateTheadHeight);
 // Run on resize
 window.addEventListener('resize', updateTheadHeight);
 
-// Ingest + dashboards
 function ingestToDashboards(headers, rows){
   const expected=['ID','Title','Status','Priority','Assigned to','Created by','Created on','Completed on','Last updated','Location','Asset','Categories'];
   const present = expected.filter(h => headers.includes(h));
@@ -918,12 +914,26 @@ function ingestToDashboards(headers, rows){
     by   : filtered.filter(r=>toSiteKey(r.Location)==='by'),
   };
 
-  [['dash-all','all'],['dash-ek','ek'],['dash-mm','mm'],['dash-keith','keith'],['dash-by','by']].forEach(([id,key])=>{
-    const el=document.getElementById(id);
+  // ✅ Skip panels that don't exist
+  [
+    ['dash-all','all'],
+    ['dash-ek','ek'],
+    ['dash-mm','mm'],
+    ['dash-keith','keith'],
+    ['dash-by','by']
+  ].forEach(([id,key])=>{
+    const el = document.getElementById(id);
+    if (!el) return;
     renderDashboard(el, safeHeaders, groups[key]);
   });
 
-  setActiveDash('dash-all');
+  // pick the first available dashboard
+  if (document.getElementById('dash-all')) {
+    setActiveDash('dash-all');
+  } else {
+    const first = document.querySelector('.dash');
+    if (first) setActiveDash(first.id);
+  }
 }
 
 // Tabs
@@ -931,16 +941,23 @@ const tabs = Array.from(document.querySelectorAll('.nav .tab'));
 tabs.forEach(btn => btn.addEventListener('click', ()=> setActiveDash(btn.getAttribute('aria-controls'))));
 function setActiveDash(id){
   const active = document.getElementById(id);
-  if(!active) return;
+  if(!active) return;  // guard
+
   const site = active.dataset.site || active.id.replace(/^dash-/, '');
   document.querySelectorAll('.dash').forEach(sec => {
     const isMatch = sec.dataset.site === site;
     sec.setAttribute('data-active', String(isMatch));
     sec.hidden = !isMatch;
   });
-  tabs.forEach(t => t.setAttribute('aria-selected', String(t.getAttribute('aria-controls')===id)));
+
+  // sync tabs safely
+  document.querySelectorAll('.nav .tab').forEach(t => {
+    const controls = t.getAttribute('aria-controls');
+    t.setAttribute('aria-selected', String(controls === id));
+  });
+
   updateStickyControlsOffset();
-    updateTheadHeight();
+  updateTheadHeight();
 }
 
 // File ingest (unchanged, but now reuses the same ingest/render)
