@@ -111,7 +111,14 @@
 
     .top-rule{ height:6px; background:var(--als-blue); border-bottom:1px solid var(--als-blue-strong); margin:8px 0 10px; }
 
-    table{ width:100%; border-collapse:separate; border-spacing:0; table-layout:fixed; }
+    .table-scroll{
+      width:100%;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      margin-top:12px;
+    }
+
+    table{ width:100%; min-width:900px; border-collapse:separate; border-spacing:0; }
     table th, table td{ overflow-wrap:anywhere; word-break:break-word; }
     thead th { position: sticky; top: 0; z-index: 3; }
     thead th{
@@ -214,6 +221,10 @@ tbody td{ overflow-wrap:anywhere; }
   clip:rect(0,0,0,0);
   white-space:nowrap;
   border:0;
+}
+
+@media (min-width: 960px){
+  table{ table-layout:fixed; }
 }
 
 /* responsive tweaks */
@@ -460,8 +471,9 @@ function renderDashboard(container, headers, rows){
 
   // Table
   const table=document.createElement('table'); table.setAttribute('role','table'); table.setAttribute('aria-label','Work Orders');
+  const tableWrap=document.createElement('div'); tableWrap.className='table-scroll';
   const thead=document.createElement('thead'); const tbody=document.createElement('tbody');
-  table.appendChild(thead); table.appendChild(tbody); container.appendChild(table);
+  table.appendChild(thead); table.appendChild(tbody); tableWrap.appendChild(table); container.appendChild(tableWrap);
 
   thead.innerHTML=`<tr>${headers.map(h=>`<th scope="col" data-col="${esc(h)}" tabindex="0"><span>${esc(h)}</span><span class="sort-arrow" aria-hidden="true"></span></th>`).join('')}</tr>`;
   thead.querySelectorAll('th').forEach(th=>{
