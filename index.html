@@ -203,6 +203,50 @@
   margin-inline: auto;
 }
 
+    /* Popover shell */
+.legend-popover{ position:relative; }
+.legend-popover__panel{
+  position:absolute; right:0; top:calc(100% + 8px);
+  width: min(320px, 86vw); max-height: 70vh; overflow:auto;
+  background: var(--paper); color: var(--ink);
+  border:1px solid var(--grid); border-radius:12px; padding:10px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.18);
+  opacity:0; transform: translateY(-4px); pointer-events:none;
+  transition: opacity .15s ease, transform .15s ease;
+  z-index: 130;
+}
+/* little caret */
+.legend-popover__panel::before{
+  content:""; position:absolute; top:-6px; right:24px;
+  width:12px; height:12px; transform: rotate(45deg);
+  background: var(--paper); border-left:1px solid var(--grid); border-top:1px solid var(--grid);
+}
+
+/* Show on hover or keyboard focus */
+.legend-popover:hover .legend-popover__panel,
+.legend-popover:focus-within .legend-popover__panel,
+.legend-popover.is-open .legend-popover__panel{
+  opacity:1; transform: none; pointer-events:auto;
+}
+
+/* Compact legend tweaks */
+.legend--compact{ margin:0; padding:10px; background:var(--paper); }
+.legend--compact .legend__title{ margin:0 0 6px; font-size:10px; }
+.legend--compact .legend__list{ gap:6px 8px; }
+.legend--compact .status-chip{ font-size:11px; padding:3px 9px; }
+.legend--compact .age-chip{ font-size:11.5px; padding:3px 7px; }
+.legend--compact .chip-cat{ font-size:11px; padding:3px 8px; }
+.legend--compact .legend__kpi{ font-size:11px; padding:3px 8px; }
+
+/* Mobile: make it easier to use with touch */
+@media (max-width:700px){
+  .legend-popover__panel{
+    position: fixed; left: 12px; right: 12px; top: calc(var(--sticky-controls-offset) + 8px);
+    width:auto; max-height: 60vh;
+  }
+  .legend-popover__panel::before{ display:none; }
+}
+
     .legend{
   border:1px solid var(--grid);
   border-radius:12px;
@@ -813,7 +857,29 @@ html{ overflow-y: scroll; }
       <input id="file" type="file" accept=".csv,.tsv,.json,application/json,text/csv,text/tab-separated-values" style="display:none" />
       <button class="btn" id="themeBtn" type="button">Dark mode</button>
       <button class="btn" id="exportCsvBtn" type="button" disabled>Export CSV</button>
-      <button class="btn" id="exportExcelBtn" type="button" disabled>Export Excel</button>
+<!-- Legend popover trigger -->
+<div class="legend-popover">
+  <button class="btn" id="legendBtn" type="button"
+          aria-haspopup="dialog" aria-expanded="false"
+          aria-controls="legendPanel">Index</button>
+
+  <div id="legendPanel" class="legend-popover__panel" role="dialog" aria-label="Legend quick reference">
+    <section class="legend legend--compact">
+      <h2 class="legend__title">Index</h2>
+      <ul class="legend__list">
+        <li class="legend__sample"><span class="status-chip open">Open</span><span>Open work order</span></li>
+        <li class="legend__sample"><span class="status-chip in-progress">In&nbsp;Progress</span><span>Currently being worked</span></li>
+        <li class="legend__sample"><span class="status-chip on-hold">On&nbsp;Hold</span><span>Paused</span></li>
+        <li class="legend__sample"><span class="status-chip done">Done</span><span>Completed</span></li>
+        <li class="legend__sample"><span class="age-chip age-stale">12d</span><span>Age (d/h/m); darker = older</span></li>
+        <li class="legend__sample"><span class="age-chip age-old frozen" title="Planned Winter Project">12d</span><span>❄ Planned Winter Project (frozen)</span></li>
+        <li class="legend__sample"><span class="legend__rail" aria-hidden="true"></span><span>“Priority” row (red rail + faint blue wash)</span></li>
+        <li class="legend__sample"><span class="chip-cat">Category</span><span>Category tags</span></li>
+        <li class="legend__sample"><span class="legend__kpi">KPI</span><span>Tiles are clickable filters</span></li>
+      </ul>
+    </section>
+  </div>
+</div>
 
       <label class="filter-group">
         <span>Status</span>
@@ -2285,6 +2351,22 @@ $statusFilter?.addEventListener('change', handleFilterChange);
 $priorityFilter?.addEventListener('change', handleFilterChange);
 $searchInput?.addEventListener('input', handleFilterChange);
 $searchInput?.addEventListener('change', handleFilterChange);
-</script>
+$searchInput?.addEventListener('input', handleFilterChange);
+$searchInput?.addEventListener('change', handleFilterChange);
+
+/* Legend popover JS */
+const legendWrap = document.querySelector('.legend-popover');
+const legendBtn  = document.getElementById('legendBtn');
+legendBtn?.addEventListener('click', (e)=>{
+  const open = legendWrap.classList.toggle('is-open');
+  legendBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+});
+document.addEventListener('click', (e)=>{
+  if (legendWrap && !legendWrap.contains(e.target)){
+    legendWrap.classList.remove('is-open');
+    legendBtn?.setAttribute('aria-expanded','false');
+  }
+});
+</script> <!-- ← keep this closing tag -->
 </body>
 </html>
