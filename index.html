@@ -1045,9 +1045,6 @@ function updateActiveFilterChips(filters){
 });
   }
 
-  if(!existing) $activeFilterChips.appendChild(btn);
-}
-
   if(filters.priority){
     const label=humanizeFilterValue(filters.priority);
     const text=`Priority: ${label}`;
