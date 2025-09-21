@@ -203,6 +203,43 @@
   margin-inline: auto;
 }
 
+    .legend{
+  border:1px solid var(--grid);
+  border-radius:12px;
+  background:var(--paper);
+  padding:12px;
+  margin:8px 0 12px;
+}
+.legend__title{
+  margin:0 0 8px;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.4px;
+  color:var(--muted);
+}
+.legend__list{
+  list-style:none; margin:0; padding:0;
+  display:grid; grid-template-columns:auto 1fr; gap:8px 10px;
+}
+.legend__sample{ display:contents; } /* lets samples align in first column */
+.legend__list > .legend__sample > :first-child{ display:inline-flex; align-items:center; gap:6px; min-height:22px; }
+
+.legend__rail{
+  width:6px; height:16px; border-radius:999px;
+  background:var(--priority-rail);
+  box-shadow:0 0 0 1px color-mix(in srgb, var(--priority-rail) 28%, transparent);
+}
+
+.legend__kpi{
+  display:inline-block;
+  padding:4px 8px;
+  border:1px solid var(--grid);
+  border-radius:10px;
+  font-weight:800; font-size:12px;
+  background: color-mix(in srgb, var(--als-blue) 8%, var(--paper));
+  color: var(--ink);
+}
+
     .page-head{ display:flex; align-items:flex-start; justify-content:space-between; }
     .title{ font-size:28px; font-weight:800; color:var(--ink); margin:0 0 8px; }
     .logo{ height:50px; }
@@ -745,6 +782,24 @@ html{ overflow-y: scroll; }
       Hide controls
     </button>
   </div>
+
+  <section class="legend" role="note" aria-label="Legend">
+  <h2 class="legend__title">Index</h2>
+  <ul class="legend__list">
+    <li class="legend__sample"><span class="status-chip open">Open</span><span>Open work order</span></li>
+    <li class="legend__sample"><span class="status-chip in-progress">In&nbsp;Progress</span><span>Currently being worked</span></li>
+    <li class="legend__sample"><span class="status-chip on-hold">On&nbsp;Hold</span><span>Paused</span></li>
+    <li class="legend__sample"><span class="status-chip done">Done</span><span>Completed</span></li>
+
+    <li class="legend__sample"><span class="age-chip age-stale">12d</span><span>Age (d/h/m); darker = older</span></li>
+    <li class="legend__sample"><span class="age-chip age-old frozen" title="Planned Winter Project">12d</span><span>❄ Planned Winter Project (frozen)</span></li>
+
+    <li class="legend__sample"><span class="legend__rail" aria-hidden="true"></span><span>“Priority” row (red rail + faint blue wash)</span></li>
+    <li class="legend__sample"><span class="chip-cat">Category</span><span>Category tags</span></li>
+
+    <li class="legend__sample"><span class="legend__kpi">KPI</span><span>Tiles are clickable filters</span></li>
+  </ul>
+</section>
 
   <!-- NEW: everything collapses inside this wrapper -->
   <div id="stickyContent" class="sticky-content">
