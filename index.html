@@ -283,7 +283,12 @@
   background: color-mix(in srgb, var(--als-blue) 8%, var(--paper));
   color: var(--ink);
 }
-
+/* Show the big legend only when printing */
+.legend--full{ display:none; }
+@media print{
+  .legend--full{ display:block; }
+}
+    
     .page-head{ display:flex; align-items:flex-start; justify-content:space-between; }
     .title{ font-size:28px; font-weight:800; color:var(--ink); margin:0 0 8px; }
     .logo{ height:50px; }
@@ -472,17 +477,6 @@ tr.row-priority > td:first-child::before{
 
 /* remove the dropdown caret if you added one earlier */
 .status-chip.open::after{ content: none !important; }
-
-/* fallback when CSS mask isn't supported: show a blue unicode lock */
-@supports not (mask: url("")){
-  .status-chip.open::before{
-    content: "🔓";
-    color: var(--open-tx);
-    background: none;
-    width: auto; height: auto;
-    margin-right: 4px;
-  }
-}
 
 .status-chip.in-progress{
   color: var(--open-tx);
@@ -831,7 +825,7 @@ html{ overflow-y: scroll; }
     </button>
   </div>
 
-  <section class="legend" role="note" aria-label="Legend">
+<section class="legend legend--full" role="note" aria-label="Legend">
   <h2 class="legend__title">Index</h2>
   <ul class="legend__list">
     <li class="legend__sample"><span class="status-chip open">Open</span><span>Open work order</span></li>
@@ -2349,8 +2343,6 @@ function handleFilterChange(){
 }
 $statusFilter?.addEventListener('change', handleFilterChange);
 $priorityFilter?.addEventListener('change', handleFilterChange);
-$searchInput?.addEventListener('input', handleFilterChange);
-$searchInput?.addEventListener('change', handleFilterChange);
 $searchInput?.addEventListener('input', handleFilterChange);
 $searchInput?.addEventListener('change', handleFilterChange);
 
