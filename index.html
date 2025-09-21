@@ -91,6 +91,25 @@
       color-scheme: light;
     }
 
+    /* --- collapsible sticky header --- */
+.sticky-top__bar{
+  display:flex; justify-content:flex-end; align-items:center; gap:8px;
+}
+
+.btn--pill{ border-radius:999px; padding:6px 12px; }
+
+.sticky-content{ /* smooth-ish hide/show */
+  transition: opacity .18s ease;
+}
+
+.sticky-top[data-collapsed="true"]{
+  padding:6px 0;               /* slimmer bar when collapsed */
+}
+.sticky-top[data-collapsed="true"] .sticky-content{
+  display:none !important;     /* fully hidden */
+  opacity:0;
+}
+
     /* Mobile cards (hidden by default) */
 .mobile-cards{ display:none; }
 
@@ -523,57 +542,70 @@ html{ overflow-y: scroll; }
     </div>
         <div class="top-rule"></div>
 
-    <div class="sticky-top" role="region" aria-label="Table controls and overview">
-      <div class="controls" role="region" aria-label="Table controls">
-        <input type="search" id="globalSearch" class="search-input" placeholder="Search work orders" aria-label="Search work orders">
-        <label class="btn" for="file">Upload CSV/TSV/JSON</label>
-        <input id="file" type="file" accept=".csv,.tsv,.json,application/json,text/csv,text/tab-separated-values" style="display:none" />
-        <button class="btn" id="themeBtn" type="button">Dark mode</button>
+<div class="sticky-top" role="region" aria-label="Table controls and overview">
+  <!-- NEW: tiny bar with a collapse/expand button -->
+  <div class="sticky-top__bar">
+    <button id="collapseBtn"
+            class="btn btn--pill"
+            type="button"
+            aria-expanded="true"
+            aria-controls="stickyContent">
+      Hide controls
+    </button>
+  </div>
 
-        <label class="filter-group">
-          <span>Status</span>
-          <select id="statusFilter" name="status-filter">
-            <option value="">All</option>
-            <option value="open">Open</option>
-            <option value="in-progress">In Progress</option>
-            <option value="on-hold">On Hold</option>
-            <option value="done">Done</option>
-            <option value="not:done">Not: Done</option>
-          </select>
-        </label>
+  <!-- NEW: everything collapses inside this wrapper -->
+  <div id="stickyContent" class="sticky-content">
+    <div class="controls" role="region" aria-label="Table controls">
+      <input type="search" id="globalSearch" class="search-input" placeholder="Search work orders" aria-label="Search work orders">
+      <label class="btn" for="file">Upload CSV/TSV/JSON</label>
+      <input id="file" type="file" accept=".csv,.tsv,.json,application/json,text/csv,text/tab-separated-values" style="display:none" />
+      <button class="btn" id="themeBtn" type="button">Dark mode</button>
 
-        <label class="filter-group">
-          <span>Priority</span>
-          <select id="priorityFilter" name="priority-filter">
-            <option value="">All</option>
-            <option value="critical">Critical</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
-        </label>
-      </div>
+      <label class="filter-group">
+        <span>Status</span>
+        <select id="statusFilter" name="status-filter">
+          <option value="">All</option>
+          <option value="open">Open</option>
+          <option value="in-progress">In Progress</option>
+          <option value="on-hold">On Hold</option>
+          <option value="done">Done</option>
+          <option value="not:done">Not: Done</option>
+        </select>
+      </label>
 
-      <div id="activeFilterChips" class="active-filter-chips" hidden aria-live="polite"></div>
-
-
-      <!-- Tabs -->
-      <div class="nav" role="tablist" aria-label="Site dashboards">
-        <button class="tab" role="tab" id="tab-all"   aria-controls="dash-all"   aria-selected="true">All Sites</button>
-        <button class="tab" role="tab" id="tab-ek"    aria-controls="dash-ek"    aria-selected="false">EK / Cathkin</button>
-        <button class="tab" role="tab" id="tab-mm"    aria-controls="dash-mm"    aria-selected="false">Mugiemoss</button>
-        <button class="tab" role="tab" id="tab-keith" aria-controls="dash-keith" aria-selected="false">Keith</button>
-        <button class="tab" role="tab" id="tab-by"    aria-controls="dash-by"    aria-selected="false">Byron</button>
-      </div>
-
-      <div class="kpi-panels" aria-live="polite">
-        <section id="kpi-all"   class="dash dash-kpis" data-kind="kpis" data-site="all"   data-active="true"  aria-labelledby="tab-all"></section>
-        <section id="kpi-ek"    class="dash dash-kpis" data-kind="kpis" data-site="ek"    data-active="false" aria-labelledby="tab-ek" hidden></section>
-        <section id="kpi-mm"    class="dash dash-kpis" data-kind="kpis" data-site="mm"    data-active="false" aria-labelledby="tab-mm" hidden></section>
-        <section id="kpi-keith" class="dash dash-kpis" data-kind="kpis" data-site="keith" data-active="false" aria-labelledby="tab-keith" hidden></section>
-        <section id="kpi-by"    class="dash dash-kpis" data-kind="kpis" data-site="by"    data-active="false" aria-labelledby="tab-by" hidden></section>
-      </div>
+      <label class="filter-group">
+        <span>Priority</span>
+        <select id="priorityFilter" name="priority-filter">
+          <option value="">All</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </label>
     </div>
+
+    <div id="activeFilterChips" class="active-filter-chips" hidden aria-live="polite"></div>
+
+    <!-- Tabs -->
+    <div class="nav" role="tablist" aria-label="Site dashboards">
+      <button class="tab" role="tab" id="tab-all"   aria-controls="dash-all"   aria-selected="true">All Sites</button>
+      <button class="tab" role="tab" id="tab-ek"    aria-controls="dash-ek"    aria-selected="false">EK / Cathkin</button>
+      <button class="tab" role="tab" id="tab-mm"    aria-controls="dash-mm"    aria-selected="false">Mugiemoss</button>
+      <button class="tab" role="tab" id="tab-keith" aria-controls="dash-keith" aria-selected="false">Keith</button>
+      <button class="tab" role="tab" id="tab-by"    aria-controls="dash-by"    aria-selected="false">Byron</button>
+    </div>
+
+    <div class="kpi-panels" aria-live="polite">
+      <section id="kpi-all"   class="dash dash-kpis" data-kind="kpis" data-site="all"   data-active="true"  aria-labelledby="tab-all"></section>
+      <section id="kpi-ek"    class="dash dash-kpis" data-kind="kpis" data-site="ek"    data-active="false" aria-labelledby="tab-ek" hidden></section>
+      <section id="kpi-mm"    class="dash dash-kpis" data-kind="kpis" data-site="mm"    data-active="false" aria-labelledby="tab-mm" hidden></section>
+      <section id="kpi-keith" class="dash dash-kpis" data-kind="kpis" data-site="keith" data-active="false" aria-labelledby="tab-keith" hidden></section>
+      <section id="kpi-by"    class="dash dash-kpis" data-kind="kpis" data-site="by"    data-active="false" aria-labelledby="tab-by" hidden></section>
+    </div>
+  </div>
+</div>
 
     <!-- Dashboards -->
     <section id="dash-all"   class="dash dash-table" data-kind="table" data-site="all"   data-active="true"  role="tabpanel" aria-labelledby="tab-all"></section>
@@ -605,7 +637,7 @@ if('ResizeObserver' in window && $stickyTop){
   const observer = new ResizeObserver(updateStickyControlsOffset);
   observer.observe($stickyTop);
 }
-
+  
 // --- State cache for rendering ---
 let LAST_HEADERS = null;
 let ALL_ROWS = null;
@@ -1232,6 +1264,34 @@ function setActiveDash(id){
   updateStickyControlsOffset();
   updateTheadHeight();
 }
+
+  // --- collapsible sticky header ---
+const $sticky = document.querySelector('.sticky-top');
+const $collapseBtn = document.getElementById('collapseBtn');
+
+function setCollapsed(isCollapsed){
+  if(!$sticky || !$collapseBtn) return;
+  $sticky.dataset.collapsed = isCollapsed ? 'true' : 'false';
+  $collapseBtn.setAttribute('aria-expanded', String(!isCollapsed));
+  $collapseBtn.textContent = isCollapsed ? 'Show controls' : 'Hide controls';
+
+  // keep layout/overlays correct
+  updateStickyControlsOffset();
+  updateTheadHeight();
+}
+
+// restore saved state (default: expanded)
+const saved = localStorage.getItem('alsStickyCollapsed');
+setCollapsed(saved === '1');
+
+// optional: start collapsed on phones — uncomment to enable
+// if (isMobileView() && saved === null) setCollapsed(true);
+
+$collapseBtn?.addEventListener('click', ()=>{
+  const now = $sticky?.dataset.collapsed === 'true';
+  setCollapsed(!now);
+  localStorage.setItem('alsStickyCollapsed', !now ? '1' : '0');
+});
 
 // File ingest (unchanged, but now reuses the same ingest/render)
 document.getElementById('file').addEventListener('change', e=>{
