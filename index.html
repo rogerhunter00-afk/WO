@@ -274,6 +274,17 @@ table th, table td{
       hyphens:auto;
       line-height:1.35;
     }
+    /* ✅ Row highlight when Categories contain "Priority" */
+tr.row-priority > td{
+  background: color-mix(in srgb, #E7DFFD 55%, var(--paper));
+}
+.dark tr.row-priority > td{
+  background: color-mix(in srgb, #6D4CE6 16%, var(--zebra));
+}
+/* optional: a subtle left accent bar */
+tr.row-priority > td:first-child{
+  box-shadow: inset 4px 0 #6D4CE6;
+}
 
     .col-id{ width:66px; }
     .col-title{ width:280px; }
@@ -903,6 +914,13 @@ function relativeLuminance(rgb){ const [r,g,b]=rgb.map(v=>srgbToLinear(Math.max(
 function contrastRatio(bgH,fgH){ const lBg=relativeLuminance(hslToRgb(bgH.h,bgH.s,bgH.l)), lFg=relativeLuminance(hslToRgb(fgH.h,fgH.s,fgH.l)); const light=Math.max(lBg,lFg), dark=Math.min(lBg,lFg); return (light+0.05)/(dark+0.05); }
 function fallbackColors(label){ const hue=hashCategory(label)%360, bg={h:hue,s:45,l:92}, fg0={h:hue,s:60,l:32}; let fg={...fg0}; while(contrastRatio(bg,fg)<4.5 && fg.l>0){ fg={...fg,l:Math.max(0,fg.l-10)}; } return {background:`hsl(${bg.h}, ${bg.s}%, ${bg.l}%)`, foreground:`hsl(${fg.h}, ${fg.s}%, ${fg.l}%)`}; }
 function chipStyle(label, slugOverride){ const slug=slugOverride||slugify(label), preset=categoryColors[slug]; if(preset) return {className:`cat-${slug}`, style:''}; const c=fallbackColors(label); return {className:`cat-${slug}`, style:`background:${c.background};border-color:${c.foreground};color:${c.foreground}`}; }
+  function hasPriorityCategory(row){
+  const cats = String(row['Categories'] || '')
+    .split(/[,;]+/)
+    .map(s => slugify(s.trim()))
+    .filter(Boolean);
+  return cats.includes(slugify('Priority'));
+}
 // --- Name aliases / shortening ---
 const NAME_ALIASES = new Map([
   ['callum keith engineering team', 'Callum'],
@@ -1590,42 +1608,43 @@ function renderRowsScoped(tbodyEl, headers, rows, container){
   const safeRows = Array.isArray(rows) ? rows : [];
 
   // table rows (desktop)
-  if(!mobile && tbodyEl){
-    tbodyEl.innerHTML = safeRows.map(row => {
-      return `<tr>${headers.map(h=>{
-        const v=row[h]; const hNorm=norm(h);
+if(!mobile && tbodyEl){
+  tbodyEl.innerHTML = safeRows.map(row => {
+    // ✅ add a row class when "Priority" is present in Categories
+    const rowCls = hasPriorityCategory(row) ? 'row-priority' : '';
+
+    return `<tr class="${rowCls}">` + 
+      headers.map(h=>{
+        const v=row[h]; 
+        const hNorm=norm(h);
+
         if(hNorm==='categories'){
           const chips = buildCategoryChips(v);
           return `<td data-col="Categories"><div class="chip-stack">${chips}</div></td>`;
         }
+
         if(hNorm==='status'){
           const cls = statusClass(v);
           return `<td data-col="Status"><span class="status-chip ${cls}">${esc(v)}</span></td>`;
         }
-if(hNorm==='age'){
-  const ms      = row.__ageMs;
-  const bucket  = row.__ageBucket || ageBucket(ms);
-  const label   = esc(row['Age'] || fmtAge(ms));
-  const baseT   = ms != null ? `${(ms/86400000).toFixed(1)} days` : 'Unknown';
-  const frozen  = isWinterPlanned(row);
 
-  // pull the PWP colours from your presets
-  const pwp = categoryColors['planned-winter-project'] || { background:'#E7F3FE', foreground:'#1887FC' };
-  const cls = `age-chip age-${bucket}` + (frozen ? ' frozen' : '');
-  const ttl = frozen ? `Planned for Winter • ${baseT}` : baseT;
-
-  // when frozen, override the chip’s custom props so border/bg are tinted from the PWP fg/bg
-  const style = frozen
-    ? ` style="--bg:${pwp.background}; --ring: color-mix(in srgb, ${pwp.foreground} 50%, transparent); color:${pwp.foreground}"`
-    : '';
-
-  return `<td data-col="Age"><span class="${cls}" title="${esc(ttl)}"${style} aria-label="${frozen ? 'Planned for Winter' : ''}">${label}</span></td>`;
-}
+        if(hNorm==='age'){
+          const ms      = row.__ageMs;
+          const bucket  = row.__ageBucket || ageBucket(ms);
+          const label   = esc(row['Age'] || fmtAge(ms));
+          const baseT   = ms != null ? `${(ms/86400000).toFixed(1)} days` : 'Unknown';
+          const frozen  = isWinterPlanned(row);
+          const cls     = `age-chip age-${bucket}` + (frozen ? ' frozen' : '');
+          const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
+          const aria    = frozen ? ' aria-label="Planned for Winter"' : '';
+          return `<td data-col="Age"><span class="${cls}" title="${esc(title)}"${aria}>${label}</span></td>`;
+        }
 
         return `<td data-col="${esc(h)}">${esc(v)}</td>`;
-      }).join('')}</tr>`;
-    }).join('\n');
-  }else if(tbodyEl){
+      }).join('') + 
+    `</tr>`;
+  }).join('\n');
+}else if(tbodyEl){
     // keep DOM tidy when mobile: clear tbody
     tbodyEl.innerHTML = '';
   }
