@@ -529,6 +529,21 @@ html{ overflow-y: scroll; }
 .card{ background:var(--paper); border:1px solid var(--grid); border-radius:14px; padding:12px; }
 .card h3{ margin:0 0 6px; font-size:12px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); }
 .card .big{ font-size:22px; font-weight:900; }
+    /* Clickable KPI state */
+.kpi-clickable{
+  cursor: pointer;
+  user-select: none;
+  transition: box-shadow .18s ease, border-color .18s ease, background-color .18s ease;
+}
+.kpi-clickable:hover{
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--als-blue) 25%, transparent);
+  border-color: var(--als-blue);
+}
+.kpi-clickable[aria-pressed="true"]{
+  background: color-mix(in srgb, var(--als-blue) 12%, var(--paper));
+  border-color: var(--als-blue);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--als-blue) 25%, transparent);
+}
 .dash{ display:none; }
 .dash[data-active="true"]{ display:block; }
 
@@ -1177,26 +1192,60 @@ function renderDashboard(container, headers, rows){
   const prog =rows.filter(r=>/^in\s*progress$/i.test(r.Status)).length;
   const hold =rows.filter(r=>/^on\s*hold$/i.test(r.Status)).length;
   const done =rows.filter(r=>/^done$/i.test(r.Status)).length;
-  // Oldest WO that is still not done
-const oldestOutstandingMs = Math.max(-1, ...rows
-  .filter(r => !/^done$/i.test(r.Status))
-  .map(r => r.__ageMs ?? ageMs(r))
-  .filter(v => v != null));
+// Counts
+kpiWrap.appendChild(kpiCard('Total WOs', total));
+kpiWrap.appendChild(kpiCard('Open', open));
+kpiWrap.appendChild(kpiCard('In Progress', prog));
+kpiWrap.appendChild(kpiCard('On Hold', hold));
+kpiWrap.appendChild(kpiCard('Done', done));
 
-if (oldestOutstandingMs >= 0) {
-  kpiWrap.appendChild(kpiCard('Oldest Outstanding', fmtAge(oldestOutstandingMs)));
+// Oldest Age – clickable filter
+const oldestEntry = rows.reduce((acc, r) => {
+  const ms = r.__ageMs ?? ageMs(r);
+  if (ms == null) return acc;
+  return (!acc || ms > acc.ms) ? { row:r, ms } : acc;
+}, null);
+
+if (oldestEntry) {
+  const oldestCard = kpiCard('Oldest Age', fmtAge(oldestEntry.ms));
+  oldestCard.classList.add('kpi-clickable');
+  oldestCard.setAttribute('role','button');
+  oldestCard.setAttribute('tabindex','0');
+  oldestCard.setAttribute('aria-pressed', container.__focusOldest ? 'true' : 'false');
+
+  const applyFocusOldest = () => {
+    container.__focusOldest = !container.__focusOldest;
+    oldestCard.setAttribute('aria-pressed', container.__focusOldest ? 'true' : 'false');
+
+    // rebuild working set (honors current filters)
+    const base = (container.__rawRows || []).slice();
+    let working = base;
+
+    if (container.__focusOldest) {
+      const pick = base.reduce((acc, r) => {
+        const ms = r.__ageMs ?? ageMs(r);
+        if (ms == null) return acc;
+        return (!acc || ms > (acc.__ageMs ?? ageMs(acc))) ? r : acc;
+      }, null);
+      working = pick ? [pick] : [];
+    }
+
+    const s = container.__currentSort;
+    if (s && s.column) working = applySort(working, s.column, s.direction);
+
+    container.__rows = working.slice();
+    renderRowsScoped(container.__tbody, container.__headers, working, container);
+    updateTheadHeight();
+  };
+
+  oldestCard.addEventListener('click', applyFocusOldest);
+  oldestCard.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); applyFocusOldest(); }
+  });
+
+  kpiWrap.appendChild(oldestCard);
 }
-  kpiWrap.appendChild(kpiCard('Total WOs', total));
-  kpiWrap.appendChild(kpiCard('Open', open));
-  kpiWrap.appendChild(kpiCard('In Progress', prog));
-  kpiWrap.appendChild(kpiCard('On Hold', hold));
-  kpiWrap.appendChild(kpiCard('Done', done));
-  const oldestMs = Math.max(-1, ...rows
-  .map(r => r.__ageMs ?? ageMs(r))
-  .filter(v => v != null));
-if (oldestMs >= 0) {
-  kpiWrap.appendChild(kpiCard('Oldest Age', fmtAge(oldestMs)));
-}
+
   if(kpiContainer){ kpiContainer.innerHTML=''; kpiContainer.appendChild(kpiWrap); }
 
   // --- shell: table + mobile containers (both exist; CSS decides visibility) ---
@@ -1258,6 +1307,16 @@ if (oldestMs >= 0) {
   if(prevSort && headers.includes(prevSort.column)){
     working = applySort(baseRows, prevSort.column, prevDir);
   }
+  // If "Oldest Age" toggle is active, reduce to just that one row
+if (container.__focusOldest) {
+  const pick = working.reduce((acc, r) => {
+    const ms = r.__ageMs ?? ageMs(r);
+    if (ms == null) return acc;
+    return (!acc || ms > (acc.__ageMs ?? ageMs(acc))) ? r : acc;
+  }, null);
+  working = pick ? [pick] : [];
+}
+
   container.__rows = working.slice();
   setSortState(container, prevSort?.column || null, prevDir);
 
