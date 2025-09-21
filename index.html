@@ -1047,6 +1047,17 @@ const $searchInput = document.getElementById('globalSearch');
 const $statusFilter = document.getElementById('statusFilter');
 const $priorityFilter = document.getElementById('priorityFilter');
 const $activeFilterChips = document.getElementById('activeFilterChips');
+  let PREFERRED_ACTIVE_DASH = null;
+
+function getActiveDashId(){
+  return document.querySelector('.dash[data-active="true"]:not([hidden])')?.id || 'dash-all';
+}
+
+function setGlobalStatusFilter(value){
+  PREFERRED_ACTIVE_DASH = getActiveDashId();   // remember current site
+  $statusFilter.value = value;                 // '', 'open', 'in-progress', 'on-hold', 'done'
+  $statusFilter.dispatchEvent(new Event('change', { bubbles: true }));
+}
 
 function humanizeFilterValue(value){
   return String(value || '')
@@ -1107,6 +1118,7 @@ function updateActiveFilterChips(filters){
       $searchInput.value='';
       // fire input so filtering runs immediately
       $searchInput.dispatchEvent(new Event('input',{bubbles:true}));
+      $searchInput.dispatchEvent(new Event('change', {bubbles:true}));
     }
   }
 });
@@ -1555,16 +1567,16 @@ function ingestToDashboards(headers, rows){
     renderDashboard(el, displayHeaders, groups[key]);
   });
 
-  // 5) Restore the previously active dashboard (fallback to All on first load)
-  if (prevActiveId && document.getElementById(prevActiveId)) {
-    setActiveDash(prevActiveId);
-  } else if (document.getElementById('dash-all')) {
-    setActiveDash('dash-all');
-  } else {
-    const first = document.querySelector('.dash');
-    if (first) setActiveDash(first.id);
-  }
-}
+// restore preferred/previous site
+const targetId =
+  PREFERRED_ACTIVE_DASH
+  || prevActiveId
+  || (document.getElementById('dash-all') ? 'dash-all' : document.querySelector('.dash')?.id);
+
+PREFERRED_ACTIVE_DASH = null;
+if (targetId) setActiveDash(targetId);
+} // closes function ingestToDashboards
+
 
 // Tabs
 const tabs = Array.from(document.querySelectorAll('.nav .tab'));
