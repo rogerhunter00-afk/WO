@@ -481,6 +481,48 @@ html{ overflow-y: scroll; }
 .nav{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 0; }
 .nav .tab{ padding:8px 12px; border:1px solid var(--grid); border-radius:999px; cursor:pointer; background:var(--paper); color:var(--ink); font-weight:700; }
 .nav .tab[aria-selected="true"]{ border-color:var(--als-blue); box-shadow:0 0 0 2px color-mix(in srgb, var(--als-blue) 25%, transparent); }
+    /* === Chips & tabs tweaks (mobile-friendly) === */
+
+/* 1) Active-filter chips: clearer spacing + label */
+.active-filter-chips{
+  align-items: center;
+  margin-top: 4px;
+  margin-bottom: 12px;  /* space above the site tabs */
+}
+.active-filter-chips::before{
+  content: "Active filters";
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .4px;
+  color: var(--muted);
+  margin-right: 8px;
+}
+
+/* 2) Visually separate site tabs from chips */
+.nav .tab{
+  background: transparent;
+  border-color: var(--grid);
+  box-shadow: none;
+}
+.nav .tab[aria-selected="true"]{
+  background: color-mix(in srgb, var(--als-blue) 8%, var(--paper));
+  border-color: var(--als-blue);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--als-blue) 25%, transparent);
+}
+
+/* 3) Mobile: chips scroll horizontally instead of wrapping */
+@media (max-width: 700px){
+  .active-filter-chips{
+    gap: 6px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .active-filter-chips .filter-chip{ flex: 0 0 auto; }
+  .nav{ margin-top: 6px; }
+}
+
 .kpi-panels{ min-height:72px; }
 .dash-kpis[hidden]{ display:none !important; }
 .kpis{display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin:0;}
