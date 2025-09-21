@@ -868,6 +868,38 @@ function parseDateLoose(v){
   const dt=new Date(`${y}-${M}-${d}T${hh}:${mm}:00`);
   return isNaN(dt.getTime())?null:dt;
 }
+  // === DEDUPE HELPERS ===
+function bestTimestamp(r){
+  return (parseDateLoose(r['Last updated'])?.getTime())
+      || (parseDateLoose(r['Completed on'])?.getTime())
+      || (parseDateLoose(r['Created on'])?.getTime())
+      || 0;
+}
+function normalizeId(v){
+  return String(v ?? '')
+    .trim()
+    .replace(/^WO-?/i,'')        // optional: strip "WO-" prefixes
+    .replace(/[^\w]/g,'')        // drop punctuation/spaces
+    .toLowerCase();
+}
+function dedupeRows(rows){
+  const map = new Map();
+  for(const r of (rows||[])){
+    const id = normalizeId(r['ID']);
+    // fallback key if ID is empty
+    const fallback = String(r['Title']||'').trim().toLowerCase()
+                   + '|' + (parseDateLoose(r['Created on'])?.toISOString()?.slice(0,10) || '');
+    const key = id || fallback;
+
+    const prev = map.get(key);
+    if(!prev){ map.set(key, r); continue; }
+
+    // keep the most recently updated copy
+    if(bestTimestamp(r) > bestTimestamp(prev)) map.set(key, r);
+  }
+  return [...map.values()];
+}
+
   function makeStatusKpi(label, statusValue, count, container){
   const el = kpiCard(label, count);
   el.classList.add('kpi-clickable');
@@ -1701,7 +1733,7 @@ document.getElementById('file').addEventListener('change', e=>{
     const text=reader.result; let headers=[], rows=[];
     try{
       const result=(/json$/i.test(f.name) || text.trim().startsWith('[') || text.trim().startsWith('{')) ? handleJSON(text) : parseDelimited(text);
-      headers=result.headers; rows=result.rows;
+      headers=result.headers; rows=result.rows; rows = dedupeRows(rows);
     }catch(err){ alert('Could not parse file: '+err.message); }
     LAST_HEADERS=headers; ALL_ROWS=rows; ingestToDashboards(LAST_HEADERS, ALL_ROWS);
   };
@@ -1790,7 +1822,8 @@ async function loadFromGoogleSheetCSV(){
     const res=await fetch(url, { cache:'no-store' });
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const text=await res.text();
-    const { headers, rows } = parseDelimited(text);
+let { headers, rows } = parseDelimited(text);
+rows = dedupeRows(rows);
     const REQUIRED=['ID','Title','Status','Priority','Assigned to','Created by','Created on','Completed on','Last updated','Location','Asset','Categories'];
     const missing=REQUIRED.filter(h=>!headers.includes(h));
     if(missing.length>0) console.warn('Missing expected headers:', missing);
