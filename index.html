@@ -140,7 +140,7 @@
   letter-spacing:.6px;
   font-weight:800;
   font-size:11px;
-  padding:10px 8px;
+  padding:8px 6px;
   border-right:1px solid rgba(255,255,255,.08);
   cursor:pointer;
   box-shadow: 0 1px 0 var(--grid);
@@ -171,7 +171,7 @@ table th, table td{
       letter-spacing:.6px;
       font-weight:800;
       font-size:11px;
-      padding:10px 8px;
+      padding:8px 6px;
       border-right:1px solid rgba(255,255,255,.08);
       cursor:pointer;
       box-shadow: 0 1px 0 var(--grid);
@@ -191,7 +191,7 @@ table th, table td{
     tbody td{
       background:var(--zebra);
       border-bottom:1px solid var(--grid);
-      padding:10px 8px;
+      padding:8px 6px;
       vertical-align:top;
       overflow-wrap:anywhere;
       word-break:break-word;
@@ -538,16 +538,16 @@ function slugify(str){ return str.toLowerCase().replace(/[^a-z0-9]+/g,'-').repla
 function applyColumnWidths(table, headers){
   const widthMap = {
     'ID':'66px',
-    'Title':'240px',
+    'Title':'200px',
     'Status':'120px',
     'Priority':'92px',
-    'Assigned to':'200px',
+    'Assigned to':'160px',
     'Created on':'110px',
     'Completed on':'110px',
     'Last updated':'120px',
     'Location':'160px',
-    'Asset':'180px',
-    'Categories':'220px'
+    'Asset':'150px',
+    'Categories':'180px'
   };
   const colgroup = document.createElement('colgroup');
   headers.forEach(h=>{
