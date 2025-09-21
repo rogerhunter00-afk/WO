@@ -274,16 +274,14 @@ table th, table td{
       hyphens:auto;
       line-height:1.35;
     }
-    /* ✅ Row highlight when Categories contain "Priority" */
 tr.row-priority > td{
-  background: color-mix(in srgb, #E7DFFD 55%, var(--paper));
+  background: color-mix(in srgb, var(--als-blue) 12%, var(--paper));
 }
 .dark tr.row-priority > td{
-  background: color-mix(in srgb, #6D4CE6 16%, var(--zebra));
+  background: color-mix(in srgb, var(--als-blue) 20%, var(--zebra));
 }
-/* optional: a subtle left accent bar */
 tr.row-priority > td:first-child{
-  box-shadow: inset 4px 0 #6D4CE6;
+  box-shadow: inset 8px 0 #E11D48; /* thicker, bright red */
 }
 
     .col-id{ width:66px; }
@@ -897,7 +895,7 @@ function applyColumnWidths(table, headers){
 }
 
 // Category presets + fallback coloring
-const CATEGORY_COLOR_PRESETS=[['Search','#E7F3FE','#1887FC'],['Cleaning','#FCEBFF','#EA7BFF'],['Commission','#E7DFFD','#855EF4'],['Contractor','#FFE6CC','#A24900'],['Daily Procedures','#FFE5DF','#FF7C60'],['Damage','#FFF5CC','#CC9900'],['Electrical','#FFE4D0','#FF7439'],['Eng Weekly Meeting','#FFE5DF','#FF7C60'],['Error Codes','#FFDBE6','#FF4A80'],['Fire Safety','#FFDBE6','#FF4A80'],['First Time Fix','#E7F3FE','#1887FC'],['General improvements','#E7DFFD','#855EF4'],['Inspection','#E7F3FE','#1887FC'],['James Indust Cleaner','#D9F5F1','#3FCBBB'],['Leak','#DDF9FC','#1887FC'],['Manufacturers Machine Service Procedure','#FCEBFF','#EA7BFF'],['Mechanical','#E7F3FE','#1A66CC'],['meters','#E7F3FE','#1570B8'],['Monthly Procedures','#FFE4D0','#FF7439'],['Ordering/Purchasing','#DDF9FC','#54DFF2'],['Planned Winter Project','#E7F3FE','#1887FC'],['Plumbing','#FCEBFF','#B24BEA'],['PPM','#E4F9E8','#2FB95A'],['Preventive','#E4F9E8','#2FB95A'],['Product Quality improvements','#E7F3FE','#1887FC'],['Programming','#FFE4D0','#D85E2E'],['Project','#E7F3FE','#2A7BEF'],['Reactive Maintenance','#DDF9FC','#2CCFE3'],['Refrigeration','#D9F5F1','#3FCBBB'],['Safety','#E7F3FE','#1870DA'],['Site maintenance responsabilities','#E7F3FE','#1868C0'],['Smart Check','#FFDBE6','#E43C75'],['Standard Operating Procedure','#FFDBE6','#E43C75'],['Top 5','#E7DFFD','#6D4CE6'],['Training','#E7F3FE','#1870DA'],['Weekly Procedures','#E7F3FE','#1870DA'],['Yearly Procedures','#FFF5CC','#8A6E00'],['Priority', '#E7DFFD', '#6D4CE6'],['Zero Emissions','#D9F5F1','#2AAE9E']];
+const CATEGORY_COLOR_PRESETS=[['Search','#E7F3FE','#1887FC'],['Cleaning','#FCEBFF','#EA7BFF'],['Commission','#E7DFFD','#855EF4'],['Contractor','#FFE6CC','#A24900'],['Daily Procedures','#FFE5DF','#FF7C60'],['Damage','#FFF5CC','#CC9900'],['Electrical','#FFE4D0','#FF7439'],['Eng Weekly Meeting','#FFE5DF','#FF7C60'],['Error Codes','#FFDBE6','#FF4A80'],['Fire Safety','#FFDBE6','#FF4A80'],['First Time Fix','#E7F3FE','#1887FC'],['General improvements','#E7DFFD','#855EF4'],['Inspection','#E7F3FE','#1887FC'],['James Indust Cleaner','#D9F5F1','#3FCBBB'],['Leak','#DDF9FC','#1887FC'],['Manufacturers Machine Service Procedure','#FCEBFF','#EA7BFF'],['Mechanical','#E7F3FE','#1A66CC'],['meters','#E7F3FE','#1570B8'],['Monthly Procedures','#FFE4D0','#FF7439'],['Ordering/Purchasing','#DDF9FC','#54DFF2'],['Planned Winter Project','#E7F3FE','#1887FC'],['Plumbing','#FCEBFF','#B24BEA'],['PPM','#E4F9E8','#2FB95A'],['Preventive','#E4F9E8','#2FB95A'],['Product Quality improvements','#E7F3FE','#1887FC'],['Programming','#FFE4D0','#D85E2E'],['Project','#E7F3FE','#2A7BEF'],['Reactive Maintenance','#DDF9FC','#2CCFE3'],['Refrigeration','#D9F5F1','#3FCBBB'],['Safety','#E7F3FE','#1870DA'],['Site maintenance responsabilities','#E7F3FE','#1868C0'],['Smart Check','#FFDBE6','#E43C75'],['Standard Operating Procedure','#FFDBE6','#E43C75'],['Top 5','#E7DFFD','#6D4CE6'],['Training','#E7F3FE','#1870DA'],['Weekly Procedures','#E7F3FE','#1870DA'],['Yearly Procedures','#FFF5CC','#8A6E00'],['Priority', '#FFE2E2', '#E11D48'],['Zero Emissions','#D9F5F1','#2AAE9E']];
 const categoryColors = CATEGORY_COLOR_PRESETS.reduce((a,[label,bg,fg]) => (a[slugify(label)]={background:bg,foreground:fg}, a),{});
 (function injectCategoryCSS(){
   const styleEl=document.createElement('style');
