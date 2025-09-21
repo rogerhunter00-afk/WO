@@ -378,11 +378,26 @@ table th, table td{
   .status-chip.done{        --glyph: "✓"; }
 }
 
-.age-fresh   { color:#059669; background:#0596691a; }   /* < 7d */
-.age-stale   { color:#b45309; background:#f59e0b1a; }   /* 7–30d */
-.age-old     { color:#dc2626; background:#ef44441a; }   /* 30–90d */
-.age-ancient { color:#991b1b; background:#b91c1c1a; }   /* > 90d */
+/* AGE-CHIPS v2 — readable pill using the bucket colours */
+.age-chip{
+  --ring: color-mix(in srgb, currentColor 40%, transparent);
+  --bg:   color-mix(in srgb, currentColor 20%, transparent);
+  display:inline-flex; align-items:center;
+  padding:3px 8px;
+  border-radius:999px;
+  font-weight:700;
+  font-size:12px;
+  line-height:1;
+  border:1px solid var(--ring);
+  background:var(--bg);
+  font-variant-numeric: tabular-nums; /* nicer numbers */
+}
 
+/* keep the same colours, but let the base chip compute bg/ring */
+.age-chip.age-fresh   { color:#10b981; }                 /* < 7d  */
+.age-chip.age-stale   { color:#b45309; }                 /* 7–30d */
+.age-chip.age-old     { color:#dc2626; --bg: color-mix(in srgb, currentColor 24%, transparent); }
+.age-chip.age-ancient { color:#991b1b; --bg: color-mix(in srgb, currentColor 28%, transparent); }
 
 /* Controls + sticky + search + filter chips (merged) */
 .sticky-top{
