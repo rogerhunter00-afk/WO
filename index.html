@@ -765,6 +765,8 @@ html{ overflow-y: scroll; }
       <label class="btn" for="file">Upload CSV/TSV/JSON</label>
       <input id="file" type="file" accept=".csv,.tsv,.json,application/json,text/csv,text/tab-separated-values" style="display:none" />
       <button class="btn" id="themeBtn" type="button">Dark mode</button>
+      <button class="btn" id="exportCsvBtn" type="button" disabled>Export CSV</button>
+      <button class="btn" id="exportExcelBtn" type="button" disabled>Export Excel</button>
 
       <label class="filter-group">
         <span>Status</span>
@@ -880,6 +882,87 @@ function fmtAge(ms){
 // --- State cache for rendering ---
 let LAST_HEADERS = null;
 let ALL_ROWS = null;
+
+const $exportCsvBtn = document.getElementById('exportCsvBtn');
+const $exportExcelBtn = document.getElementById('exportExcelBtn');
+
+function hasSheetData(){
+  return Array.isArray(LAST_HEADERS) && LAST_HEADERS.length > 0;
+}
+
+function updateExportButtonsState(){
+  const hasData = hasSheetData();
+  [$exportCsvBtn, $exportExcelBtn].forEach(btn => {
+    if(!btn) return;
+    btn.disabled = !hasData;
+    if(!hasData){
+      btn.title = 'Sheet data is still loading';
+    }else{
+      btn.removeAttribute('title');
+    }
+  });
+}
+updateExportButtonsState();
+
+function csvEscape(value){
+  const str = String(value ?? '');
+  return /[",\n\r]/.test(str) ? `"${str.replace(/"/g,'""')}"` : str;
+}
+
+function buildCsv(headers, rows){
+  const safeHeaders = Array.isArray(headers) ? headers : [];
+  const safeRows = Array.isArray(rows) ? rows : [];
+  const headerLine = safeHeaders.map(csvEscape).join(',');
+  const lines = safeRows.map(row => safeHeaders.map(h => csvEscape(row?.[h])).join(','));
+  return '\ufeff' + [headerLine, ...lines].join('\r\n');
+}
+
+function escapeForExcel(value){
+  return esc(String(value ?? '')).replace(/\r?\n/g, '<br>');
+}
+
+function buildExcelHTML(headers, rows){
+  const safeHeaders = Array.isArray(headers) ? headers : [];
+  const head = `<tr>${safeHeaders.map(h => `<th>${escapeForExcel(h)}</th>`).join('')}</tr>`;
+  const body = (Array.isArray(rows) ? rows : []).map(row => {
+    const cells = safeHeaders.map(h => `<td>${escapeForExcel(row?.[h])}</td>`).join('');
+    return `<tr>${cells}</tr>`;
+  }).join('');
+  return `<!DOCTYPE html><html><head><meta charset="utf-8" /></head><body><table><thead>${head}</thead><tbody>${body}</tbody></table></body></html>`;
+}
+
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(()=>URL.revokeObjectURL(url), 0);
+}
+
+function exportTimestamp(){
+  return new Date().toISOString().replace(/[:.]/g,'-');
+}
+
+function exportSheetAsCsv(){
+  if(!hasSheetData()){ alert('Sheet data is still loading.'); return; }
+  const csv = buildCsv(LAST_HEADERS, ALL_ROWS);
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  downloadBlob(blob, `work-orders-${exportTimestamp()}.csv`);
+}
+
+function exportSheetAsExcel(){
+  if(!hasSheetData()){ alert('Sheet data is still loading.'); return; }
+  const html = buildExcelHTML(LAST_HEADERS, ALL_ROWS);
+  const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' });
+  downloadBlob(blob, `work-orders-${exportTimestamp()}.xls`);
+}
+
+$exportCsvBtn?.addEventListener('click', ()=>{ if(!$exportCsvBtn.disabled) exportSheetAsCsv(); });
+$exportExcelBtn?.addEventListener('click', ()=>{ if(!$exportExcelBtn.disabled) exportSheetAsExcel(); });
 
 // ---------- Utility + theming (unchanged bits you already had) ----------
 const ESC_MAP = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;'}; const ESC_RE=/[&<>"']/g;
@@ -1852,6 +1935,8 @@ function ingestToDashboards(headers, rows){
   const expected=['ID','Title','Status','Priority','Assigned to','Created by','Created on','Completed on','Last updated','Location','Asset','Categories'];
   const present = expected.filter(h => headers.includes(h));
   const baseHeaders = present.length ? present : expected;
+
+  updateExportButtonsState();
 
   // normalize + derive age
   const normalized = rows.map(r => {
