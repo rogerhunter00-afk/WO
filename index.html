@@ -843,6 +843,7 @@ if('ResizeObserver' in window && $stickyTop){
 }
 
   const MS = { min:6e4, hour:36e5, day:864e5 };
+  const MIN_AGE_MINUTES = 30;
 
 function parseCreated(r){ return parseDateLoose(r['Created on']); }
 function parseCompleted(r){ return parseDateLoose(r['Completed on']); }
@@ -867,7 +868,9 @@ function ageBucket(ms){
 function fmtAge(ms){
   if(ms == null) return '—';
   if(ms < MS.hour){
-    return `${Math.max(1, Math.floor(ms / MS.min))}m`;
+    const minutes = Math.floor(ms / MS.min);
+    const clamped = Math.max(MIN_AGE_MINUTES, minutes);
+    return `${clamped}m`;
   }
   if(ms < MS.day){
     return `${Math.floor(ms / MS.hour)}h`; // under 24h: hours only
@@ -875,6 +878,28 @@ function fmtAge(ms){
   // ≥ 24h: days only (no hours)
   const d = Math.floor(ms / MS.day);
   return `${d}d`;
+}
+
+function normalizeAgeLabel(raw){
+  if(raw == null) return raw;
+  const trimmed = String(raw).trim();
+  const match = trimmed.match(/^(\d+)\s*m(?:in(?:s)?)?$/i);
+  if(match){
+    const minutes = parseInt(match[1], 10);
+    const clamped = Math.max(MIN_AGE_MINUTES, minutes);
+    return `${clamped}m`;
+  }
+  return trimmed;
+}
+
+function getAgeLabel(row){
+  if(!row) return '—';
+  const ms = row.__ageMs;
+  if(ms != null){
+    return fmtAge(ms);
+  }
+  const normalized = normalizeAgeLabel(row['Age']);
+  return normalized || '—';
 }
 
 // --- State cache for rendering ---
@@ -1752,7 +1777,7 @@ if(!mobile && tbodyEl){
 if(hNorm==='age'){
   const ms      = row.__ageMs;
   const bucket  = row.__ageBucket || ageBucket(ms);
-  const label   = esc(row['Age'] || fmtAge(ms));
+  const label   = esc(getAgeLabel(row));
   const baseT   = ms != null ? `${(ms/86400000).toFixed(1)} days` : 'Unknown';
   const frozen  = isWinterPlanned(row);
 
@@ -2044,7 +2069,7 @@ function cardHTML(row){
   const statusCls = statusClass(row['Status']);
   const ms     = row.__ageMs;
   const bucket = row.__ageBucket || ageBucket(ms);
-  const ageLbl = row['Age'] || fmtAge(ms);
+  const ageLbl = getAgeLabel(row);
 
   // ✅ compute these BEFORE returning the template
   const frozen  = isWinterPlanned(row);
