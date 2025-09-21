@@ -1045,6 +1045,46 @@ function updateActiveFilterChips(filters){
 });
   }
 
+  function updateOldestOnlyChip(container){
+  if(!$activeFilterChips || !container) return;
+  const existing = $activeFilterChips.querySelector('[data-filter="oldest-only"]');
+
+  if(!container.__focusOldest){
+    existing?.remove();
+    if(!$activeFilterChips.querySelector('.filter-chip')) $activeFilterChips.setAttribute('hidden','');
+    return;
+  }
+
+  $activeFilterChips.removeAttribute('hidden');
+  const btn = existing || document.createElement('button');
+  btn.type='button';
+  btn.className='filter-chip';
+  btn.dataset.filter='oldest-only';
+  btn.setAttribute('aria-label','Clear oldest-only filter');
+  btn.title='Clear oldest-only filter';
+  btn.innerHTML = `<span class="filter-chip__label">Oldest only</span><span class="filter-chip__icon" aria-hidden="true">×</span>`;
+  btn.onclick = ()=>{
+    container.__focusOldest = false;
+
+    // rebuild from current filtered rows (honors other filters)
+    let working = (container.__rawRows || []).slice();
+    const s = container.__currentSort;
+    if (s && s.column) working = applySort(working, s.column, s.direction);
+
+    container.__rows = working.slice();
+    renderRowsScoped(container.__tbody, container.__headers, working, container);
+
+    // reflect unpressed state on the KPI card if visible
+    const kpiCardBtn = container.parentElement?.querySelector('.kpi-clickable');
+    kpiCardBtn?.setAttribute('aria-pressed','false');
+
+    updateOldestOnlyChip(container);
+    updateTheadHeight();
+  };
+
+  if(!existing) $activeFilterChips.appendChild(btn);
+}
+
   if(filters.priority){
     const label=humanizeFilterValue(filters.priority);
     const text=`Priority: ${label}`;
@@ -1212,6 +1252,8 @@ if (oldestEntry) {
   oldestCard.setAttribute('role','button');
   oldestCard.setAttribute('tabindex','0');
   oldestCard.setAttribute('aria-pressed', container.__focusOldest ? 'true' : 'false');
+  oldestCard.setAttribute('title','Show only the oldest work order (toggle)');
+  oldestCard.setAttribute('aria-label','Toggle oldest work order filter');
 
   const applyFocusOldest = () => {
     container.__focusOldest = !container.__focusOldest;
@@ -1235,6 +1277,7 @@ if (oldestEntry) {
 
     container.__rows = working.slice();
     renderRowsScoped(container.__tbody, container.__headers, working, container);
+    updateOldestOnlyChip(container);   // <-- add this
     updateTheadHeight();
   };
 
@@ -1322,6 +1365,7 @@ if (container.__focusOldest) {
 
   // draw once for current viewport, then measure sticky
   renderRowsScoped(tbody, headers, working, container);
+  updateOldestOnlyChip(container);   // <-- add this
   updateTheadHeight();
 }
 
