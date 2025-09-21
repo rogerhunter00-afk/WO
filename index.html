@@ -342,6 +342,16 @@ table th, table td{
     .done{ color:var(--done-tx); font-weight:800; }
     .open{ color:var(--open-tx); font-weight:800; }
 
+    .age-chip{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:4px 8px; border-radius:999px; font-weight:800; font-size:12px;
+  border:1px solid currentColor; background:transparent; white-space:nowrap;
+}
+.age-fresh   { color:#059669; background:#0596691a; }   /* < 7d */
+.age-stale   { color:#b45309; background:#f59e0b1a; }   /* 7–30d */
+.age-old     { color:#dc2626; background:#ef44441a; }   /* 30–90d */
+.age-ancient { color:#991b1b; background:#b91c1c1a; }   /* > 90d */
+
 
 /* Controls + sticky + search + filter chips (merged) */
 .sticky-top{
@@ -637,7 +647,42 @@ if('ResizeObserver' in window && $stickyTop){
   const observer = new ResizeObserver(updateStickyControlsOffset);
   observer.observe($stickyTop);
 }
-  
+
+  const MS = { min:6e4, hour:36e5, day:864e5 };
+
+function parseCreated(r){ return parseDateLoose(r['Created on']); }
+function parseCompleted(r){ return parseDateLoose(r['Completed on']); }
+
+function ageMs(row){
+  const created = parseCreated(row); if(!created) return null;
+  const done = /^done$/i.test(row['Status']);
+  const end = done ? (parseCompleted(row) || new Date()) : new Date();
+  const diff = end - created;
+  return Number.isFinite(diff) && diff >= 0 ? diff : null;
+}
+
+function ageBucket(ms){
+  if(ms==null) return 'fresh';
+  const d = ms / MS.day;
+  if(d < 7) return 'fresh';
+  if(d < 30) return 'stale';
+  if(d < 90) return 'old';
+  return 'ancient';
+}
+
+function fmtAge(ms){
+  if(ms==null) return '—';
+  if(ms < MS.hour) return `${Math.max(1, Math.floor(ms/MS.min))}m`;
+  if(ms < MS.day)  {
+    const h = Math.floor(ms/MS.hour);
+    const m = Math.floor((ms%MS.hour)/MS.min);
+    return m ? `${h}h ${m}m` : `${h}h`;
+  }
+  const d = Math.floor(ms/MS.day);
+  const h = Math.floor((ms%MS.day)/MS.hour);
+  return h ? `${d}d ${h}h` : `${d}d`;
+}
+
 // --- State cache for rendering ---
 let LAST_HEADERS = null;
 let ALL_ROWS = null;
@@ -657,6 +702,7 @@ function applyColumnWidths(table, headers){
     'Created on':'110px',
     'Completed on':'110px',
     'Last updated':'120px',
+    'Age':'96px',
     'Location':'160px',
     'Asset':'150px',
     'Categories':'140px'
@@ -724,23 +770,84 @@ function cmpPriority(a,b){ const ia=PRIORITY_ORDER.indexOf(normalizePriority(a))
 function statusClass(v){ const map=new Map([['done','done'],['complete','done'],['completed','done'],['open','open'],['in-progress','in-progress'],['in progress','in-progress'],['progress','in-progress'],['inprogress','in-progress'],['on-hold','on-hold'],['on hold','on-hold'],['hold','on-hold'],['onhold','on-hold']]); const s=slugify(String(v||'')); return map.get(s)||s; }
 function cmpStatus(a,b){ const ia=STATUS_ORDER.indexOf(statusClass(a)), ib=STATUS_ORDER.indexOf(statusClass(b)); const safe=i=>(i===-1?STATUS_ORDER.length:i); const diff=safe(ia)-safe(ib); return diff||String(a??'').localeCompare(String(b??''),undefined,{numeric:true,sensitivity:'base'}); }
 function cmpId(a,b){ const na=parseInt(String(a).replace(/\D+/g,''),10)||0; const nb=parseInt(String(b).replace(/\D+/g,''),10)||0; return na-nb; }
-function detectType(col,rows){ const n=String(col||'').trim().toLowerCase(); const sample=rows.slice(0,10).map(r=>r[col]); const allDates=sample.length&&sample.every(v=>parseDateLoose(v)!==null); const allNums=sample.length&&sample.every(v=>typeof v==='number'||/^\s*[-+]?\d+(\.\d+)?\s*$/.test(String(v))); if(allDates)return'date'; if(allNums)return'number'; if(n==='id')return'id'; if(n==='priority')return'priority'; if(n==='status')return'status'; return'string'; }
+function detectType(col, rows){
+  const n = String(col || '').trim().toLowerCase();
 
-  // ---------- Shared sort + UI helpers ----------
+  // 👇 early exit for our virtual Age column
+  if (n === 'age' || n === 'age (days)') return 'number';
+
+  const sample = rows.slice(0, 10).map(r => r[col]);
+  const allDates = sample.length && sample.every(v => parseDateLoose(v) !== null);
+  const allNums  = sample.length && sample.every(v =>
+    typeof v === 'number' || /^\s*[-+]?\d+(\.\d+)?\s*$/.test(String(v))
+  );
+
+  if (allDates)  return 'date';
+  if (allNums)   return 'number';
+  if (n === 'id')       return 'id';
+  if (n === 'priority') return 'priority';
+  if (n === 'status')   return 'status';
+  return 'string';
+}
+
+// ---------- Shared sort + UI helpers ----------
 function applySort(rows, column, direction){
   const list = Array.isArray(rows) ? rows : [];
-  if(!column) return list.slice();
+  if (!column) return list.slice();
+
   const dir = direction === 'asc' ? 'asc' : 'desc';
-  const f = dir === 'asc' ? 1 : -1;
+  const f   = dir === 'asc' ? 1 : -1;
+
+  // --- Special-case: Age column
+  if (String(column).toLowerCase().startsWith('age')) {
+    const MIN = -1; // pushes unknowns to the top/bottom depending on dir
+    const toMs = (row) => {
+      // 1) preferred: precomputed raw ms
+      if (row.__ageMs != null) return row.__ageMs;
+
+      const v = row[column];
+
+      // 2) numeric age (e.g. "Age (days)" as number)
+      if (typeof v === 'number' && Number.isFinite(v)) {
+        return v * 24 * 60 * 60 * 1000;
+      }
+      // 3) human string like "14d 6h 3m"
+      if (typeof v === 'string' && v.trim()){
+        const m = v.match(/^\s*(?:(\d+)\s*d)?\s*(?:(\d+)\s*h)?\s*(?:(\d+)\s*m)?\s*$/i);
+        if (m && (m[1] || m[2] || m[3])) {
+          const d  = +m[1] || 0;
+          const h  = +m[2] || 0;
+          const mm = +m[3] || 0;
+          return (((d * 24) + h) * 60 + mm) * 60 * 1000;
+        }
+        // also accept plain numeric strings as days
+        if (/^\s*[-+]?\d+(\.\d+)?\s*$/.test(v)) {
+          return parseFloat(v) * 24 * 60 * 60 * 1000;
+        }
+      }
+      // 4) fallback: compute from "Created on"
+      const created = parseDateLoose(row['Created on']);
+      return created ? (Date.now() - created.getTime()) : MIN;
+    };
+
+    return [...list].sort((a,b) => f * (toMs(a) - toMs(b)));
+  }
+
+  // --- normal types
   const type = detectType(column, list);
   return [...list].sort((a,b)=>{
-    const va=a[column], vb=b[column];
-    if(type==='date'){ const da=parseDateLoose(va), db=parseDateLoose(vb); return f*((da?.getTime()||0)-(db?.getTime()||0)); }
-    if(type==='number'){ return f*((parseFloat(va)||0)-(parseFloat(vb)||0)); }
-    if(type==='priority'){ return f*cmpPriority(va,vb); }
-    if(type==='status'){ return f*cmpStatus(va,vb); }
-    if(type==='id'){ return f*cmpId(va,vb); }
-    return f*String(va??'').localeCompare(String(vb??''),undefined,{numeric:true,sensitivity:'base'});
+    const va = a[column], vb = b[column];
+    if (type === 'date'){
+      const da = parseDateLoose(va), db = parseDateLoose(vb);
+      return f * ((da?.getTime() || 0) - (db?.getTime() || 0));
+    }
+    if (type === 'number'){
+      return f * ((parseFloat(va) || 0) - (parseFloat(vb) || 0));
+    }
+    if (type === 'priority'){ return f * cmpPriority(va, vb); }
+    if (type === 'status'){   return f * cmpStatus(va, vb); }
+    if (type === 'id'){       return f * cmpId(va, vb); }
+    return f * String(va ?? '').localeCompare(String(vb ?? ''), undefined, { numeric:true, sensitivity:'base' });
   });
 }
 
@@ -980,7 +1087,7 @@ function getFilters(){
   };
 }
 
-const SEARCHABLE_FIELDS = ['ID','Title','Status','Priority','Assigned to','Created by','Created on','Completed on','Last updated','Location','Asset','Categories'];
+const SEARCHABLE_FIELDS = ['ID','Title','Status','Priority','Assigned to','Created by','Created on','Completed on','Last updated','Location','Asset','Categories','Age'];
 
 function applyFilters(rows){
   const filters = getFilters();
@@ -1028,11 +1135,26 @@ function renderDashboard(container, headers, rows){
   const prog =rows.filter(r=>/^in\s*progress$/i.test(r.Status)).length;
   const hold =rows.filter(r=>/^on\s*hold$/i.test(r.Status)).length;
   const done =rows.filter(r=>/^done$/i.test(r.Status)).length;
+  // Oldest WO that is still not done
+const oldestOutstandingMs = Math.max(-1, ...rows
+  .filter(r => !/^done$/i.test(r.Status))
+  .map(r => r.__ageMs ?? ageMs(r))
+  .filter(v => v != null));
+
+if (oldestOutstandingMs >= 0) {
+  kpiWrap.appendChild(kpiCard('Oldest Outstanding', fmtAge(oldestOutstandingMs)));
+}
   kpiWrap.appendChild(kpiCard('Total WOs', total));
   kpiWrap.appendChild(kpiCard('Open', open));
   kpiWrap.appendChild(kpiCard('In Progress', prog));
   kpiWrap.appendChild(kpiCard('On Hold', hold));
   kpiWrap.appendChild(kpiCard('Done', done));
+  const oldestMs = Math.max(-1, ...rows
+  .map(r => r.__ageMs ?? ageMs(r))
+  .filter(v => v != null));
+if (oldestMs >= 0) {
+  kpiWrap.appendChild(kpiCard('Oldest Age', fmtAge(oldestMs)));
+}
   if(kpiContainer){ kpiContainer.innerHTML=''; kpiContainer.appendChild(kpiWrap); }
 
   // --- shell: table + mobile containers (both exist; CSS decides visibility) ---
@@ -1120,6 +1242,13 @@ function renderRowsScoped(tbodyEl, headers, rows, container){
           const cls = statusClass(v);
           return `<td data-col="Status"><span class="status-chip ${cls}">${esc(v)}</span></td>`;
         }
+              if(hNorm==='age'){
+        const ms     = row.__ageMs;
+        const bucket = row.__ageBucket || ageBucket(ms);
+        const label  = esc(row['Age'] || fmtAge(ms));
+        const title  = ms != null ? `${(ms/86400000).toFixed(1)} days` : 'Unknown';
+        return `<td data-col="Age"><span class="age-chip age-${bucket}" title="${title}">${label}</span></td>`;
+      }
         return `<td data-col="${esc(h)}">${esc(v)}</td>`;
       }).join('')}</tr>`;
     }).join('\n');
@@ -1198,13 +1327,31 @@ window.addEventListener('resize', updateTheadHeight);
 function ingestToDashboards(headers, rows){
   const expected=['ID','Title','Status','Priority','Assigned to','Created by','Created on','Completed on','Last updated','Location','Asset','Categories'];
   const present = expected.filter(h => headers.includes(h));
-  const safeHeaders = present.length ? present : expected;
+  const baseHeaders = present.length ? present : expected;
 
+  // normalize + derive age
   const normalized = rows.map(r => {
-    const o={}; expected.forEach(h => { o[h] = r[h] ?? ''; }); return o;
+    const o={}; expected.forEach(h => { o[h] = r[h] ?? ''; });
+
+    const ms = ageMs(o);
+    o.__ageMs      = ms;                // raw milliseconds
+    o.Age          = fmtAge(ms);        // human label like "12d 3h"
+    o.__ageBucket  = ageBucket(ms);     // fresh | stale | old | ancient
+    return o;
   });
 
   const filtered = applyFilters(normalized);
+
+  // inject "Age" header after "Created on" if it's not already there
+  const displayHeaders = (() => {
+    const out = baseHeaders.slice();
+    if (!out.includes('Age')){
+      const i = out.indexOf('Created on');
+      const ins = i >= 0 ? i + 1 : out.length;
+      out.splice(ins, 0, 'Age');
+    }
+    return out;
+  })();
 
   const groups={
     all  : filtered,
@@ -1214,23 +1361,18 @@ function ingestToDashboards(headers, rows){
     by   : filtered.filter(r=>toSiteKey(r.Location)==='by'),
   };
 
-// ✅ Guard against missing dashboard containers
-[
-  ['dash-all','all'],
-  ['dash-ek','ek'],
-  ['dash-mm','mm'],
-  ['dash-keith','keith'],
-  ['dash-by','by']
-].forEach(([id, key]) => {
-  const el = document.getElementById(id);
-  if (!el){
-    if (typeof console !== 'undefined' && typeof console.warn === 'function'){
-      console.warn(`Skipping dashboard "${id}" – element not found.`);
-    }
-    return;
-  }
-  renderDashboard(el, safeHeaders, groups[key]);
-});
+  // ✅ Guard against missing dashboard containers
+  [
+    ['dash-all','all'],
+    ['dash-ek','ek'],
+    ['dash-mm','mm'],
+    ['dash-keith','keith'],
+    ['dash-by','by']
+  ].forEach(([id, key]) => {
+    const el = document.getElementById(id);
+    if (!el){ console.warn?.(`Skipping dashboard "${id}" – element not found.`); return; }
+    renderDashboard(el, displayHeaders, groups[key]);
+  });
 
   // pick the first available dashboard
   if (document.getElementById('dash-all')) {
@@ -1333,30 +1475,23 @@ function isMobileView(){
   return window.matchMedia('(max-width: 700px)').matches;
 }
 
-// Build one mobile card
 function cardHTML(row){
-  // categories: show up to 4, then +N
   const allCats = String(row['Categories']||'')
     .split(/[,;]+/).map(s=>s.trim()).filter(Boolean);
-  const seen = new Set();
-  const unique = [];
-  for (const c of allCats){
-    const s = slugify(c);
-    if (seen.has(s)) continue;
-    seen.add(s);
-    unique.push(c);
-  }
+  const seen = new Set(); const unique = [];
+  for (const c of allCats){ const s=slugify(c); if(!seen.has(s)){ seen.add(s); unique.push(c); } }
   const shown = unique.slice(0,4).map(cat=>{
     const { className, style } = chipStyle(cat);
     const styleAttr = style ? ` style="${style}"` : '';
     const classAttr = className ? ` ${className}` : '';
     return `<span class="chip-cat${classAttr}"${styleAttr}>${esc(cat)}</span>`;
   }).join('');
-  const more = unique.length>4
-    ? `<span class="chip-cat" style="opacity:.85;border-style:dashed">+${unique.length-4}</span>`
-    : '';
+  const more = unique.length>4 ? `<span class="chip-cat" style="opacity:.85;border-style:dashed">+${unique.length-4}</span>` : '';
 
   const statusCls = statusClass(row['Status']);
+  const ms     = row.__ageMs;
+  const bucket = row.__ageBucket || ageBucket(ms);
+  const ageLbl = row['Age'] || fmtAge(ms);
 
   return `
   <article class="mobile-card" role="listitem" aria-label="WO ${esc(row['ID'])}">
@@ -1369,6 +1504,7 @@ function cardHTML(row){
     </div>
 
     <div class="mobile-card__row"><strong>Priority:</strong> ${esc(row['Priority']||'—')}</div>
+    <div class="mobile-card__row"><strong>Age:</strong> <span class="age-chip age-${bucket}">${esc(ageLbl)}</span></div>
 
     <div class="mobile-card__meta">
       <span><strong>Site:</strong> ${esc(row['Location']||'—')}</span>
