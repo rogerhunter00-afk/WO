@@ -23,6 +23,7 @@
       --open-bg:#0b67c21a;
       --hold-bg:#f59e0b1a;
       --paper:#ffffff;
+      --priority-rail:#E85A70;
       --sticky-controls-offset:0px;
     }
 
@@ -274,32 +275,29 @@ table th, table td{
       hyphens:auto;
       line-height:1.35;
     }
-/* Priority rows — softer blue highlight + slim rounded red rail */
+/* very faint ALS-blue wash across the whole row */
 tr.row-priority > td{
-  /* fainter ALS-blue tint */
-  background: color-mix(in srgb, var(--als-blue) 7%, var(--paper));
+  background: color-mix(in srgb, var(--als-blue) 6%, var(--paper));
 }
 .dark tr.row-priority > td{
-  background: color-mix(in srgb, var(--als-blue) 12%, var(--zebra));
+  background: color-mix(in srgb, var(--als-blue) 10%, var(--zebra));
 }
 
-/* left rail: thin, rounded, lighter red; kill old inset bar */
+/* thin rounded rail, positioned so it DOESN'T steal padding from the ID cell */
 tr.row-priority > td:first-child{
-  position: relative;
-  box-shadow: none !important;           /* overrides previous inset bar */
+  position: relative;         /* anchor the rail */
 }
 tr.row-priority > td:first-child::before{
-  content:"";
-  position:absolute;
-  left: 2px;                              /* a little inset from the edge */
-  top: 6px;
+  content: "";
+  position: absolute;
+  left: 0;                    /* sits on the very edge of the cell */
+  top: 6px;                   /* mirrors your td vertical padding */
   bottom: 6px;
-  width: 4px;                             /* thinner than before */
-  border-radius: 999px;                   /* rounded ends */
-  /* lighter red that matches the Priority tag vibe */
-  background: var(--priority-rail, color-mix(in srgb, #E11D48 55%, white));
-  /* subtle edge so it reads on both themes */
-  box-shadow: 0 0 0 1px color-mix(in srgb, #E11D48 28%, transparent);
+  width: 3px;                 /* thin rail */
+  border-radius: 999px;       /* fully rounded ends */
+  background: var(--priority-rail);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--priority-rail) 28%, transparent);
+  pointer-events: none;
 }
 
     .col-id{ width:66px; }
