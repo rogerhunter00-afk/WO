@@ -408,13 +408,17 @@ tr.row-priority > td:first-child::before{
   -webkit-mask: var(--icon) no-repeat center / 14px 14px;
 }
 
-/* Open chip — match the Open button look */
+/* Open chip — blue with hollow-circle icon */
 .status-chip.open{
-  color: var(--open-tx); /* blue text, not ink */
+  --icon: url("data:image/svg+xml;utf8,\
+    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>\
+      <circle cx='8' cy='8' r='5.5' fill='none' stroke='black' stroke-width='2'/>\
+    </svg>");
+  color: var(--open-tx);
   border-color: color-mix(in srgb, var(--open-tx) 55%, transparent);
   background:   color-mix(in srgb, var(--open-tx) 12%, var(--paper));
-  box-shadow: none;                  /* remove the old inset line */
-  padding: 4px 12px;                 /* same roomy pill feel */
+  box-shadow: none;
+  padding: 4px 12px;
 }
 
 /* keep the icon tinted blue */
