@@ -1053,12 +1053,6 @@ function getActiveDashId(){
   return document.querySelector('.dash[data-active="true"]:not([hidden])')?.id || 'dash-all';
 }
 
-function setGlobalStatusFilter(value){
-  PREFERRED_ACTIVE_DASH = getActiveDashId();   // remember current site
-  $statusFilter.value = value;                 // '', 'open', 'in-progress', 'on-hold', 'done'
-  $statusFilter.dispatchEvent(new Event('change', { bubbles: true }));
-}
-
 function humanizeFilterValue(value){
   return String(value || '')
     .split(/[-_\s]+/)
@@ -1273,7 +1267,6 @@ function renderDashboard(container, headers, rows){
 
   // KPIs
   const kpiWrap=document.createElement('div'); kpiWrap.className='kpis';
-  const total=rows.length;
   const open =rows.filter(r=>/^open$/i.test(r.Status)).length;
   const prog =rows.filter(r=>/^in\s*progress$/i.test(r.Status)).length;
   const hold =rows.filter(r=>/^on\s*hold$/i.test(r.Status)).length;
