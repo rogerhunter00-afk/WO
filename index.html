@@ -347,10 +347,48 @@ table th, table td{
 }
 
 /* Variants (uses your existing color vars) */
+/* Replace your existing .status-chip.open with this */
 .status-chip.open{
+  /* lock-button look */
   color: var(--open-tx);
-  --icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='black' fill-rule='evenodd' d='M8 1a7 7 0 1 1 0 14A7 7 0 0 1 8 1zm0 2a5 5 0 1 0 0 10A5 5 0 0 0 8 3z'/></svg>");
+  --icon: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>\
+<path fill='black' d='M5 7V5a3 3 0 1 1 6 0v2h1.5A1.5 1.5 0 0 1 14 8.5v5A1.5 1.5 0 0 1 12.5 15h-9A1.5 1.5 0 0 1 2 13.5v-5A1.5 1.5 0 0 1 3.5 7H5zm2-2a2 2 0 1 1 4 0v2H7V5z'/>\
+</svg>");
+  border-color: color-mix(in srgb, var(--open-tx) 45%, transparent);
+  background: color-mix(in srgb, var(--open-tx) 14%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--open-tx) 30%, transparent),
+    0 1px 2px rgba(0,0,0,.25);
+  padding-right: 22px; /* room for caret */
 }
+
+/* caret on the right */
+.status-chip.open::after{
+  content: "";
+  width: 10px; height: 10px;
+  background: currentColor;
+  margin-left: 6px;
+  mask: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>\
+<path fill='black' d='M4 6l4 4 4-4z'/>\
+</svg>") no-repeat center / 10px 10px;
+  -webkit-mask: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>\
+<path fill='black' d='M4 6l4 4 4-4z'/>\
+</svg>") no-repeat center / 10px 10px;
+}
+
+/* Fallback if CSS mask isn't supported */
+@supports not (mask: url("")){
+  .status-chip.open::after{
+    content: "▾";
+    background: none;
+    width: auto; height: auto;
+    margin-left: 6px;
+  }
+}
+
 .status-chip.in-progress{
   color: var(--open-tx);
   --icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='black' fill-rule='evenodd' d='M8 1a7 7 0 1 1 0 14A7 7 0 0 1 8 1zm0 2a5 5 0 1 0 0 10A5 5 0 0 0 8 3z'/><rect x='7.25' y='3' width='1.5' height='5' rx='0.75' fill='black'/><rect x='7.25' y='8' width='4.5' height='1.5' rx='0.75' fill='black'/></svg>");
