@@ -1559,16 +1559,40 @@ function ingestToDashboards(headers, rows){
 
   const filtered = applyFilters(normalized);
 
-  // inject "Age" header after "Created on" if it's not already there
-  const displayHeaders = (() => {
-    const out = baseHeaders.slice();
-    if (!out.includes('Age')){
-      const i = out.indexOf('Created on');
-      const ins = i >= 0 ? i + 1 : out.length;
-      out.splice(ins, 0, 'Age');
+ // --- place this inside ingestToDashboards(), replacing the old "inject Age" block ---
+const displayHeaders = (() => {
+  const out = baseHeaders.slice();
+
+  // 1) Make sure these three are in the order: Created on → Last updated → Completed on
+  const trio = ['Created on', 'Last updated', 'Completed on'];
+  const presentTrio = trio.filter(h => out.includes(h));
+  if (presentTrio.length) {
+    const firstIdx = Math.min(...presentTrio.map(h => out.indexOf(h)));
+    // remove any of the trio currently present
+    trio.forEach(h => {
+      const i = out.indexOf(h);
+      if (i > -1) out.splice(i, 1);
+    });
+    // insert back in desired order (only those that exist)
+    out.splice(firstIdx, 0, ...presentTrio);
+  }
+
+  // 2) Put Age immediately AFTER "Completed on"
+  const afterIdx = out.indexOf('Completed on');
+  const targetIdx = afterIdx >= 0 ? afterIdx + 1 : out.length;
+
+  if (!out.includes('Age')) {
+    out.splice(targetIdx, 0, 'Age');
+  } else {
+    const ageIdx = out.indexOf('Age');
+    if (ageIdx !== targetIdx && ageIdx !== -1) {
+      out.splice(ageIdx, 1);
+      out.splice(Math.min(targetIdx, out.length), 0, 'Age');
     }
-    return out;
-  })();
+  }
+
+  return out;
+})();
 
   const groups={
     all  : filtered,
