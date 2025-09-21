@@ -274,14 +274,32 @@ table th, table td{
       hyphens:auto;
       line-height:1.35;
     }
+/* Priority rows — softer blue highlight + slim rounded red rail */
 tr.row-priority > td{
-  background: color-mix(in srgb, var(--als-blue) 12%, var(--paper));
+  /* fainter ALS-blue tint */
+  background: color-mix(in srgb, var(--als-blue) 7%, var(--paper));
 }
 .dark tr.row-priority > td{
-  background: color-mix(in srgb, var(--als-blue) 20%, var(--zebra));
+  background: color-mix(in srgb, var(--als-blue) 12%, var(--zebra));
 }
+
+/* left rail: thin, rounded, lighter red; kill old inset bar */
 tr.row-priority > td:first-child{
-  box-shadow: inset 8px 0 #E11D48; /* thicker, bright red */
+  position: relative;
+  box-shadow: none !important;           /* overrides previous inset bar */
+}
+tr.row-priority > td:first-child::before{
+  content:"";
+  position:absolute;
+  left: 2px;                              /* a little inset from the edge */
+  top: 6px;
+  bottom: 6px;
+  width: 4px;                             /* thinner than before */
+  border-radius: 999px;                   /* rounded ends */
+  /* lighter red that matches the Priority tag vibe */
+  background: var(--priority-rail, color-mix(in srgb, #E11D48 55%, white));
+  /* subtle edge so it reads on both themes */
+  box-shadow: 0 0 0 1px color-mix(in srgb, #E11D48 28%, transparent);
 }
 
     .col-id{ width:66px; }
