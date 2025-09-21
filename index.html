@@ -371,28 +371,16 @@ tr.row-priority > td:first-child::before{
   -webkit-mask: var(--icon) no-repeat center / 14px 14px;
 }
 
-/* Variants (uses your existing color vars) */
-/* Open chip — ghost style like screenshot */
+/* Open chip — match the Open button look */
 .status-chip.open{
-  /* white in dark mode, near-black in light mode */
-  color: var(--ink);
-
-  /* blue lock icon (separate from text color) */
-  --icon: url("data:image/svg+xml;utf8,\
-<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>\
-<path fill='black' d='M5 7V5a3 3 0 1 1 6 0v2h1.5A1.5 1.5 0 0 1 14 8.5v5A1.5 1.5 0 0 1 12.5 15h-9A1.5 1.5 0 0 1 2 13.5v-5A1.5 1.5 0 0 1 3.5 7H5zm2-2a2 2 0 1 1 4 0v2H7V5z'/>\
-</svg>");
-
-  /* ghost pill look */
-  border-color: color-mix(in srgb, var(--open-tx) 45%, transparent);
-  background: color-mix(in srgb, var(--open-tx) 8%, transparent);
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--open-tx) 28%, transparent);
-
-  padding: 4px 12px; /* a touch roomier like the screenshot */
+  color: var(--open-tx); /* blue text, not ink */
+  border-color: color-mix(in srgb, var(--open-tx) 55%, transparent);
+  background:   color-mix(in srgb, var(--open-tx) 12%, var(--paper));
+  box-shadow: none;                  /* remove the old inset line */
+  padding: 4px 12px;                 /* same roomy pill feel */
 }
 
-/* make the lock icon blue while text stays white/ink */
+/* keep the icon tinted blue */
 .status-chip.open::before{
   background: var(--open-tx);
 }
@@ -572,39 +560,6 @@ html{ overflow-y: scroll; }
 
 /* Buttons */
 .btn{ padding:6px 10px; border:1px solid var(--als-blue); border-radius:8px; background:var(--paper); color:var(--als-blue); font-weight:700; cursor:pointer; }
-/* Open button – pill style */
-.open-button{
-  --fg: var(--open-tx);
-  --bg: color-mix(in srgb, var(--open-tx) 12%, var(--paper));
-  --ring: color-mix(in srgb, var(--open-tx) 55%, transparent);
-
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  padding:8px 14px;
-  border-radius:999px;
-  border:1px solid var(--ring);
-  background:var(--bg);
-  color:var(--fg);
-  font:inherit;
-  font-weight:800;
-  line-height:1;
-  cursor:pointer;
-  transition:background .18s, border-color .18s, box-shadow .18s, transform .02s;
-  -webkit-tap-highlight-color: transparent;
-}
-.open-button:hover{
-  background: color-mix(in srgb, var(--open-tx) 18%, var(--paper));
-  border-color: color-mix(in srgb, var(--open-tx) 70%, transparent);
-}
-.open-button:focus-visible{
-  outline: none;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--open-tx) 30%, transparent);
-}
-.open-button:active{ transform: translateY(1px); }
-.open-button[disabled]{ opacity:.55; cursor:not-allowed; }
-/* optional icon inside the button */
-.open-button .icon{ width:16px; height:16px; flex:0 0 auto; }
 
 /* Active filter chips row (non-sticky) */
 .active-filter-chips{
@@ -798,7 +753,6 @@ html{ overflow-y: scroll; }
       <label class="btn" for="file">Upload CSV/TSV/JSON</label>
       <input id="file" type="file" accept=".csv,.tsv,.json,application/json,text/csv,text/tab-separated-values" style="display:none" />
       <button class="btn" id="themeBtn" type="button">Dark mode</button>
-      <button class="open-button" type="button">Open</button> <!-- NEW -->
       <button class="btn" id="exportCsvBtn" type="button" disabled>Export CSV</button>
       <button class="btn" id="exportExcelBtn" type="button" disabled>Export Excel</button>
 
