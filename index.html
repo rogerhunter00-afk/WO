@@ -327,26 +327,57 @@ table th, table td{
   padding: 3px 8px;
 }
 
-    .status-chip{ display:inline-flex; align-items:center; padding:2px 8px; border-radius:6px; font-weight:700; white-space:nowrap; }
-    .status-chip::before{ margin-right:4px; }
-    .status-chip.done{ color:var(--done-tx); background:var(--done-bg); }
-    .status-chip.done::before{ content:'\2713'; }
-    .status-chip.open{ color:var(--open-tx); background:var(--open-bg); }
-    .status-chip.open::before{ content:'\26AA'; }
-    .status-chip.in-progress{ color:var(--open-tx); background:var(--open-bg); }
-    .status-chip.in-progress::before{ content:'\23F3'; }
-    .status-chip.on-hold{ color:var(--hold-tx); background:var(--hold-bg); }
-    .status-chip.on-hold::before{ content:'\23F8'; }
-
-    .ico{ width:16px; height:16px; vertical-align:-3px; margin-right:6px; }
-    .done{ color:var(--done-tx); font-weight:800; }
-    .open{ color:var(--open-tx); font-weight:800; }
-
-    .age-chip{
+/* STATUS-CHIPS v2 — search anchor: STATUS-CHIPS v2 */
+.status-chip{
+  --ring: color-mix(in srgb, currentColor 40%, transparent);
+  --bg:   color-mix(in srgb, currentColor 18%, transparent);
   display:inline-flex; align-items:center; gap:6px;
-  padding:4px 8px; border-radius:999px; font-weight:800; font-size:12px;
-  border:1px solid currentColor; background:transparent; white-space:nowrap;
+  padding:3px 10px; border-radius:999px;
+  font-weight:700; font-size:12px; line-height:1;
+  border:1px solid var(--ring); background:var(--bg); color:currentColor;
 }
+
+/* icon bubble (CSS mask so it tints with currentColor) */
+.status-chip::before{
+  content:"";
+  width:14px; height:14px; display:inline-block;
+  background: currentColor;
+  mask: var(--icon) no-repeat center / 14px 14px;
+  -webkit-mask: var(--icon) no-repeat center / 14px 14px;
+}
+
+/* Variants (uses your existing color vars) */
+.status-chip.open{
+  color: var(--open-tx);
+  --icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='black' fill-rule='evenodd' d='M8 1a7 7 0 1 1 0 14A7 7 0 0 1 8 1zm0 2a5 5 0 1 0 0 10A5 5 0 0 0 8 3z'/></svg>");
+}
+.status-chip.in-progress{
+  color: var(--open-tx);
+  --icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='black' fill-rule='evenodd' d='M8 1a7 7 0 1 1 0 14A7 7 0 0 1 8 1zm0 2a5 5 0 1 0 0 10A5 5 0 0 0 8 3z'/><rect x='7.25' y='3' width='1.5' height='5' rx='0.75' fill='black'/><rect x='7.25' y='8' width='4.5' height='1.5' rx='0.75' fill='black'/></svg>");
+}
+.status-chip.on-hold{
+  color: var(--hold-tx);
+  --icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='3' y='2' width='4' height='12' rx='1' fill='black'/><rect x='9' y='2' width='4' height='12' rx='1' fill='black'/></svg>");
+}
+.status-chip.done{
+  color: var(--done-tx);
+  --icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='black' d='M6.6 12.2 2.9 8.5l1.4-1.4 2.3 2.3 4.9-4.9 1.4 1.4-6.3 6.3z'/></svg>");
+  --bg:  color-mix(in srgb, var(--done-tx) 18%, transparent);
+  --ring: color-mix(in srgb, var(--done-tx) 40%, transparent);
+}
+
+/* Fallback for browsers without mask() */
+@supports not (mask: url("")) {
+  .status-chip::before{ 
+    mask:none; -webkit-mask:none; background:none; width:auto; margin-right:2px;
+    content: var(--glyph, "•");
+  }
+  .status-chip.open{        --glyph: "○"; }
+  .status-chip.in-progress{ --glyph: "⏳"; }
+  .status-chip.on-hold{     --glyph: "⏸"; }
+  .status-chip.done{        --glyph: "✓"; }
+}
+
 .age-fresh   { color:#059669; background:#0596691a; }   /* < 7d */
 .age-stale   { color:#b45309; background:#f59e0b1a; }   /* 7–30d */
 .age-old     { color:#dc2626; background:#ef44441a; }   /* 30–90d */
