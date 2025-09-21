@@ -1503,6 +1503,9 @@ document.addEventListener('DOMContentLoaded', updateTheadHeight);
 window.addEventListener('resize', updateTheadHeight);
 
 function ingestToDashboards(headers, rows){
+  // 1) Remember which dashboard is currently active
+  const prevActiveId =
+    document.querySelector('.dash[data-active="true"]:not([hidden])')?.id || null;
   const expected=['ID','Title','Status','Priority','Assigned to','Created by','Created on','Completed on','Last updated','Location','Asset','Categories'];
   const present = expected.filter(h => headers.includes(h));
   const baseHeaders = present.length ? present : expected;
@@ -1552,8 +1555,10 @@ function ingestToDashboards(headers, rows){
     renderDashboard(el, displayHeaders, groups[key]);
   });
 
-  // pick the first available dashboard
-  if (document.getElementById('dash-all')) {
+  // 5) Restore the previously active dashboard (fallback to All on first load)
+  if (prevActiveId && document.getElementById(prevActiveId)) {
+    setActiveDash(prevActiveId);
+  } else if (document.getElementById('dash-all')) {
     setActiveDash('dash-all');
   } else {
     const first = document.querySelector('.dash');
