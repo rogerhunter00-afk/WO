@@ -380,24 +380,35 @@ table th, table td{
 
 /* AGE-CHIPS v2 — readable pill using the bucket colours */
 .age-chip{
-  --ring: color-mix(in srgb, currentColor 40%, transparent);
-  --bg:   color-mix(in srgb, currentColor 20%, transparent);
+  --ring: color-mix(in srgb, currentColor 50%, transparent);   /* stronger outline */
+  --bg:   color-mix(in srgb, currentColor 26%, transparent);   /* stronger fill */
   display:inline-flex; align-items:center;
-  padding:3px 8px;
+  padding:4px 9px;                   /* +1px breathing room */
   border-radius:999px;
-  font-weight:700;
-  font-size:12px;
+  font-weight:800;                   /* crisper numerals */
+  font-size:12.5px;
   line-height:1;
   border:1px solid var(--ring);
   background:var(--bg);
-  font-variant-numeric: tabular-nums; /* nicer numbers */
+  font-variant-numeric: tabular-nums;
 }
 
-/* keep the same colours, but let the base chip compute bg/ring */
-.age-chip.age-fresh   { color:#10b981; }                 /* < 7d  */
-.age-chip.age-stale   { color:#b45309; }                 /* 7–30d */
-.age-chip.age-old     { color:#dc2626; --bg: color-mix(in srgb, currentColor 24%, transparent); }
-.age-chip.age-ancient { color:#991b1b; --bg: color-mix(in srgb, currentColor 28%, transparent); }
+/* keep bucket colours; only the bg strength varies */
+.age-chip.age-fresh   { color:#10b981; }  /* < 7d  */
+.age-chip.age-stale   { color:#b45309; }  /* 7–30d */
+.age-chip.age-old     { color:#dc2626; --bg: color-mix(in srgb, currentColor 32%, transparent); }
+.age-chip.age-ancient { color:#991b1b; --bg: color-mix(in srgb, currentColor 38%, transparent); }
+
+/* extra pop in dark mode */
+.dark .age-chip{
+  text-shadow: 0 1px 0 rgba(0,0,0,.35);
+  box-shadow: 0 0 0 1px color-mix(in srgb, currentColor 30%, transparent);
+}
+
+.age-chip:focus-visible{
+  outline: 2px solid color-mix(in srgb, currentColor 55%, transparent);
+  outline-offset: 2px;
+}
 
 /* Controls + sticky + search + filter chips (merged) */
 .sticky-top{
@@ -834,6 +845,26 @@ function relativeLuminance(rgb){ const [r,g,b]=rgb.map(v=>srgbToLinear(Math.max(
 function contrastRatio(bgH,fgH){ const lBg=relativeLuminance(hslToRgb(bgH.h,bgH.s,bgH.l)), lFg=relativeLuminance(hslToRgb(fgH.h,fgH.s,fgH.l)); const light=Math.max(lBg,lFg), dark=Math.min(lBg,lFg); return (light+0.05)/(dark+0.05); }
 function fallbackColors(label){ const hue=hashCategory(label)%360, bg={h:hue,s:45,l:92}, fg0={h:hue,s:60,l:32}; let fg={...fg0}; while(contrastRatio(bg,fg)<4.5 && fg.l>0){ fg={...fg,l:Math.max(0,fg.l-10)}; } return {background:`hsl(${bg.h}, ${bg.s}%, ${bg.l}%)`, foreground:`hsl(${fg.h}, ${fg.s}%, ${fg.l}%)`}; }
 function chipStyle(label, slugOverride){ const slug=slugOverride||slugify(label), preset=categoryColors[slug]; if(preset) return {className:`cat-${slug}`, style:''}; const c=fallbackColors(label); return {className:`cat-${slug}`, style:`background:${c.background};border-color:${c.foreground};color:${c.foreground}`}; }
+// --- Name aliases / shortening ---
+const NAME_ALIASES = new Map([
+  ['callum keith engineering team', 'Callum'],
+  ['east kilbride engineering team', 'Jim and Ciaren'],
+  // add more here...
+]);
+
+function shortenName(s){
+  const raw = String(s || '').trim();
+  if (!raw) return '';
+  const parts = raw.split(/[,;/]+/).map(p => p.trim()).filter(Boolean);
+  const alias = (x) => NAME_ALIASES.get(x.toLowerCase().replace(/\s+/g,' '));
+  const first = (x) => x.split(/\s+/)[0];
+
+  if (parts.length > 1){
+    const uniq = [...new Set(parts.map(p => alias(p) || first(p)))];
+    return uniq.join(', ');
+  }
+  return alias(raw) || first(raw);
+}
 
 // CSV / JSON ingest helpers
 function parseDelimited(text){
@@ -1596,6 +1627,9 @@ function ingestToDashboards(headers, rows){
   // normalize + derive age
   const normalized = rows.map(r => {
     const o={}; expected.forEach(h => { o[h] = r[h] ?? ''; });
+      // shorten people/team fields
+  o['Assigned to'] = shortenName(o['Assigned to']);
+  o['Created by']  = shortenName(o['Created by']);
 
     const ms = ageMs(o);
     o.__ageMs      = ms;                // raw milliseconds
