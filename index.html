@@ -1440,14 +1440,16 @@ function applyFilters(rows){
     let working = (container.__rawRows || []).slice();
 
     // keep “Oldest only” behavior if it’s on
-    if (container.__focusOldest){
-      const pick = working.reduce((acc, r) => {
-        const ms = r.__ageMs ?? ageMs(r);
-        if (ms == null) return acc;
-        return (!acc || ms > (acc.__ageMs ?? ageMs(acc))) ? r : acc;
-      }, null);
-      working = pick ? [pick] : [];
-    }
+if (container.__focusOldest){
+  const pick = working
+    .filter(r => !isWinterPlanned(r))     // ← add this
+    .reduce((acc, r) => {
+      const ms = r.__ageMs ?? ageMs(r);
+      if (ms == null) return acc;
+      return (!acc || ms > (acc.__ageMs ?? ageMs(acc))) ? r : acc;
+    }, null);
+  working = pick ? [pick] : [];
+}
 
     const s = container.__currentSort;
     if (s && s.column) working = applySort(working, s.column, s.direction);
@@ -1607,14 +1609,16 @@ const togglePrio = () => {
   if (container.__priorityOnly) {
     working = working.filter(hasPriorityCategory);
   }
-  if (container.__focusOldest) {
-    const pick = working.reduce((acc, r) => {
+if (container.__focusOldest) {
+  const pick = working
+    .filter(r => !isWinterPlanned(r))     // ← ignore frozen PWPs
+    .reduce((acc, r) => {
       const ms = r.__ageMs ?? ageMs(r);
       if (ms == null) return acc;
       return (!acc || ms > (acc.__ageMs ?? ageMs(acc))) ? r : acc;
     }, null);
-    working = pick ? [pick] : [];
-  }
+  working = pick ? [pick] : [];
+}
 
   const s = container.__currentSort;
   if (s && s.column) working = applySort(working, s.column, s.direction);
