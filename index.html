@@ -1983,10 +1983,16 @@ document.addEventListener('DOMContentLoaded', loadFromGoogleSheetCSV);
 
 // Re-render on filter change
 function handleFilterChange(){
-  if(LAST_HEADERS && ALL_ROWS){
+  if (LAST_HEADERS && ALL_ROWS){
     ingestToDashboards(LAST_HEADERS, ALL_ROWS);
-  }else{
-    updateActiveFilterChips(getFilters());
+  } else {
+    const f = getFilters();
+    updateActiveFilterChips({
+      status: f.status,
+      excludeStatus: f.excludeStatus,
+      priority: f.priority,
+      search: f.searchTerm   // <-- map searchTerm -> search
+    });
   }
 }
 $statusFilter?.addEventListener('change', handleFilterChange);
