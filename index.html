@@ -122,7 +122,47 @@
   .mobile-cards{ display:block; }            /* show card list */
   .page{ --page-pad-inline:16px; }
 }
+    /* ---- Mobile sort controls ---- */
+.mobile-sort{
+  display:none;
+  align-items:center;
+  gap:8px;
+  margin:0 0 12px;
+}
+.mobile-sort__label{
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.4px;
+  font-weight:700;
+  color:var(--muted);
+}
+.mobile-sort__select{
+  flex:1 1 auto;
+  font:inherit;
+  font-weight:600;
+  padding:8px 12px;
+  border-radius:8px;
+  border:1px solid var(--grid);
+  background:var(--paper);
+  color:var(--ink);
+}
+.mobile-sort__direction{
+  font:inherit;
+  font-weight:700;
+  padding:8px 12px;
+  border-radius:8px;
+  border:1px solid var(--grid);
+  background:color-mix(in srgb, var(--als-blue) 16%, var(--paper));
+  color:var(--ink);
+  cursor:pointer;
+}
+.mobile-sort__direction[disabled]{ opacity:.5; cursor:not-allowed; }
 
+/* Show sort controls with cards under 700px */
+@media (max-width: 700px){
+  .mobile-sort{ display:flex; flex-wrap:wrap; }
+}
+    
     html,body{height:100%}
     body{
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
@@ -669,6 +709,125 @@ function cmpStatus(a,b){ const ia=STATUS_ORDER.indexOf(statusClass(a)), ib=STATU
 function cmpId(a,b){ const na=parseInt(String(a).replace(/\D+/g,''),10)||0; const nb=parseInt(String(b).replace(/\D+/g,''),10)||0; return na-nb; }
 function detectType(col,rows){ const n=String(col||'').trim().toLowerCase(); const sample=rows.slice(0,10).map(r=>r[col]); const allDates=sample.length&&sample.every(v=>parseDateLoose(v)!==null); const allNums=sample.length&&sample.every(v=>typeof v==='number'||/^\s*[-+]?\d+(\.\d+)?\s*$/.test(String(v))); if(allDates)return'date'; if(allNums)return'number'; if(n==='id')return'id'; if(n==='priority')return'priority'; if(n==='status')return'status'; return'string'; }
 
+  // ---------- Shared sort + UI helpers ----------
+function applySort(rows, column, direction){
+  const list = Array.isArray(rows) ? rows : [];
+  if(!column) return list.slice();
+  const dir = direction === 'asc' ? 'asc' : 'desc';
+  const f = dir === 'asc' ? 1 : -1;
+  const type = detectType(column, list);
+  return [...list].sort((a,b)=>{
+    const va=a[column], vb=b[column];
+    if(type==='date'){ const da=parseDateLoose(va), db=parseDateLoose(vb); return f*((da?.getTime()||0)-(db?.getTime()||0)); }
+    if(type==='number'){ return f*((parseFloat(va)||0)-(parseFloat(vb)||0)); }
+    if(type==='priority'){ return f*cmpPriority(va,vb); }
+    if(type==='status'){ return f*cmpStatus(va,vb); }
+    if(type==='id'){ return f*cmpId(va,vb); }
+    return f*String(va??'').localeCompare(String(vb??''),undefined,{numeric:true,sensitivity:'base'});
+  });
+}
+
+function clearDesktopSortIndicators(container){
+  container?.__thead?.querySelectorAll('th').forEach(th=>{
+    th.removeAttribute('data-sort');
+    th.setAttribute('aria-sort','none');
+  });
+}
+function syncDesktopSortIndicators(container, column, direction){
+  container?.__thead?.querySelectorAll('th').forEach(th=>{
+    const col = th.getAttribute('data-col');
+    if(col===column){
+      th.setAttribute('data-sort', direction);
+      th.setAttribute('aria-sort', direction==='asc'?'ascending':'descending');
+    }else{
+      th.removeAttribute('data-sort');
+      th.setAttribute('aria-sort','none');
+    }
+  });
+}
+function updateMobileSortDirectionButton(container){
+  const btn = container?.__mobileSortDirectionBtn;
+  if(!btn) return;
+  const dir = container.__mobileSortDirection==='asc'?'asc':'desc';
+  btn.dataset.direction = dir;
+  btn.textContent = dir==='asc' ? 'Ascending' : 'Descending';
+  btn.setAttribute('aria-label', `Toggle sort direction (currently ${btn.textContent.toLowerCase()})`);
+}
+function setSortState(container, column, direction){
+  if(!container) return;
+  const dir = direction==='asc'?'asc':'desc';
+  container.__currentSort = column ? { column, direction: dir } : null;
+  container.__mobileSortDirection = dir;
+
+  if(container.__mobileSortSelect){
+    container.__mobileSortSelect.value = column || '';
+    container.__mobileSortDirectionBtn.disabled = !column || !isMobileView() || !(container.__rows?.length);
+  }
+  if(column) syncDesktopSortIndicators(container, column, dir);
+  else clearDesktopSortIndicators(container);
+
+  updateMobileSortDirectionButton(container);
+}
+
+  function handleMobileSort(container){
+  if(!container) return;
+  const select = container.__mobileSortSelect;
+  const tbodyEl = container.__tbody;
+  const headers = container.__headers;
+  if(!select || !tbodyEl || !headers) return;
+
+  const column = select.value;
+  const base = container.__rawRows ? container.__rawRows.slice() : [];
+
+  if(!column){
+    container.__rows = base.slice();
+    setSortState(container, null, 'desc');
+    renderRowsScoped(tbodyEl, headers, base, container);
+    return;
+  }
+
+  const dir = container.__mobileSortDirection || 'desc';
+  const sorted = applySort(base, column, dir);
+  container.__rows = sorted.slice();
+  setSortState(container, column, dir);
+  renderRowsScoped(tbodyEl, headers, sorted, container);
+}
+
+function toggleMobileSortDirection(container){
+  if(!container) return;
+  const select = container.__mobileSortSelect;
+  const tbodyEl = container.__tbody;
+  const headers = container.__headers;
+  if(!select || !select.value || !tbodyEl || !headers) return;
+
+  const next = (container.__mobileSortDirection === 'asc') ? 'desc' : 'asc';
+  const base = (container.__rows && container.__rows.length)
+    ? container.__rows
+    : (container.__rawRows || []);
+
+  const sorted = applySort(base, select.value, next);
+  container.__rows = sorted.slice();
+  setSortState(container, select.value, next);
+  renderRowsScoped(tbodyEl, headers, sorted, container);
+}
+
+// small helper so we can reuse category chip markup
+function buildCategoryChips(value){
+  const seen=new Set();
+  return String(value||'')
+    .split(/[,;]+/)
+    .map(c=>c.trim()).filter(Boolean)
+    .map(cat=>{
+      const slug=slugify(cat);
+      if(seen.has(slug)) return '';
+      seen.add(slug);
+      const { className, style } = chipStyle(cat, slug);
+      const styleAttr = style ? ` style="${style}"` : '';
+      const classAttr = className ? ` ${className}` : '';
+      return `<span class="chip-cat${classAttr}"${styleAttr}>${esc(cat)}</span>`;
+    }).filter(Boolean).join('');
+}
+
 // Filters
 const $searchInput = document.getElementById('globalSearch');
 const $statusFilter = document.getElementById('statusFilter');
@@ -836,15 +995,15 @@ function applyFilters(rows){
 
 // Rendering
 function renderDashboard(container, headers, rows){
+  // keep previous sort direction if we re-render this dash
+  const prevSort = container.__currentSort;
+  const prevDir  = container.__mobileSortDirection || (prevSort?.direction ?? 'desc');
+
   container.innerHTML='';
-  // If mobile, render cards and bail out
-if (isMobileView()){
-  renderMobileList(container, headers, rows);
-  return;
-}
 
   const siteKey = container.dataset.site || container.id.replace(/^dash-/, '');
   const kpiContainer = siteKey ? document.querySelector(`.dash-kpis[data-site="${siteKey}"]`) : null;
+
   // KPIs
   const kpiWrap=document.createElement('div'); kpiWrap.className='kpis';
   const total=rows.length;
@@ -852,108 +1011,164 @@ if (isMobileView()){
   const prog =rows.filter(r=>/^in\s*progress$/i.test(r.Status)).length;
   const hold =rows.filter(r=>/^on\s*hold$/i.test(r.Status)).length;
   const done =rows.filter(r=>/^done$/i.test(r.Status)).length;
-  const lastUpd=rows.map(r=>parseDateLoose(r['Last updated'])).filter(Boolean).sort((a,b)=>b-a)[0];
   kpiWrap.appendChild(kpiCard('Total WOs', total));
   kpiWrap.appendChild(kpiCard('Open', open));
   kpiWrap.appendChild(kpiCard('In Progress', prog));
   kpiWrap.appendChild(kpiCard('On Hold', hold));
   kpiWrap.appendChild(kpiCard('Done', done));
-  if(kpiContainer){
-    kpiContainer.innerHTML='';
-    kpiContainer.appendChild(kpiWrap);
-  }
+  if(kpiContainer){ kpiContainer.innerHTML=''; kpiContainer.appendChild(kpiWrap); }
 
-  container.__rows = rows.slice();
-
-  if(rows.length===0){
-    const msg=document.createElement('div');
-    msg.style.margin='8px 0';
-    msg.style.color='var(--muted)';
-    msg.textContent='No work orders match the current filters.';
-    container.appendChild(msg);
-    return;
-  }
-
-  // Table
-  const visibleHeaders = headers;
-  const table=document.createElement('table');
-  applyColumnWidths(table, visibleHeaders);
-  table.setAttribute('role','table');
-  table.setAttribute('aria-label','Work Orders');
+  // --- shell: table + mobile containers (both exist; CSS decides visibility) ---
   const tableWrap=document.createElement('div'); tableWrap.className='table-scroll';
-  const thead=document.createElement('thead'); const tbody=document.createElement('tbody');
-  table.appendChild(thead); table.appendChild(tbody); tableWrap.appendChild(table); container.appendChild(tableWrap);
+  const table=document.createElement('table');
+  const thead=document.createElement('thead');
+  const tbody=document.createElement('tbody');
+  applyColumnWidths(table, headers); // ✅ add this line
+  table.append(thead, tbody); tableWrap.appendChild(table);
 
-  thead.innerHTML=`<tr>${visibleHeaders.map(h=>`<th scope="col" data-col="${esc(h)}" tabindex="0"><span>${esc(h)}</span><span class="sort-arrow" aria-hidden="true"></span></th>`).join('')}</tr>`;
+  const mobileSortWrap=document.createElement('div'); mobileSortWrap.className='mobile-sort';
+  const selectId=`${container.id || siteKey || 'dash'}-mobile-sort`;
+  const mobileSortLabel=document.createElement('label');
+  mobileSortLabel.className='mobile-sort__label';
+  mobileSortLabel.setAttribute('for', selectId);
+  mobileSortLabel.textContent='Sort by';
+  const mobileSortSelect=document.createElement('select');
+  mobileSortSelect.id=selectId; mobileSortSelect.className='mobile-sort__select';
+  const defOpt=document.createElement('option'); defOpt.value=''; defOpt.textContent='Default order';
+  mobileSortSelect.appendChild(defOpt);
+  headers.forEach(h=>{ const o=document.createElement('option'); o.value=h; o.textContent=h; mobileSortSelect.appendChild(o); });
+  const mobileSortDirBtn=document.createElement('button');
+  mobileSortDirBtn.type='button'; mobileSortDirBtn.className='mobile-sort__direction';
+  mobileSortDirBtn.setAttribute('aria-label','Toggle sort direction');
+  mobileSortWrap.append(mobileSortLabel, mobileSortSelect, mobileSortDirBtn);
+
+  const mobileCards=document.createElement('div'); mobileCards.className='mobile-cards';
+  const emptyState=document.createElement('div'); emptyState.className='dash-empty'; emptyState.textContent='No work orders match the current filters.'; emptyState.hidden=true;
+
+  container.append(tableWrap, mobileSortWrap, mobileCards, emptyState);
+
+  // cache refs on the dashboard section element
+  container.__headers = headers.slice();
+  container.__tableWrap = tableWrap;
+  container.__thead = thead;
+  container.__tbody = tbody;
+  container.__mobileCards = mobileCards;
+  container.__mobileSortWrap = mobileSortWrap;
+  container.__mobileSortSelect = mobileSortSelect;
+  container.__mobileSortDirectionBtn = mobileSortDirBtn;
+  container.__emptyState = emptyState;
+
+  // table header + sorting (desktop)
+  thead.innerHTML = `<tr>${headers.map(h=>`<th scope="col" data-col="${esc(h)}" tabindex="0"><span>${esc(h)}</span><span class="sort-arrow" aria-hidden="true"></span></th>`).join('')}</tr>`;
   thead.querySelectorAll('th').forEach(th=>{
-    th.addEventListener('click', ()=> sortScoped(th, tbody, visibleHeaders, rows, container));
-    th.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); sortScoped(th, tbody, visibleHeaders, rows, container); } });
+    th.setAttribute('aria-sort','none');
+    th.addEventListener('click', ()=> sortScoped(th, container));
+    th.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); sortScoped(th, container); } });
   });
 
-  renderRowsScoped(tbody, visibleHeaders, rows);
-  // measure the sticky header height now that it exists
+  // mobile sort UI
+  mobileSortSelect.addEventListener('change', ()=> handleMobileSort(container));
+  mobileSortDirBtn.addEventListener('click', ()=>{ if(!mobileSortDirBtn.disabled) toggleMobileSortDirection(container); });
+
+  // initial data & sort
+  const baseRows = rows.slice();
+  container.__rawRows = baseRows.slice();
+  let working = baseRows;
+  if(prevSort && headers.includes(prevSort.column)){
+    working = applySort(baseRows, prevSort.column, prevDir);
+  }
+  container.__rows = working.slice();
+  setSortState(container, prevSort?.column || null, prevDir);
+
+  // draw once for current viewport, then measure sticky
+  renderRowsScoped(tbody, headers, working, container);
   updateTheadHeight();
 }
 
-function renderRowsScoped(tbodyEl, headers, rows){
+function renderRowsScoped(tbodyEl, headers, rows, container){
+  const mobile = isMobileView();
   const norm = s => String(s||'').trim().toLowerCase();
-  tbodyEl.innerHTML = rows.map(row => {
-    return `<tr>${headers.map(h=>{
-      const v = row[h]; const hNorm = norm(h);
+  const safeRows = Array.isArray(rows) ? rows : [];
 
-      if (hNorm === 'categories'){
-        const seen = new Set();
-        const chips = String(v||'')
-          .split(/[,;]+/)
-          .map(c=>c.trim()).filter(Boolean)
-          .map(cat=>{
-            const slug = slugify(cat);
-            if (seen.has(slug)) return '';
-            seen.add(slug);
-            const { className, style } = chipStyle(cat, slug);
-            const styleAttr = style ? ` style="${style}"` : '';
-            const classAttr = className ? ` ${className}` : '';
-            return `<span class="chip-cat${classAttr}"${styleAttr}>${esc(cat)}</span>`;
-          }).filter(Boolean).join('');
-return `<td data-col="Categories"><div class="chip-stack">${chips}</div></td>`;
-      }
+  // table rows (desktop)
+  if(!mobile && tbodyEl){
+    tbodyEl.innerHTML = safeRows.map(row => {
+      return `<tr>${headers.map(h=>{
+        const v=row[h]; const hNorm=norm(h);
+        if(hNorm==='categories'){
+          const chips = buildCategoryChips(v);
+          return `<td data-col="Categories"><div class="chip-stack">${chips}</div></td>`;
+        }
+        if(hNorm==='status'){
+          const cls = statusClass(v);
+          return `<td data-col="Status"><span class="status-chip ${cls}">${esc(v)}</span></td>`;
+        }
+        return `<td data-col="${esc(h)}">${esc(v)}</td>`;
+      }).join('')}</tr>`;
+    }).join('\n');
+  }else if(tbodyEl){
+    // keep DOM tidy when mobile: clear tbody
+    tbodyEl.innerHTML = '';
+  }
 
-      if (hNorm === 'status'){
-        const cls = statusClass(v);
-        return `<td data-col="Status"><span class="status-chip ${cls}">${esc(v)}</span></td>`; // ← NEW
-      }
+  // cards (mobile)
+  if(container?.__mobileCards){
+    if(mobile){
+      container.__mobileCards.innerHTML = safeRows.map(cardHTML).join('');
+    }else{
+      container.__mobileCards.innerHTML = '';
+    }
+  }
 
-      return `<td data-col="${esc(h)}">${esc(v)}</td>`;    // ← NEW
-    }).join('')}</tr>`;
-  }).join('\n');
+  // toggle shells
+  const hasRows = safeRows.length>0;
+  if(container?.__tableWrap) container.__tableWrap.hidden = mobile || !hasRows;
+  if(container?.__mobileSortWrap) container.__mobileSortWrap.hidden = !mobile || !hasRows;
+  if(container?.__mobileCards) container.__mobileCards.hidden = !mobile || !hasRows;
+  if(container?.__emptyState) container.__emptyState.hidden = hasRows;
+
+  // enable/disable direction button on mobile
+  if(container?.__mobileSortDirectionBtn){
+    const selVal = container.__mobileSortSelect?.value || '';
+    container.__mobileSortDirectionBtn.disabled = !hasRows || !mobile || !selVal;
+  }
 }
 
-function sortScoped(th, tbodyEl, headers, rows, container){
-  const col=th.getAttribute('data-col');
-  const dir=th.getAttribute('data-sort')==='asc'?'desc':'asc';
-  Array.from(th.parentElement.children).forEach(h=>{ if(h!==th){ h.removeAttribute('data-sort'); h.setAttribute('aria-sort','none'); }});
-  th.setAttribute('data-sort', dir); th.setAttribute('aria-sort', dir==='asc'?'ascending':'descending');
+function sortScoped(th, container){
+  if(!container) return;
+  const tbodyEl = container.__tbody;
+  const headers = container.__headers;
+  if(!tbodyEl || !headers) return;
 
-  const type=detectType(col, rows); const f=dir==='asc'?1:-1;
-  const sorted=[...(container.__rows||rows)].sort((a,b)=>{
-    const va=a[col], vb=b[col];
-    if(type==='date'){ const da=parseDateLoose(va), db=parseDateLoose(vb); return f*((da?.getTime()||0)-(db?.getTime()||0)); }
-    if(type==='number'){ return f*((parseFloat(va)||0)-(parseFloat(vb)||0)); }
-    if(type==='priority'){ return f*cmpPriority(va,vb); }
-    if(type==='status'){ return f*cmpStatus(va,vb); }
-    if(type==='id'){ return f*cmpId(va,vb); }
-    return f*String(va??'').localeCompare(String(vb??''),undefined,{numeric:true,sensitivity:'base'});
-  });
+  const col = th.getAttribute('data-col');
+  if(!col) return;
 
-  container.__rows = sorted;
-  renderRowsScoped(tbodyEl, headers, sorted);
+  // toggle direction (if same col -> flip; else default to asc)
+  const current = container.__currentSort;
+  const nextDir =
+    current && current.column === col && current.direction === 'asc'
+      ? 'desc'
+      : 'asc';
+
+  const base = (container.__rows && container.__rows.length)
+    ? container.__rows
+    : (container.__rawRows || []);
+
+  const sorted = applySort(base, col, nextDir);
+  container.__rows = sorted.slice();
+
+  setSortState(container, col, nextDir);               // updates desktop + mobile UI
+  renderRowsScoped(tbodyEl, headers, sorted, container);
 }
   
 function updateTheadHeight(){
-  // thead inside the currently active (visible) dashboard
   const activeDash = document.querySelector('.dash[data-active="true"]:not([hidden])');
-  const thead = activeDash?.querySelector('.table-scroll thead');
-  const h = thead ? thead.getBoundingClientRect().height : 0;
+  const tableWrap = activeDash?.querySelector('.table-scroll');
+  let h = 0;
+  if(tableWrap && tableWrap.offsetParent !== null && !tableWrap.hidden){
+    const thead = tableWrap.querySelector('thead');
+    h = thead ? thead.getBoundingClientRect().height : 0;
+  }
   document.documentElement.style.setProperty('--thead-height', `${h}px`);
 }
 
@@ -1128,30 +1343,6 @@ window.addEventListener('resize', ()=>{
     if (LAST_HEADERS && ALL_ROWS) ingestToDashboards(LAST_HEADERS, ALL_ROWS);
   }
 });
-
-// Render a list of cards in place of the table
-function renderMobileList(container, headers, rows){
-  // KPIs (reuse your existing logic quickly)
-  const siteKey = container.dataset.site || container.id.replace(/^dash-/, '');
-  const kpiContainer = siteKey ? document.querySelector(`.dash-kpis[data-site="${siteKey}"]`) : null;
-  if (kpiContainer){
-    const kWrap=document.createElement('div'); kWrap.className='kpis';
-    const total=rows.length;
-    const open =rows.filter(r=>/^open$/i.test(r.Status)).length;
-    const prog =rows.filter(r=>/^in\s*progress$/i.test(r.Status)).length;
-    const hold =rows.filter(r=>/^on\s*hold$/i.test(r.Status)).length;
-    const done =rows.filter(r=>/^done$/i.test(r.Status)).length;
-    [['Total WOs',total],['Open',open],['In Progress',prog],['On Hold',hold],['Done',done]]
-      .forEach(([l,v])=>kWrap.appendChild(kpiCard(l,v)));
-    kpiContainer.innerHTML=''; kpiContainer.appendChild(kWrap);
-  }
-
-  const list = document.createElement('div');
-  list.className = 'mobile-cards';
-  list.setAttribute('role','list');
-  list.innerHTML = rows.map(cardHTML).join('');
-  container.appendChild(list);
-}
 
 // --- Load live data from Google Sheet (with cache-buster) ---
 async function loadFromGoogleSheetCSV(){
