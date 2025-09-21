@@ -392,6 +392,25 @@ table th, table td{
   background:var(--bg);
   font-variant-numeric: tabular-nums;
 }
+    /* === AGE FREEZE (Planned Winter Project) === */
+.age-chip.frozen{
+  position: relative;
+  padding-right: 22px;                 /* room for the icon */
+  border-style: dashed;                /* subtle visual difference */
+  background: color-mix(in srgb, currentColor 16%, transparent);
+}
+
+/* snowflake badge */
+.age-chip.frozen::after{
+  content: "❄";
+  font-size: 12px;
+  line-height: 1;
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: .9;
+}
 
 /* keep bucket colours; only the bg strength varies */
 .age-chip.age-fresh   { color:#10b981; }  /* < 7d  */
@@ -1135,6 +1154,14 @@ function toggleMobileSortDirection(container){
 }
 
 // small helper so we can reuse category chip markup
+  // === Freeze rule: red age + "Planned Winter Project" category ===
+function isWinterPlanned(row){
+  const cats = String(row['Categories'] || '');
+  const hasPWP = /\bplanned\s*winter\s*project\b/i.test(cats);
+  const bucket = row.__ageBucket || ageBucket(row.__ageMs);
+  return hasPWP && (bucket === 'old' || bucket === 'ancient'); // only “red” ages
+}
+
 function buildCategoryChips(value){
   const seen=new Set();
   return String(value||'')
@@ -1387,11 +1414,13 @@ kpiWrap.appendChild(makeStatusKpi('On Hold',     'on-hold',     hold, container)
 kpiWrap.appendChild(makeStatusKpi('Done',        'done',        done, container));
 
 // Oldest Age – clickable filter
-const oldestEntry = rows.reduce((acc, r) => {
-  const ms = r.__ageMs ?? ageMs(r);
-  if (ms == null) return acc;
-  return (!acc || ms > acc.ms) ? { row:r, ms } : acc;
-}, null);
+const oldestEntry = rows
+  .filter(r => !isWinterPlanned(r)) // ignore frozen
+  .reduce((acc, r) => {
+    const ms = r.__ageMs ?? ageMs(r);
+    if (ms == null) return acc;
+    return (!acc || ms > acc.ms) ? { row:r, ms } : acc;
+  }, null);
 
 if (oldestEntry) {
   const oldestCard = kpiCard('Oldest Age', fmtAge(oldestEntry.ms));
@@ -1534,13 +1563,18 @@ function renderRowsScoped(tbodyEl, headers, rows, container){
           const cls = statusClass(v);
           return `<td data-col="Status"><span class="status-chip ${cls}">${esc(v)}</span></td>`;
         }
-              if(hNorm==='age'){
-        const ms     = row.__ageMs;
-        const bucket = row.__ageBucket || ageBucket(ms);
-        const label  = esc(row['Age'] || fmtAge(ms));
-        const title  = ms != null ? `${(ms/86400000).toFixed(1)} days` : 'Unknown';
-        return `<td data-col="Age"><span class="age-chip age-${bucket}" title="${title}">${label}</span></td>`;
-      }
+if(hNorm==='age'){
+  const ms      = row.__ageMs;
+  const bucket  = row.__ageBucket || ageBucket(ms);
+  const label   = esc(row['Age'] || fmtAge(ms));
+  const baseT   = ms != null ? `${(ms/86400000).toFixed(1)} days` : 'Unknown';
+  const frozen  = isWinterPlanned(row);
+  const cls     = `age-chip age-${bucket}` + (frozen ? ' frozen' : '');
+  const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
+  const aria    = frozen ? ' aria-label="Planned for Winter"' : '';
+  return `<td data-col="Age"><span class="${cls}" title="${esc(title)}"${aria}>${label}</span></td>`;
+}
+
         return `<td data-col="${esc(h)}">${esc(v)}</td>`;
       }).join('')}</tr>`;
     }).join('\n');
@@ -1828,13 +1862,15 @@ function cardHTML(row){
     </div>
 
     <div class="mobile-card__row"><strong>Priority:</strong> ${esc(row['Priority']||'—')}</div>
-    <div class="mobile-card__row"><strong>Age:</strong> <span class="age-chip age-${bucket}">${esc(ageLbl)}</span></div>
-
-    <div class="mobile-card__meta">
-      <span><strong>Site:</strong> ${esc(row['Location']||'—')}</span>
-      <span><strong>Assigned:</strong> ${esc(row['Assigned to']||'—')}</span>
-      <span><strong>Updated:</strong> ${esc(row['Last updated']||'—')}</span>
-    </div>
+const frozen = isWinterPlanned(row);
+const ageCls = `age-chip age-${bucket}` + (frozen ? ' frozen' : '');
+const ageTtl = frozen ? `Planned for Winter • ${(ms/86400000).toFixed(1)} days` : undefined;
+<div class="mobile-card__row">
+  <strong>Age:</strong>
+  <span class="${ageCls}"${ageTtl ? ` title="${esc(ageTtl)}" aria-label="Planned for Winter"` : ''}>
+    ${esc(ageLbl)}
+  </span>
+</div>
 
     ${shown || more ? `<div class="mobile-card__row">${shown}${more}</div>` : ''}
   </article>`;
