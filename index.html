@@ -1851,6 +1851,11 @@ function cardHTML(row){
   const bucket = row.__ageBucket || ageBucket(ms);
   const ageLbl = row['Age'] || fmtAge(ms);
 
+  // ✅ compute these BEFORE returning the template
+  const frozen = isWinterPlanned(row);
+  const ageCls = `age-chip age-${bucket}` + (frozen ? ' frozen' : '');
+  const ageTtl = frozen ? `Planned for Winter • ${(ms/86400000).toFixed(1)} days` : undefined;
+
   return `
   <article class="mobile-card" role="listitem" aria-label="WO ${esc(row['ID'])}">
     <div class="mobile-card__title">
@@ -1862,15 +1867,12 @@ function cardHTML(row){
     </div>
 
     <div class="mobile-card__row"><strong>Priority:</strong> ${esc(row['Priority']||'—')}</div>
-const frozen = isWinterPlanned(row);
-const ageCls = `age-chip age-${bucket}` + (frozen ? ' frozen' : '');
-const ageTtl = frozen ? `Planned for Winter • ${(ms/86400000).toFixed(1)} days` : undefined;
-<div class="mobile-card__row">
-  <strong>Age:</strong>
-  <span class="${ageCls}"${ageTtl ? ` title="${esc(ageTtl)}" aria-label="Planned for Winter"` : ''}>
-    ${esc(ageLbl)}
-  </span>
-</div>
+    <div class="mobile-card__row">
+      <strong>Age:</strong>
+      <span class="${ageCls}"${ageTtl ? ` title="${esc(ageTtl)}" aria-label="Planned for Winter"` : ''}>
+        ${esc(ageLbl)}
+      </span>
+    </div>
 
     ${shown || more ? `<div class="mobile-card__row">${shown}${more}</div>` : ''}
   </article>`;
