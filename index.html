@@ -822,6 +822,39 @@ function parseDateLoose(v){
   const dt=new Date(`${y}-${M}-${d}T${hh}:${mm}:00`);
   return isNaN(dt.getTime())?null:dt;
 }
+  function makeStatusKpi(label, statusValue, count, container){
+  const el = kpiCard(label, count);
+  el.classList.add('kpi-clickable');
+  el.setAttribute('role','button');
+  el.setAttribute('tabindex','0');
+  el.setAttribute('title', `Toggle status filter: ${label}`);
+  el.setAttribute('aria-label', `Toggle status filter: ${label}`);
+
+  // pressed when this status filter is active (and not negated)
+  const f = getFilters();
+  const pressed = f.status === statusClass(statusValue) && !f.excludeStatus;
+  el.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+
+  const toggle = () => {
+    const curr = getFilters();
+    const isOn = curr.status === statusClass(statusValue) && !curr.excludeStatus;
+
+    // clear any "Oldest only" focus when switching to a status filter
+    if (container) { container.__focusOldest = false; updateOldestOnlyChip(container); }
+
+    // toggle the <select> so chips/UI stay in sync
+    $statusFilter.value = isOn ? '' : statusValue;
+    $statusFilter.dispatchEvent(new Event('change', { bubbles:true }));
+  };
+
+  el.addEventListener('click', toggle);
+  el.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+  });
+
+  return el;
+}
+
 function normalizePriority(v){ if(v==null) return ''; let slug=slugify(String(v).trim()); if(!slug) return''; if(slug.endsWith('-priority')) slug=slug.replace(/-priority$/,''); if(slug==='med'||slug==='normal') slug='medium'; if(slug==='urgent'||slug==='emergency') slug='critical'; return slug; }
 function cmpPriority(a,b){ const ia=PRIORITY_ORDER.indexOf(normalizePriority(a)), ib=PRIORITY_ORDER.indexOf(normalizePriority(b)); const safe=i=>(i===-1?PRIORITY_ORDER.length:i); const diff=safe(ia)-safe(ib); return diff||String(a??'').localeCompare(String(b??''),undefined,{numeric:true,sensitivity:'base'}); }
 function statusClass(v){ const map=new Map([['done','done'],['complete','done'],['completed','done'],['open','open'],['in-progress','in-progress'],['in progress','in-progress'],['progress','in-progress'],['inprogress','in-progress'],['on-hold','on-hold'],['on hold','on-hold'],['hold','on-hold'],['onhold','on-hold']]); const s=slugify(String(v||'')); return map.get(s)||s; }
@@ -1233,12 +1266,11 @@ function renderDashboard(container, headers, rows){
   const prog =rows.filter(r=>/^in\s*progress$/i.test(r.Status)).length;
   const hold =rows.filter(r=>/^on\s*hold$/i.test(r.Status)).length;
   const done =rows.filter(r=>/^done$/i.test(r.Status)).length;
-// Counts
-kpiWrap.appendChild(kpiCard('Total WOs', total));
-kpiWrap.appendChild(kpiCard('Open', open));
-kpiWrap.appendChild(kpiCard('In Progress', prog));
-kpiWrap.appendChild(kpiCard('On Hold', hold));
-kpiWrap.appendChild(kpiCard('Done', done));
+// Counts (clickable toggles)
+kpiWrap.appendChild(makeStatusKpi('Open',        'open',        open, container));
+kpiWrap.appendChild(makeStatusKpi('In Progress', 'in-progress', prog, container));
+kpiWrap.appendChild(makeStatusKpi('On Hold',     'on-hold',     hold, container));
+kpiWrap.appendChild(makeStatusKpi('Done',        'done',        done, container));
 
 // Oldest Age – clickable filter
 const oldestEntry = rows.reduce((acc, r) => {
