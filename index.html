@@ -1570,10 +1570,18 @@ if(hNorm==='age'){
   const label   = esc(row['Age'] || fmtAge(ms));
   const baseT   = ms != null ? `${(ms/86400000).toFixed(1)} days` : 'Unknown';
   const frozen  = isWinterPlanned(row);
-  const cls     = `age-chip age-${bucket}` + (frozen ? ' frozen' : '');
-  const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
-  const aria    = frozen ? ' aria-label="Planned for Winter"' : '';
-  return `<td data-col="Age"><span class="${cls}" title="${esc(title)}"${aria}>${label}</span></td>`;
+
+  // pull the PWP colours from your presets
+  const pwp = categoryColors['planned-winter-project'] || { background:'#E7F3FE', foreground:'#1887FC' };
+  const cls = `age-chip age-${bucket}` + (frozen ? ' frozen' : '');
+  const ttl = frozen ? `Planned for Winter • ${baseT}` : baseT;
+
+  // when frozen, override the chip’s custom props so border/bg are tinted from the PWP fg/bg
+  const style = frozen
+    ? ` style="--bg:${pwp.background}; --ring: color-mix(in srgb, ${pwp.foreground} 50%, transparent); color:${pwp.foreground}"`
+    : '';
+
+  return `<td data-col="Age"><span class="${cls}" title="${esc(ttl)}"${style} aria-label="${frozen ? 'Planned for Winter' : ''}">${label}</span></td>`;
 }
 
         return `<td data-col="${esc(h)}">${esc(v)}</td>`;
@@ -1853,9 +1861,16 @@ function cardHTML(row){
   const ageLbl = row['Age'] || fmtAge(ms);
 
   // ✅ compute these BEFORE returning the template
-  const frozen = isWinterPlanned(row);
-  const ageCls = `age-chip age-${bucket}` + (frozen ? ' frozen' : '');
-  const ageTtl = frozen ? `Planned for Winter • ${(ms/86400000).toFixed(1)} days` : undefined;
+  const frozen  = isWinterPlanned(row);
+  const ageCls  = `age-chip age-${bucket}` + (frozen ? ' frozen' : '');
+  const baseT   = ms != null ? `${(ms/86400000).toFixed(1)} days` : 'Unknown';
+  const ageTtl  = frozen ? `Planned for Winter • ${baseT}` : undefined;
+
+  // 🎨 match the Planned Winter Project chip colours when frozen
+  const pwp     = categoryColors['planned-winter-project'] || { background:'#E7F3FE', foreground:'#1887FC' };
+  const ageStyle = frozen
+    ? ` style="--bg:${pwp.background}; --ring: color-mix(in srgb, ${pwp.foreground} 50%, transparent); color:${pwp.foreground}"`
+    : '';
 
   return `
   <article class="mobile-card" role="listitem" aria-label="WO ${esc(row['ID'])}">
@@ -1870,7 +1885,7 @@ function cardHTML(row){
     <div class="mobile-card__row"><strong>Priority:</strong> ${esc(row['Priority']||'—')}</div>
     <div class="mobile-card__row">
       <strong>Age:</strong>
-      <span class="${ageCls}"${ageTtl ? ` title="${esc(ageTtl)}" aria-label="Planned for Winter"` : ''}>
+      <span class="${ageCls}"${ageStyle}${ageTtl ? ` title="${esc(ageTtl)}" aria-label="Planned for Winter"` : ''}>
         ${esc(ageLbl)}
       </span>
     </div>
