@@ -805,16 +805,16 @@ function ageBucket(ms){
 }
 
 function fmtAge(ms){
-  if(ms==null) return '—';
-  if(ms < MS.hour) return `${Math.max(1, Math.floor(ms/MS.min))}m`;
-  if(ms < MS.day)  {
-    const h = Math.floor(ms/MS.hour);
-    const m = Math.floor((ms%MS.hour)/MS.min);
-    return m ? `${h}h ${m}m` : `${h}h`;
+  if(ms == null) return '—';
+  if(ms < MS.hour){
+    return `${Math.max(1, Math.floor(ms / MS.min))}m`;
   }
-  const d = Math.floor(ms/MS.day);
-  const h = Math.floor((ms%MS.day)/MS.hour);
-  return h ? `${d}d ${h}h` : `${d}d`;
+  if(ms < MS.day){
+    return `${Math.floor(ms / MS.hour)}h`; // under 24h: hours only
+  }
+  // ≥ 24h: days only (no hours)
+  const d = Math.floor(ms / MS.day);
+  return `${d}d`;
 }
 
 // --- State cache for rendering ---
