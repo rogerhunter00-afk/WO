@@ -1559,18 +1559,16 @@ const applyFocusOldest = () => {
     working = working.filter(hasPriorityCategory);
   }
 
-  if (container.__focusOldest) {
-    // IMPORTANT: ignore frozen “Planned Winter Project” rows (same as KPI)
-    const pick = working
-      .filter(r => !isWinterPlanned(r))
-      .reduce((acc, r) => {
-        const ms = r.__ageMs ?? ageMs(r);
-        if (ms == null) return acc;
-        return (!acc || ms > (acc.ms ?? -1)) ? { row: r, ms } : acc;
-      }, null);
-
-    working = pick ? [pick.row] : [];
-  }
+if (container.__focusOldest) {
+  const pick = working
+    .filter(r => !isWinterPlanned(r))
+    .reduce((acc, r) => {
+      const ms = r.__ageMs ?? ageMs(r);
+      if (ms == null) return acc;
+      return (!acc || ms > (acc.__ageMs ?? ageMs(acc))) ? r : acc;
+    }, null);
+  working = pick ? [pick] : [];
+}
 
   // honor current sort
   const s = container.__currentSort;
@@ -1630,13 +1628,6 @@ const togglePrio = () => {
 prioCard.addEventListener('click', togglePrio);
 prioCard.addEventListener('keydown', e => {
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); togglePrio(); }
-});
-
-kpiWrap.appendChild(prioCard);
-
-prioCard.addEventListener('click', togglePrio);
-prioCard.addEventListener('keydown', e => {
-  if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); togglePrio(); }
 });
 
 kpiWrap.appendChild(prioCard);
