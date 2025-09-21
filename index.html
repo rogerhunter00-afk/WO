@@ -1045,8 +1045,6 @@ function updateActiveFilterChips(filters){
 });
   }
 
-
-
   if(!existing) $activeFilterChips.appendChild(btn);
 }
 
@@ -1215,6 +1213,10 @@ function updateOldestOnlyChip(container){
     updateOldestOnlyChip(container);
     updateTheadHeight();
   };
+  
+  // ⬇️ these two lines were missing
+  if(!existing) $activeFilterChips.appendChild(btn);
+}
   
 // Rendering
 function renderDashboard(container, headers, rows){
