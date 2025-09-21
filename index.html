@@ -454,7 +454,7 @@ html{ overflow-y: scroll; }
 .nav .tab[aria-selected="true"]{ border-color:var(--als-blue); box-shadow:0 0 0 2px color-mix(in srgb, var(--als-blue) 25%, transparent); }
 .kpi-panels{ min-height:72px; }
 .dash-kpis[hidden]{ display:none !important; }
-.kpis{ display:grid; grid-template-columns: repeat(5, minmax(140px,1fr)); gap:10px; margin:0; }
+.kpis{display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin:0;}
 .card{ background:var(--paper); border:1px solid var(--grid); border-radius:14px; padding:12px; }
 .card h3{ margin:0 0 6px; font-size:12px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); }
 .card .big{ font-size:22px; font-weight:900; }
