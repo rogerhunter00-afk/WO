@@ -572,6 +572,39 @@ html{ overflow-y: scroll; }
 
 /* Buttons */
 .btn{ padding:6px 10px; border:1px solid var(--als-blue); border-radius:8px; background:var(--paper); color:var(--als-blue); font-weight:700; cursor:pointer; }
+/* Open button – pill style */
+.open-button{
+  --fg: var(--open-tx);
+  --bg: color-mix(in srgb, var(--open-tx) 12%, var(--paper));
+  --ring: color-mix(in srgb, var(--open-tx) 55%, transparent);
+
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 14px;
+  border-radius:999px;
+  border:1px solid var(--ring);
+  background:var(--bg);
+  color:var(--fg);
+  font:inherit;
+  font-weight:800;
+  line-height:1;
+  cursor:pointer;
+  transition:background .18s, border-color .18s, box-shadow .18s, transform .02s;
+  -webkit-tap-highlight-color: transparent;
+}
+.open-button:hover{
+  background: color-mix(in srgb, var(--open-tx) 18%, var(--paper));
+  border-color: color-mix(in srgb, var(--open-tx) 70%, transparent);
+}
+.open-button:focus-visible{
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--open-tx) 30%, transparent);
+}
+.open-button:active{ transform: translateY(1px); }
+.open-button[disabled]{ opacity:.55; cursor:not-allowed; }
+/* optional icon inside the button */
+.open-button .icon{ width:16px; height:16px; flex:0 0 auto; }
 
 /* Active filter chips row (non-sticky) */
 .active-filter-chips{
@@ -765,6 +798,7 @@ html{ overflow-y: scroll; }
       <label class="btn" for="file">Upload CSV/TSV/JSON</label>
       <input id="file" type="file" accept=".csv,.tsv,.json,application/json,text/csv,text/tab-separated-values" style="display:none" />
       <button class="btn" id="themeBtn" type="button">Dark mode</button>
+      <button class="open-button" type="button">Open</button> <!-- NEW -->
       <button class="btn" id="exportCsvBtn" type="button" disabled>Export CSV</button>
       <button class="btn" id="exportExcelBtn" type="button" disabled>Export Excel</button>
 
