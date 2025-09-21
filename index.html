@@ -1634,50 +1634,12 @@ prioCard.addEventListener('keydown', e => {
 
 kpiWrap.appendChild(prioCard);
 
-  // Count “Priority” tagged rows in this dashboard's current set
-const prioTagCount = rows.filter(hasPriorityCategory).length;
-const prioCard = kpiCard('Priority WOs', prioTagCount);
-prioCard.classList.add('kpi-clickable');
-prioCard.setAttribute('role','button');
-prioCard.setAttribute('tabindex','0');
-prioCard.setAttribute('aria-pressed', container.__priorityOnly ? 'true' : 'false');
-prioCard.setAttribute('title','Show only rows that include the “Priority” category (toggle)');
-prioCard.setAttribute('aria-label','Toggle Priority category filter');
-container.__prioKpiCard = prioCard;
-
-const togglePrio = ()=>{
-  container.__priorityOnly = !container.__priorityOnly;
-  prioCard.setAttribute('aria-pressed', container.__priorityOnly ? 'true' : 'false');
-
-  let working = (container.__rawRows || []).slice();
-
-  // keep “Oldest only” behavior if it’s on
-  if (container.__focusOldest){
-    const pick = working.reduce((acc, r) => {
-      const ms = r.__ageMs ?? ageMs(r);
-      if (ms == null) return acc;
-      return (!acc || ms > (acc.__ageMs ?? ageMs(acc))) ? r : acc;
-    }, null);
-    working = pick ? [pick] : [];
-  }
-
-  const s = container.__currentSort;
-  if (s && s.column) working = applySort(working, s.column, s.direction);
-
-  container.__rows = working.slice();
-  renderRowsScoped(container.__tbody, container.__headers, working, container);
-  updatePriorityOnlyChip(container);
-  updateTheadHeight();
-};
-
 prioCard.addEventListener('click', togglePrio);
 prioCard.addEventListener('keydown', e => {
   if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); togglePrio(); }
 });
 
 kpiWrap.appendChild(prioCard);
-
-}
 
   if(kpiContainer){ kpiContainer.innerHTML=''; kpiContainer.appendChild(kpiWrap); }
 
@@ -1740,20 +1702,22 @@ kpiWrap.appendChild(prioCard);
   if(prevSort && headers.includes(prevSort.column)){
     working = applySort(baseRows, prevSort.column, prevDir);
   }
-  // If "Oldest Age" toggle is active, reduce to just that one row
+// If "Oldest Age" toggle is active, reduce to just that one row (ignore frozen PWP)
 if (container.__focusOldest) {
-  const pick = working.reduce((acc, r) => {
-    const ms = r.__ageMs ?? ageMs(r);
-    if (ms == null) return acc;
-    return (!acc || ms > (acc.__ageMs ?? ageMs(acc))) ? r : acc;
-  }, null);
+  const pick = working
+    .filter(r => !isWinterPlanned(r))
+    .reduce((acc, r) => {
+      const ms = r.__ageMs ?? ageMs(r);
+      if (ms == null) return acc;
+      return (!acc || ms > (acc.__ageMs ?? ageMs(acc))) ? r : acc;
+    }, null);
   working = pick ? [pick] : [];
 }
 
   // apply the priority-tag filter when enabled
   if (container.__priorityOnly) {
     working = working.filter(hasPriorityCategory);
-
+  }
   container.__rows = working.slice();
   setSortState(container, prevSort?.column || null, prevDir);
 
