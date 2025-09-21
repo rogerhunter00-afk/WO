@@ -1043,6 +1043,55 @@ function dedupeRows(rows){
     $statusFilter.dispatchEvent(new Event('change', { bubbles:true }));
   };
 
+  function updatePriorityOnlyChip(container){
+  if(!$activeFilterChips || !container) return;
+  const existing = $activeFilterChips.querySelector('[data-filter="priority-tag"]');
+
+  if(!container.__priorityOnly){
+    existing?.remove();
+    if(!$activeFilterChips.querySelector('.filter-chip')) $activeFilterChips.setAttribute('hidden','');
+    return;
+  }
+
+  $activeFilterChips.removeAttribute('hidden');
+  const btn = existing || document.createElement('button');
+  btn.type='button';
+  btn.className='filter-chip';
+  btn.dataset.filter='priority-tag';
+  btn.setAttribute('aria-label','Clear “Priority” category filter');
+  btn.title='Clear “Priority” category filter';
+  btn.innerHTML = `<span class="filter-chip__label">Category: Priority</span><span class="filter-chip__icon" aria-hidden="true">×</span>`;
+  btn.onclick = ()=>{
+    container.__priorityOnly = false;
+
+    let working = (container.__rawRows || []).slice();
+
+    // keep “Oldest only” behavior if it’s on
+    if (container.__focusOldest){
+      const pick = working.reduce((acc, r) => {
+        const ms = r.__ageMs ?? ageMs(r);
+        if (ms == null) return acc;
+        return (!acc || ms > (acc.__ageMs ?? ageMs(acc))) ? r : acc;
+      }, null);
+      working = pick ? [pick] : [];
+    }
+
+    const s = container.__currentSort;
+    if (s && s.column) working = applySort(working, s.column, s.direction);
+
+    container.__rows = working.slice();
+    renderRowsScoped(container.__tbody, container.__headers, working, container);
+
+    // un-press the KPI card if present
+    container.__prioKpiCard?.setAttribute('aria-pressed','false');
+
+    updatePriorityOnlyChip(container);
+    updateTheadHeight();
+  };
+
+  if(!existing) $activeFilterChips.appendChild(btn);
+}
+
   el.addEventListener('click', toggle);
   el.addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
@@ -1531,6 +1580,60 @@ if (oldestEntry) {
   });
 
   kpiWrap.appendChild(oldestCard);
+
+  // Count “Priority” tagged rows in this dashboard's current set
+const prioTagCount = rows.filter(hasPriorityCategory).length;
+const prioCard = kpiCard('Priority WOs', prioTagCount);
+prioCard.classList.add('kpi-clickable');
+prioCard.setAttribute('role','button');
+prioCard.setAttribute('tabindex','0');
+prioCard.setAttribute('aria-pressed', container.__priorityOnly ? 'true' : 'false');
+prioCard.setAttribute('title','Show only rows that include the “Priority” category (toggle)');
+prioCard.setAttribute('aria-label','Toggle Priority category filter');
+container.__prioKpiCard = prioCard;
+
+const togglePrio = ()=>{
+  container.__priorityOnly = !container.__priorityOnly;
+  prioCard.setAttribute('aria-pressed', container.__priorityOnly ? 'true' : 'false');
+
+  let working = (container.__rawRows || []).slice();
+
+  // apply the priority-tag filter when enabled
+  if (container.__priorityOnly){
+    working = working.filter(hasPriorityCategory);
+  }
+
+  // keep “Oldest only” behavior if it’s on
+  if (container.__focusOldest){
+    const pick = working.reduce((acc, r) => {
+      const ms = r.__ageMs ?? ageMs(r);
+      if (ms == null) return acc;
+      return (!acc || ms > (acc.__ageMs ?? ageMs(acc))) ? r : acc;
+    }, null);
+    working = pick ? [pick] : [];
+  }
+
+  const s = container.__currentSort;
+  if (s && s.column) working = applySort(working, s.column, s.direction);
+
+  container.__rows = working.slice();
+  renderRowsScoped(container.__tbody, container.__headers, working, container);
+  updatePriorityOnlyChip(container);
+  updateTheadHeight();
+};
+
+prioCard.addEventListener('click', togglePrio);
+prioCard.addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); togglePrio(); }
+});
+
+kpiWrap.appendChild(prioCard);
+
+}
+
+  // If “Priority WOs” toggle is active, reduce to only those rows
+if (container.__priorityOnly) {
+  working = working.filter(hasPriorityCategory);
 }
 
   if(kpiContainer){ kpiContainer.innerHTML=''; kpiContainer.appendChild(kpiWrap); }
@@ -1610,6 +1713,7 @@ if (container.__focusOldest) {
   // draw once for current viewport, then measure sticky
   renderRowsScoped(tbody, headers, working, container);
   updateOldestOnlyChip(container);   // <-- add this
+  updatePriorityOnlyChip(container);
   updateTheadHeight();
 }
 
