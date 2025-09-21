@@ -358,45 +358,42 @@ tr.row-priority > td:first-child{
 }
 
 /* Variants (uses your existing color vars) */
-/* Replace your existing .status-chip.open with this */
+/* Open chip — ghost style like screenshot */
 .status-chip.open{
-  /* lock-button look */
-  color: var(--open-tx);
+  /* white in dark mode, near-black in light mode */
+  color: var(--ink);
+
+  /* blue lock icon (separate from text color) */
   --icon: url("data:image/svg+xml;utf8,\
 <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>\
 <path fill='black' d='M5 7V5a3 3 0 1 1 6 0v2h1.5A1.5 1.5 0 0 1 14 8.5v5A1.5 1.5 0 0 1 12.5 15h-9A1.5 1.5 0 0 1 2 13.5v-5A1.5 1.5 0 0 1 3.5 7H5zm2-2a2 2 0 1 1 4 0v2H7V5z'/>\
 </svg>");
+
+  /* ghost pill look */
   border-color: color-mix(in srgb, var(--open-tx) 45%, transparent);
-  background: color-mix(in srgb, var(--open-tx) 14%, transparent);
+  background: color-mix(in srgb, var(--open-tx) 8%, transparent);
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--open-tx) 30%, transparent),
-    0 1px 2px rgba(0,0,0,.25);
-  padding-right: 22px; /* room for caret */
+    inset 0 0 0 1px color-mix(in srgb, var(--open-tx) 28%, transparent);
+
+  padding: 4px 12px; /* a touch roomier like the screenshot */
 }
 
-/* caret on the right */
-.status-chip.open::after{
-  content: "";
-  width: 10px; height: 10px;
-  background: currentColor;
-  margin-left: 6px;
-  mask: url("data:image/svg+xml;utf8,\
-<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>\
-<path fill='black' d='M4 6l4 4 4-4z'/>\
-</svg>") no-repeat center / 10px 10px;
-  -webkit-mask: url("data:image/svg+xml;utf8,\
-<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>\
-<path fill='black' d='M4 6l4 4 4-4z'/>\
-</svg>") no-repeat center / 10px 10px;
+/* make the lock icon blue while text stays white/ink */
+.status-chip.open::before{
+  background: var(--open-tx);
 }
 
-/* Fallback if CSS mask isn't supported */
+/* remove the dropdown caret if you added one earlier */
+.status-chip.open::after{ content: none !important; }
+
+/* fallback when CSS mask isn't supported: show a blue unicode lock */
 @supports not (mask: url("")){
-  .status-chip.open::after{
-    content: "▾";
+  .status-chip.open::before{
+    content: "🔓";
+    color: var(--open-tx);
     background: none;
     width: auto; height: auto;
-    margin-left: 6px;
+    margin-right: 4px;
   }
 }
 
