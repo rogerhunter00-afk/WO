@@ -438,15 +438,15 @@ tr.row-priority > td:first-child{
   background:var(--bg);
   font-variant-numeric: tabular-nums;
 }
-    /* === AGE FREEZE (Planned Winter Project) === */
+/* === AGE FREEZE (Planned Winter Project) === */
 .age-chip.frozen{
   position: relative;
-  padding-right: 22px;                 /* room for the icon */
-  border-style: dashed;                /* subtle visual difference */
-  background: color-mix(in srgb, currentColor 16%, transparent);
+  padding-right: 22px;       /* room for the snowflake */
+  border-style: dashed;      /* subtle visual cue */
+  /* IMPORTANT: let the base chip use --bg; don't override it here */
+  background: var(--bg);
+  cursor: help;
 }
-    .age-chip.frozen{ cursor: help; }
-
 /* snowflake badge */
 .age-chip.frozen::after{
   content: "❄";
@@ -1625,17 +1625,25 @@ if(!mobile && tbodyEl){
           return `<td data-col="Status"><span class="status-chip ${cls}">${esc(v)}</span></td>`;
         }
 
-        if(hNorm==='age'){
-          const ms      = row.__ageMs;
-          const bucket  = row.__ageBucket || ageBucket(ms);
-          const label   = esc(row['Age'] || fmtAge(ms));
-          const baseT   = ms != null ? `${(ms/86400000).toFixed(1)} days` : 'Unknown';
-          const frozen  = isWinterPlanned(row);
-          const cls     = `age-chip age-${bucket}` + (frozen ? ' frozen' : '');
-          const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
-          const aria    = frozen ? ' aria-label="Planned for Winter"' : '';
-          return `<td data-col="Age"><span class="${cls}" title="${esc(title)}"${aria}>${label}</span></td>`;
-        }
+if(hNorm==='age'){
+  const ms      = row.__ageMs;
+  const bucket  = row.__ageBucket || ageBucket(ms);
+  const label   = esc(row['Age'] || fmtAge(ms));
+  const baseT   = ms != null ? `${(ms/86400000).toFixed(1)} days` : 'Unknown';
+  const frozen  = isWinterPlanned(row);
+
+  // Use the Planned Winter Project chip colours when frozen
+  const pwp   = categoryColors['planned-winter-project'] || { background:'#E7F3FE', foreground:'#1887FC' };
+  const style = frozen
+    ? ` style="--bg:${pwp.background}; --ring: color-mix(in srgb, ${pwp.foreground} 50%, transparent); color:${pwp.foreground}"`
+    : '';
+
+  const cls   = `age-chip age-${bucket}` + (frozen ? ' frozen' : '');
+  const title = frozen ? `Planned for Winter • ${baseT}` : baseT;
+  const aria  = frozen ? ' aria-label="Planned for Winter"' : '';
+
+  return `<td data-col="Age"><span class="${cls}"${style} title="${esc(title)}"${aria}>${label}</span></td>`;
+}
 
         return `<td data-col="${esc(h)}">${esc(v)}</td>`;
       }).join('') + 
