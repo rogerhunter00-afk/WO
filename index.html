@@ -1202,30 +1202,56 @@ async function loadLatestOrChosenWeek(forceBust=false){
   
 document.addEventListener('DOMContentLoaded', () => {
   setActiveDash('dash-all');
-  PREFERRED_ACTIVE_DASH = 'dash-all';
   loadLatestOrChosenWeek();
 });
   
 function renderWeekControls(weeks, chosen){
   const wrap = document.getElementById('weekPicker');
-  if(!wrap){ return; }
+  if(!wrap) return;
   wrap.innerHTML = '';
 
   const label = document.createElement('span');
   label.textContent = 'Week';
 
   const sel = document.createElement('select');
-  sel.innerHTML = weeks.map(w => 
-    `<option value="${esc(w.weekEnd)}"${w.weekEnd===chosen.weekEnd?' selected':''}>${esc(w.label || w.weekEnd)}</option>`
-  ).join('');
 
-  sel.addEventListener('change', ()=>{
-    const wk = weeks.find(w => w.weekEnd === sel.value);
-    if (wk){ setSelectedWeek(wk); refreshWeekArrowDisabled(); }
+  sel.innerHTML = weeks.map((w, i) => {
+    const isSelected = (w.weekEnd === chosen.weekEnd);
+    return `<option value="${i}"${isSelected ? ' selected' : ''}>
+              ${esc(w.label || w.weekEnd)}
+            </option>`;
+  }).join('');
+
+  sel.addEventListener('change', () => {
+    const idx = Number(sel.value);
+    const wk = weeks[idx];
+    if (wk){
+      setSelectedWeek(wk);
+      refreshWeekArrowDisabled();
+    }
   });
 
   wrap.append(label, sel);
   refreshWeekArrowDisabled();
+}
+
+  function setSelectedWeek(weekObj){
+  __WEEK_SELECTED = weekObj?.weekEnd || null;
+  rememberWeek(weekObj);
+
+  const url = new URL(location.href);
+  url.searchParams.set('week', weekObj.weekEnd);
+  url.searchParams.delete('gid');
+  history.replaceState({}, '', url);
+
+  // keep the <select> showing the current choice
+  const sel = document.querySelector('#weekPicker select');
+  if (sel){
+    const i = __WEEKS.findIndex(w => w.weekEnd === weekObj.weekEnd);
+    if (i >= 0) sel.value = String(i);
+  }
+
+  loadChosenGid(weekObj);
 }
   
 function renderRowsSmart(tbodyEl, headers, rows, container){
