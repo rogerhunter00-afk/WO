@@ -944,7 +944,6 @@ async function loadChosenGid(meta){
 
   try{
     const res = await fetch(
-      csvUrlForGid(meta.gid) + '&_ts=' + Date.now(),
       { cache:'no-store', signal: __loadController.signal }
     );
     if(!res.ok) return alert('Failed to load selected week');
@@ -1163,12 +1162,10 @@ async function loadLatestOrChosenWeek(){
   }
 }
   
-  function renderRowsSmart(tbodyEl, headers, rows, container){
-  // Phones or small datasets → simple renderer
+function renderRowsSmart(tbodyEl, headers, rows, container){
   if (isMobileView() || (rows?.length ?? 0) < 600) {
     return renderRowsScoped(tbodyEl, headers, rows, container);
   }
-  // Large datasets on desktop → chunked for smoothness
   return renderRowsScopedChunked(tbodyEl, headers, rows, container);
 }
 
@@ -1177,7 +1174,6 @@ function renderRowsScoped(tbodyEl, headers, rows, container){
   const safeRows = Array.isArray(rows) ? rows : [];
   if (!tbodyEl) return;
 
-  // Desktop table rows
   if (!mobile){
     tbodyEl.innerHTML = safeRows.map(row => {
       const rowCls = hasPriorityCategory(row) ? 'row-priority' : '';
@@ -1189,8 +1185,7 @@ function renderRowsScoped(tbodyEl, headers, rows, container){
           return `<td data-col="Categories"><div class="chip-stack">${buildCategoryChips(v)}</div></td>`;
         }
         if (key === 'status'){
-          const cls = statusClass(v);
-          return `<td data-col="Status"><span class="status-chip ${cls}">${esc(v)}</span></td>`;
+          return `<td data-col="Status"><span class="status-chip ${statusClass(v)}">${esc(v)}</span></td>`;
         }
         if (key === 'age'){
           const ms      = row.__ageMs;
@@ -1201,7 +1196,7 @@ function renderRowsScoped(tbodyEl, headers, rows, container){
           const pwp     = categoryColors['planned-winter-project'] || { background:'#E7F3FE', foreground:'#1887FC' };
           const style   = frozen ? ` style="--bg:${pwp.background}; --ring: color-mix(in srgb, ${pwp.foreground} 50%, transparent); color:${pwp.foreground}"` : '';
           const cls     = `age-chip age-${bucket}` + (frozen ? ' frozen' : '');
-          const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
+          const title   = frozen ? `Planned for Winter • ${baseT}` : ${'baseT'};
           const aria    = frozen ? ' aria-label="Planned for Winter"' : '';
           return `<td data-col="Age"><span class="${cls}"${style} title="${esc(title)}"${aria}>${label}</span></td>`;
         }
@@ -1209,7 +1204,6 @@ function renderRowsScoped(tbodyEl, headers, rows, container){
       }).join('') + `</tr>`;
     }).join('\n');
 
-    // Toggle shells
     const hasRows = safeRows.length > 0;
     container?.__tableWrap && (container.__tableWrap.hidden = mobile || !hasRows);
     container?.__mobileSortWrap && (container.__mobileSortWrap.hidden = !mobile || !hasRows);
@@ -1219,7 +1213,6 @@ function renderRowsScoped(tbodyEl, headers, rows, container){
     return;
   }
 
-  // Mobile: clear table body and render cards
   tbodyEl.innerHTML = '';
   if (container?.__mobileCards){
     container.__mobileCards.innerHTML = (Array.isArray(rows) ? rows : []).map(cardHTML).join('');
@@ -1267,7 +1260,7 @@ function renderRowsScopedChunked(tbodyEl, headers, rows, container){
           const pwp     = categoryColors['planned-winter-project'] || { background:'#E7F3FE', foreground:'#1887FC' };
           const style   = frozen ? ` style="--bg:${pwp.background}; --ring: color-mix(in srgb, ${pwp.foreground} 50%, transparent); color:${pwp.foreground}"` : '';
           const cls     = `age-chip age-${bucket}` + (frozen ? ' frozen' : '');
-          const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
+          const title   = frozen ? `Planned for Winter • ${baseT}` : ${'baseT'};
           const aria    = frozen ? ' aria-label="Planned for Winter"' : '';
           return `<td data-col="Age"><span class="${cls}"${style} title="${esc(title)}"${aria}>${label}</span></td>`;
         }
@@ -1665,10 +1658,6 @@ function setWeekBadge(text){
     badge.style.background = 'color-mix(in srgb, var(--als-blue) 10%, var(--paper))';
     titleEl.appendChild(badge);
   }
-
-/* Replace your old DOMContentLoaded hook with this: */
-document.addEventListener('DOMContentLoaded', loadLatestOrChosenWeek);
-
 
 function normalizePriority(v){ if(v==null) return ''; let slug=slugify(String(v).trim()); if(!slug) return''; if(slug.endsWith('-priority')) slug=slug.replace(/-priority$/,''); if(slug==='med'||slug==='normal') slug='medium'; if(slug==='urgent'||slug==='emergency') slug='critical'; return slug; }
 function cmpPriority(a,b){ const ia=PRIORITY_ORDER.indexOf(normalizePriority(a)), ib=PRIORITY_ORDER.indexOf(normalizePriority(b)); const safe=i=>(i===-1?PRIORITY_ORDER.length:i); const diff=safe(ia)-safe(ib); return diff||String(a??'').localeCompare(String(b??''),undefined,{numeric:true,sensitivity:'base'}); }
