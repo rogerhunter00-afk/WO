@@ -942,22 +942,54 @@ async function loadChosenGid(meta){
   __loadController = new AbortController();
 
   try{
+    if (!meta || !meta.gid) {
+      throw new Error('Selected week is missing a valid gid');
+    }
+
     const url = csvUrlForGid(meta.gid);
+    console.log('[loadChosenGid] gid:', meta.gid, 'url:', url);
+
     const res = await fetch(url, { cache:'no-store', signal: __loadController.signal });
-    if(!res.ok) { alert('Failed to load selected week'); return; }
+    if(!res.ok) {
+      // show status code/message if Google returns an error
+      throw new Error(`Fetch failed (${res.status} ${res.statusText})`);
+    }
 
     const text = await res.text();
-    let { headers, rows } = parseDelimited(text);
-    rows = dedupeRows(rows);
+    if (!text || !text.trim()) {
+      throw new Error('Fetched CSV is empty');
+    }
+    console.log('[loadChosenGid] first 200 chars of CSV:', text.slice(0,200));
+
+    let headers, rows;
+    try {
+      ({ headers, rows } = parseDelimited(text));
+    } catch (pErr) {
+      console.error('[parseDelimited] failed:', pErr);
+      throw new Error('Could not parse CSV – check delimiters/quotes');
+    }
+
+    try {
+      rows = dedupeRows(rows);
+    } catch (dErr) {
+      console.error('[dedupeRows] failed:', dErr);
+      throw new Error('Row dedupe failed – check required columns like ID/Title/Created on');
+    }
 
     LAST_HEADERS = headers;
     ALL_ROWS     = rows;
     setWeekBadge(meta.label || meta.weekEnd);
-    ingestToDashboards(LAST_HEADERS, ALL_ROWS);
+
+    try {
+      ingestToDashboards(LAST_HEADERS, ALL_ROWS);
+    } catch (rErr) {
+      console.error('[ingest/render] failed:', rErr);
+      throw new Error('Rendering failed – see console for details');
+    }
   } catch (e){
     if (e.name !== 'AbortError') {
-      console.error(e);
-      alert('Could not load the selected week.');
+      console.error('[loadChosenGid] error:', e);
+      alert('Could not load the selected week. ' + (e?.message || ''));
     }
   } finally {
     __loadController = null;
