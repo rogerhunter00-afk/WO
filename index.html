@@ -1081,6 +1081,7 @@ function getAgeLabel(row){
 // --- State cache for rendering ---
 let LAST_HEADERS = null;
 let ALL_ROWS = null;
+let __LAST_FILTERS_JSON = null;
 
 const $exportCsvBtn = document.getElementById('exportCsvBtn');
 
@@ -2654,16 +2655,28 @@ window.addEventListener('resize', ()=>{
 
 // Re-render on filter change
 function handleFilterChange(){
+  const filters = getFilters();
+  const nextJson = JSON.stringify(filters);
+  const same = __LAST_FILTERS_JSON === nextJson;
+
+  if (same){
+    if (!LAST_HEADERS || !ALL_ROWS){
+      updateChipsFromFilters(filters);   // <- mapped to `search`
+    }
+    return;
+  }
+
+  __LAST_FILTERS_JSON = nextJson;
+
   if (LAST_HEADERS && ALL_ROWS){
     ingestToDashboards(LAST_HEADERS, ALL_ROWS);
   } else {
-    const f = getFilters();
-    updateChipsFromFilters(f);   // <- mapped to `search`
+    updateChipsFromFilters(filters);   // <- mapped to `search`
   }
 }
 $statusFilter?.addEventListener('change', handleFilterChange);
 $priorityFilter?.addEventListener('change', handleFilterChange);
-$searchInput?.addEventListener('input', debounce(handleFilterChange, 160));
+$searchInput?.addEventListener('input', debounce(handleFilterChange, 300));
 $searchInput?.addEventListener('change', handleFilterChange);
 
 /* Legend popover JS */
