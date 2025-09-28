@@ -930,6 +930,44 @@ html{ overflow-y: scroll; }
   </div>
 
 <script>
+
+  let __loadController = null;
+
+  const $loading = document.getElementById('loadingOverlay');
+const showLoading = () => { if ($loading) $loading.style.display = 'grid'; };
+const hideLoading = () => { if ($loading) $loading.style.display = 'none'; };
+
+async function loadChosenGid(meta){
+  // cancel any in-flight fetch if the user clicks another week quickly
+  if (__loadController) __loadController.abort();
+  __loadController = new AbortController();
+
+  try{
+    const res = await fetch(
+      csvUrlForGid(meta.gid) + '&_ts=' + Date.now(),
+      { cache:'no-store', signal: __loadController.signal }
+    );
+    if(!res.ok) return alert('Failed to load selected week');
+
+    const text = await res.text();
+    let { headers, rows } = parseDelimited(text);
+    rows = dedupeRows(rows);
+
+    LAST_HEADERS = headers;
+    ALL_ROWS     = rows;
+    setWeekBadge(meta.label || meta.weekEnd);
+    ingestToDashboards(LAST_HEADERS, ALL_ROWS);
+  } catch (e){
+    // Ignore aborts (expected when user switches weeks fast)
+    if (e.name !== 'AbortError') {
+      console.error(e);
+      alert('Could not load the selected week.');
+    }
+  } finally {
+    __loadController = null;
+  }
+}
+  
 // Published CSV of the *Index* tab
 const SHEET_INDEX_CSV_URL =
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vRJocigDhxneJtrUmezFU7FcWpzSSah8-Wb6Rce8NA1f7jKcINgYU29iYRqt5QQymWATX5zs5k8_rK0/pub?single=true&output=csv&gid=105348743';
@@ -1097,6 +1135,10 @@ function wireExternalWeekArrows(){
   refreshWeekArrowDisabled();
 }
 
+  function debounce(fn, ms=160){
+  let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); };
+}
+
 /* ========= integrate with your existing functions ========= */
 
 /* 1) After we fetch the index and choose the week, remember it globally */
@@ -1119,6 +1161,13 @@ async function loadLatestOrChosenWeek(){
     console.error(err);
     alert('Could not load the latest dashboard. Check the Index publish URL and columns (label, week_end, gid).');
   }
+}
+  
+  function renderRowsSmart(tbodyEl, headers, rows, container){
+  if (isMobileView() || (rows?.length ?? 0) < 600) {
+    return renderRowsScoped(tbodyEl, headers, rows, container);
+  }
+  return renderRowsScopedChunked(tbodyEl, headers, rows, container);
 }
 
 /* 2) Inside renderWeekControls, keep your existing prev/next,
@@ -2018,7 +2067,7 @@ if (container.__focusOldest){
     if (s && s.column) working = applySort(working, s.column, s.direction);
 
     container.__rows = working.slice();
-    renderRowsScoped(container.__tbody, container.__headers, working, container);
+renderRowsSmart(container.__tbody, container.__headers, working, container);
 
     // un-press the KPI card if present
     container.__prioKpiCard?.setAttribute('aria-pressed','false');
@@ -2056,7 +2105,7 @@ function updateOldestOnlyChip(container){
     if (s && s.column) working = applySort(working, s.column, s.direction);
 
     container.__rows = working.slice();
-    renderRowsScoped(container.__tbody, container.__headers, working, container);
+renderRowsSmart(container.__tbody, container.__headers, working, container);
 
     // only update the KPI in this site's panel
     const site = container.dataset.site || container.id.replace(/^dash-/, '');
@@ -2140,7 +2189,7 @@ if (container.__focusOldest) {
   if (s && s.column) working = applySort(working, s.column, s.direction);
 
   container.__rows = working.slice();
-  renderRowsScoped(container.__tbody, container.__headers, working, container);
+renderRowsSmart(container.__tbody, container.__headers, working, container);
   updateOldestOnlyChip(container);
   updateTheadHeight();
 };
@@ -2187,7 +2236,7 @@ if (container.__focusOldest) {
   if (s && s.column) working = applySort(working, s.column, s.direction);
 
   container.__rows = working.slice();
-  renderRowsScoped(container.__tbody, container.__headers, working, container);
+renderRowsSmart(container.__tbody, container.__headers, working, container);
   updatePriorityOnlyChip(container);
   updateTheadHeight();
 };
@@ -2280,7 +2329,7 @@ if (container.__focusOldest) {
   setSortState(container, prevSort?.column || null, prevDir);
 
   // draw once for current viewport, then measure sticky
-  renderRowsScoped(tbody, headers, working, container);
+renderRowsScopedChunked(tbody, headers, working, container);
   updateOldestOnlyChip(container);   // <-- add this
   updatePriorityOnlyChip(container);
   updateTheadHeight();
@@ -2290,6 +2339,75 @@ function renderRowsScoped(tbodyEl, headers, rows, container){
   const mobile = isMobileView();
   const norm = s => String(s||'').trim().toLowerCase();
   const safeRows = Array.isArray(rows) ? rows : [];
+
+  function renderRowsScopedChunked(tbodyEl, headers, rows, container){
+  // On phones, or for tiny datasets, just use the original renderer
+  if (isMobileView() || !tbodyEl) {
+    return renderRowsScoped(tbodyEl, headers, rows, container);
+  }
+
+  const safe = Array.isArray(rows) ? rows : [];
+  tbodyEl.innerHTML = '';
+
+  const CHUNK = 200; // tweak if you want bigger/smaller bursts
+  let i = 0;
+
+  function paintChunk(){
+    const frag = document.createDocumentFragment();
+
+    for (let c = 0; c < CHUNK && i < safe.length; c++, i++){
+      const row = safe[i];
+      const tr  = document.createElement('tr');
+      if (hasPriorityCategory(row)) tr.className = 'row-priority';
+
+      tr.innerHTML = headers.map(h=>{
+        const v = row[h];
+        const key = String(h || '').trim().toLowerCase();
+
+        if (key === 'categories'){
+          return `<td data-col="Categories"><div class="chip-stack">${buildCategoryChips(v)}</div></td>`;
+        }
+
+        if (key === 'status'){
+          return `<td data-col="Status"><span class="status-chip ${statusClass(v)}">${esc(v)}</span></td>`;
+        }
+
+        if (key === 'age'){
+          const ms     = row.__ageMs;
+          const bucket = row.__ageBucket || ageBucket(ms);
+          const frozen = isWinterPlanned(row);
+          const pwp    = categoryColors['planned-winter-project'] || { background:'#E7F3FE', foreground:'#1887FC' };
+          const style  = frozen ? ` style="--bg:${pwp.background}; --ring: color-mix(in srgb, ${pwp.foreground} 50%, transparent); color:${pwp.foreground}"` : '';
+          const cls    = `age-chip age-${bucket}` + (frozen ? ' frozen' : '');
+          const baseT  = ms != null ? `${(ms/86400000).toFixed(1)} days` : 'Unknown';
+          const title  = frozen ? `Planned for Winter • ${baseT}` : baseT;
+
+          return `<td data-col="Age"><span class="${cls}"${style} title="${esc(title)}">${esc(getAgeLabel(row))}</span></td>`;
+        }
+
+        return `<td data-col="${esc(h)}">${esc(v)}</td>`;
+      }).join('');
+
+      frag.appendChild(tr);
+    }
+
+    tbodyEl.appendChild(frag);
+
+    if (i < safe.length){
+      requestAnimationFrame(paintChunk);
+    } else {
+      // end-of-render housekeeping
+      const hasRows = safe.length > 0;
+      container?.__tableWrap && (container.__tableWrap.hidden = isMobileView() || !hasRows);
+      container?.__mobileSortWrap && (container.__mobileSortWrap.hidden = !isMobileView() || !hasRows);
+      container?.__mobileCards && (container.__mobileCards.hidden = true);
+      container?.__emptyState && (container.__emptyState.hidden = hasRows);
+      updateTheadHeight();
+    }
+  }
+
+  requestAnimationFrame(paintChunk);
+}
 
   // table rows (desktop)
 if(!mobile && tbodyEl){
@@ -2665,7 +2783,7 @@ function handleFilterChange(){
 }
 $statusFilter?.addEventListener('change', handleFilterChange);
 $priorityFilter?.addEventListener('change', handleFilterChange);
-$searchInput?.addEventListener('input', handleFilterChange);
+$searchInput?.addEventListener('input', debounce(handleFilterChange, 160));
 $searchInput?.addEventListener('change', handleFilterChange);
 
 /* Legend popover JS */
@@ -2682,5 +2800,12 @@ document.addEventListener('click', (e)=>{
   }
 });
 </script> <!-- ← keep this closing tag -->
+  <div id="loadingOverlay" style="
+ position:fixed; inset:0; display:none; place-items:center;
+ background:color-mix(in srgb, var(--paper) 70%, transparent); z-index:9999;">
+  <div style="padding:10px 14px;border:1px solid var(--grid);border-radius:10px;background:var(--paper);font-weight:800">
+    Loading…
+  </div>
+</div>
 </body>
 </html>
