@@ -947,7 +947,7 @@ async function loadChosenGid(meta){
       throw new Error('Selected week is missing a valid gid');
     }
 
-    const url = csvUrlForGid(meta.gid);
+    const url = meta.url ? meta.url : csvUrlForGid(meta.gid);
     console.log('[loadChosenGid] gid:', meta.gid, 'url:', url);
 
     const res = await fetch(url, { signal: __loadController.signal });
@@ -1641,13 +1641,15 @@ async function loadWeeksIndexFrom(url){
     return m ? m[1] : null;
   };
 
-  const out = rows.map(r => {
-    const label   = H_LABEL   ? r[H_LABEL]   : (r[H_WEEKEND] || '').trim();
-    const weekEnd = H_WEEKEND ? r[H_WEEKEND] : '';
-    let gid       = H_GID ? r[H_GID] : null;
-    if (!gid && H_URL) gid = gidFromUrl(r[H_URL]);
-    return { label, weekEnd, gid };
-  }).filter(x => x && x.gid);
+const out = rows.map(r => {
+  const label   = H_LABEL   ? r[H_LABEL]   : (r[H_WEEKEND] || '').trim();
+  const weekEnd = H_WEEKEND ? r[H_WEEKEND] : '';
+  const urlRaw  = H_URL ? String(r[H_URL] || '').trim() : '';
+  let gid       = H_GID ? r[H_GID] : null;
+  if (!gid && urlRaw) gid = gidFromUrl(urlRaw);
+  const url     = urlRaw || null;     // keep the URL if provided
+  return { label, weekEnd, gid, url };
+}).filter(x => x && (x.gid || x.url));
 
   if (!out.length){
     console.error('[Index] No usable rows. Headers:', headers, 'Sample row:', rows[0]);
@@ -2746,6 +2748,13 @@ document.addEventListener('click', (e)=>{
   if (legendWrap && !legendWrap.contains(e.target)){
     legendWrap.classList.remove('is-open');
     legendBtn?.setAttribute('aria-expanded','false');
+  }
+});
+  document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape' && legendWrap?.classList.contains('is-open')){
+    legendWrap.classList.remove('is-open');
+    legendBtn?.setAttribute('aria-expanded','false');
+    legendBtn?.focus();
   }
 });
 </script> <!-- ← keep this closing tag -->
