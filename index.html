@@ -2322,20 +2322,6 @@ renderRowsSmart(tbody, headers, working, container);
   updateTheadHeight();
 }
 
-  // toggle shells
-  const hasRows = safeRows.length>0;
-  if(container?.__tableWrap) container.__tableWrap.hidden = mobile || !hasRows;
-  if(container?.__mobileSortWrap) container.__mobileSortWrap.hidden = !mobile || !hasRows;
-  if(container?.__mobileCards) container.__mobileCards.hidden = !mobile || !hasRows;
-  if(container?.__emptyState) container.__emptyState.hidden = hasRows;
-
-  // enable/disable direction button on mobile
-  if(container?.__mobileSortDirectionBtn){
-    const selVal = container.__mobileSortSelect?.value || '';
-    container.__mobileSortDirectionBtn.disabled = !hasRows || !mobile || !selVal;
-  }
-}
-
 function sortScoped(th, container){
   if(!container) return;
   const tbodyEl = container.__tbody;
