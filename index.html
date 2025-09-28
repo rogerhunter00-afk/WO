@@ -1286,19 +1286,17 @@ function renderRowsScopedChunked(tbodyEl, headers, rows, container){
 
   const safe = Array.isArray(rows) ? rows : [];
   tbodyEl.innerHTML = '';
-  const CHUNK = 200;
+  const CHUNK = 400;
   let i = 0;
 
   function paintChunk(){
-    const frag = document.createDocumentFragment();
+    let html = '';
     for (let c = 0; c < CHUNK && i < safe.length; c++, i++){
       const row = safe[i];
-      const tr  = document.createElement('tr');
-      if (hasPriorityCategory(row)) tr.className = 'row-priority';
-
-      tr.innerHTML = headers.map(h=>{
-        const v = row[h];
+      const rowCls = hasPriorityCategory(row) ? 'row-priority' : '';
+      html += `<tr class="${rowCls}">` + headers.map(h => {
         const key = String(h||'').trim().toLowerCase();
+        const v = row[h];
 
         if (key === 'categories'){
           return `<td data-col="Categories"><div class="chip-stack">${buildCategoryChips(v)}</div></td>`;
@@ -1315,17 +1313,21 @@ function renderRowsScopedChunked(tbodyEl, headers, rows, container){
           const pwp     = categoryColors['planned-winter-project'] || { background:'#E7F3FE', foreground:'#1887FC' };
           const style   = frozen ? ` style="--bg:${pwp.background}; --ring: color-mix(in srgb, ${pwp.foreground} 50%, transparent); color:${pwp.foreground}"` : '';
           const cls     = `age-chip age-${bucket}` + (frozen ? ' frozen' : '');
-const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
+          const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
           const aria    = frozen ? ' aria-label="Planned for Winter"' : '';
           return `<td data-col="Age"><span class="${cls}"${style} title="${esc(title)}"${aria}>${label}</span></td>`;
         }
         return `<td data-col="${esc(h)}">${esc(v)}</td>`;
-      }).join('');
-
-      frag.appendChild(tr);
+      }).join('') + `</tr>`;
     }
 
-    tbodyEl.appendChild(frag);
+    if (html){
+      const tmp = document.createElement('tbody');
+      tmp.innerHTML = html;
+      while (tmp.firstChild){
+        tbodyEl.appendChild(tmp.firstChild);
+      }
+    }
 
     if (i < safe.length){
       requestAnimationFrame(paintChunk);
