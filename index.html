@@ -2036,7 +2036,15 @@ function getFilters(){
   };
 }
 
-const SEARCHABLE_FIELDS = ['ID','Title','Status','Priority','Assigned to','Created by','Created on','Completed on','Last updated','Location','Asset','Categories','Age'];
+const SEARCH_KEYS = ['ID','Title','Status','Priority','Assigned to','Created by','Created on','Completed on','Last updated','Location','Asset','Categories','Age'];
+
+function buildHaystack(row){
+  if(!row) return '';
+  return SEARCH_KEYS
+    .map(key => String(row[key] ?? ''))
+    .join(' ')
+    .toLowerCase();
+}
 
 function applyFilters(rows){
   const filters = getFilters();
@@ -2054,8 +2062,8 @@ function applyFilters(rows){
 
     let okSearch = true;
     if(tokens.length){
-      const haystack = SEARCHABLE_FIELDS.map(key => String(r[key] ?? '')).join(' ').toLowerCase();
-      okSearch = tokens.every(t => haystack.includes(t));
+      const hay = r.__haystack || '';
+      okSearch = tokens.every(t => hay.includes(t));
     }
 
     return okStatus && okPrio && okSearch;
@@ -2446,6 +2454,7 @@ function ingestToDashboards(headers, rows){
     o.__ageMs      = ms;                // raw milliseconds
     o.Age          = fmtAge(ms);        // human label like "12d 3h"
     o.__ageBucket  = ageBucket(ms);     // fresh | stale | old | ancient
+    o.__haystack   = buildHaystack(o);  // cached lower-case search text
     return o;
   });
 
