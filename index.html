@@ -1203,6 +1203,11 @@ async function loadLatestOrChosenWeek(forceBust=false){
   document.addEventListener('DOMContentLoaded', () => {
   loadLatestOrChosenWeek();
 });
+
+  document.addEventListener('DOMContentLoaded', () => {
+  setActiveDash('dash-all');     // ensure All Sites is visible right away
+  loadLatestOrChosenWeek();      // your existing call
+});
   
 function renderWeekControls(weeks, chosen){
   const wrap = document.getElementById('weekPicker');
