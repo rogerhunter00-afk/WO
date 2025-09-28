@@ -1201,8 +1201,8 @@ async function loadLatestOrChosenWeek(forceBust=false){
 }
   
 document.addEventListener('DOMContentLoaded', () => {
-  setActiveDash('dash-all');
-  loadLatestOrChosenWeek();
+  PREFERRED_ACTIVE_DASH = 'dash-all';
+  loadLatestOrChosenWeek();  // this will call ingest → setActiveDash(...) for you
 });
   
 function renderWeekControls(weeks, chosen){
