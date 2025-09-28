@@ -1017,7 +1017,6 @@ let LAST_HEADERS = null;
 let ALL_ROWS = null;
 
 const $exportCsvBtn = document.getElementById('exportCsvBtn');
-const $exportExcelBtn = document.getElementById('exportExcelBtn');
 
 function hasSheetData(){
   return Array.isArray(LAST_HEADERS) && LAST_HEADERS.length > 0;
@@ -1025,7 +1024,7 @@ function hasSheetData(){
 
 function updateExportButtonsState(){
   const hasData = hasSheetData();
-  [$exportCsvBtn, $exportExcelBtn].forEach(btn => {
+  [$exportCsvBtn].forEach(btn => {
     if(!btn) return;
     btn.disabled = !hasData;
     if(!hasData){
@@ -1087,15 +1086,7 @@ function exportSheetAsCsv(){
   downloadBlob(blob, `work-orders-${exportTimestamp()}.csv`);
 }
 
-function exportSheetAsExcel(){
-  if(!hasSheetData()){ alert('Sheet data is still loading.'); return; }
-  const html = buildExcelHTML(LAST_HEADERS, ALL_ROWS);
-  const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' });
-  downloadBlob(blob, `work-orders-${exportTimestamp()}.xls`);
-}
-
 $exportCsvBtn?.addEventListener('click', ()=>{ if(!$exportCsvBtn.disabled) exportSheetAsCsv(); });
-$exportExcelBtn?.addEventListener('click', ()=>{ if(!$exportExcelBtn.disabled) exportSheetAsExcel(); });
 
 // ---------- Utility + theming (unchanged bits you already had) ----------
 const ESC_MAP = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;'}; const ESC_RE=/[&<>"']/g;
@@ -1167,6 +1158,16 @@ function shortenName(s){
     return uniq.join(', ');
   }
   return alias(raw) || first(raw);
+}
+
+  // Always pass `search`, not `searchTerm`, to the chips UI
+function updateChipsFromFilters(f){
+  updateActiveFilterChips({
+    status: f.status,
+    excludeStatus: f.excludeStatus,
+    priority: f.priority,
+    search: f.searchTerm,   // <- the important mapping
+  });
 }
 
 // CSV / JSON ingest helpers
@@ -1267,18 +1268,22 @@ function dedupeRows(rows){
   return el;
 }
 
-  /* ====== WEEK INDEX LOADER ====== */
-/* 1) Point this at your PUBLISHED CSV for the Index tab */
-const SHEET_INDEX_CSV_URL =
-  'https://docs.google.com/spreadsheets/d/e/XXXXXXXXXXXX/pub?single=true&output=csv'; // <-- replace with your Index tab's publish URL
-
-/* 2) We’ll reuse your existing publish URL to build per-tab CSV links by gid */
+// Build per-tab CSV links by swapping the gid on the SAME published doc:
 const BASE_PUBLISH_URL = (() => {
-  // Take your old SHEET_CSV_URL and strip query params to get ".../pub"
-  const u = new URL(SHEET_CSV_URL);
-  u.search = '';               // remove ?output=csv
-  return u.toString();         // e.g. .../pub
+  const u = new URL(SHEET_INDEX_CSV_URL);
+  // strip any gid from the index link and keep everything else
+  u.searchParams.delete('gid');
+  return u.toString(); // .../pub?single=true&output=csv
 })();
+
+function csvUrlForGid(gid){
+  const u = new URL(BASE_PUBLISH_URL);
+  u.searchParams.set('gid', String(gid));
+  // ensure single/output stay correct
+  u.searchParams.set('single','true');
+  u.searchParams.set('output','csv');
+  return u.toString();
+}
 
 function csvUrlForGid(gid){
   const u = new URL(BASE_PUBLISH_URL);
@@ -1768,13 +1773,9 @@ const SEARCHABLE_FIELDS = ['ID','Title','Status','Priority','Assigned to','Creat
 
 function applyFilters(rows){
   const filters = getFilters();
-  // keep the nice chips UI updated
-  updateActiveFilterChips({
-    status: filters.status,
-    excludeStatus: filters.excludeStatus,
-    priority: filters.priority,
-    search: filters.searchTerm
-  });
+
+  // Keep the chips UI updated (mapped to `search`)
+  updateChipsFromFilters(filters);
 
   const { status, excludeStatus, priority, searchTerm } = filters;
   const tokens = searchTerm ? searchTerm.toLowerCase().split(/\s+/).filter(Boolean) : [];
@@ -2468,38 +2469,13 @@ window.addEventListener('resize', ()=>{
   }
 });
 
-// --- Load live data from Google Sheet (with cache-buster) ---
-async function loadFromGoogleSheetCSV(){
-  try{
-    const url=SHEET_CSV_URL + '&_ts=' + Date.now();
-    const res=await fetch(url, { cache:'no-store' });
-    if(!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text=await res.text();
-let { headers, rows } = parseDelimited(text);
-rows = dedupeRows(rows);
-    const REQUIRED=['ID','Title','Status','Priority','Assigned to','Created by','Created on','Completed on','Last updated','Location','Asset','Categories'];
-    const missing=REQUIRED.filter(h=>!headers.includes(h));
-    if(missing.length>0) console.warn('Missing expected headers:', missing);
-    LAST_HEADERS=headers; ALL_ROWS=rows;
-    ingestToDashboards(LAST_HEADERS, ALL_ROWS);
-  }catch(err){
-    console.error('Sheet load failed:', err);
-    alert('Could not load Google Sheet. Check sharing/publish settings and URL.');
-  }
-}
-
 // Re-render on filter change
 function handleFilterChange(){
   if (LAST_HEADERS && ALL_ROWS){
     ingestToDashboards(LAST_HEADERS, ALL_ROWS);
   } else {
     const f = getFilters();
-    updateActiveFilterChips({
-      status: f.status,
-      excludeStatus: f.excludeStatus,
-      priority: f.priority,
-      search: f.searchTerm   // <-- map searchTerm -> search
-    });
+    updateChipsFromFilters(f);   // <- mapped to `search`
   }
 }
 $statusFilter?.addEventListener('change', handleFilterChange);
