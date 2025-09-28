@@ -1933,7 +1933,10 @@ const $activeFilterChips = document.getElementById('activeFilterChips');
   let PREFERRED_ACTIVE_DASH = null;
 
 function getActiveDashId(){
-  return document.querySelector('.dash[data-active="true"]:not([hidden])')?.id || 'dash-all';
+  // Prefer the active TABLE panel, fall back to any .dash, then dash-all
+  return document.querySelector('.dash-table[data-active="true"]:not([hidden])')?.id
+      || document.querySelector('.dash[data-active="true"]:not([hidden])')?.id
+      || 'dash-all';
 }
 
 function humanizeFilterValue(value){
