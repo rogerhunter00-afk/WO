@@ -851,6 +851,7 @@ html{ overflow-y: scroll; }
       <input id="file" type="file" accept=".csv,.tsv,.json,application/json,text/csv,text/tab-separated-values" style="display:none" />
       <button class="btn" id="themeBtn" type="button">Dark mode</button>
       <button class="btn" id="exportCsvBtn" type="button" disabled>Export CSV</button>
+      <div id="weekPicker" class="filter-group"></div>
 <!-- Legend popover trigger -->
 <div class="legend-popover">
   <button class="btn" id="legendBtn" type="button"
@@ -931,8 +932,23 @@ html{ overflow-y: scroll; }
 <script>
 // --- CONFIG: Google Sheet (Published CSV) ---
 const SHEET_CSV_URL =
-  'https://docs.google.com/spreadsheets/d/e/2PACX-1vRJocigDhxneJtrUmezFU7FcWpzSSah8-Wb6Rce8NA1f7jKcINgYU29iYRqt5QQymWATX5zs5k8_rK0/pub?output=csv';
+  'https://docs.google.com/spreadsheets/d/e/2PACX-1vRJocigDhxneJtrUmezFU7FcWpzSSah8-Wb6Rce8NA1f7jKcINgYU29iYRqt5QQymWATX5zs5k8_rK0/pub?gid=105348743&single=true&output=csv';
 
+// Build a /pub CSV URL for any gid in this spreadsheet
+const BASE_PUBLISH_URL = (() => {
+  const u = new URL(SHEET_CSV_URL || SHEET_INDEX_CSV_URL);
+  u.search = ''; // strip ?... so we can set our own params
+  return u.toString();       // ends with .../pub
+})();
+
+function csvUrlForGid(gid){
+  const u = new URL(BASE_PUBLISH_URL);
+  u.searchParams.set('single','true');
+  u.searchParams.set('output','csv');
+  u.searchParams.set('gid', String(gid));
+  return u.toString();
+}
+  
 // --- Layout helpers ---
 const $stickyTop = document.querySelector('.sticky-top');
 const rootStyle = document.documentElement.style;
@@ -1265,6 +1281,167 @@ function dedupeRows(rows){
 
   return el;
 }
+
+  /* ====== WEEK INDEX LOADER ====== */
+/* 1) Point this at your PUBLISHED CSV for the Index tab */
+const SHEET_INDEX_CSV_URL =
+  'https://docs.google.com/spreadsheets/d/e/XXXXXXXXXXXX/pub?single=true&output=csv'; // <-- replace with your Index tab's publish URL
+
+/* 2) We’ll reuse your existing publish URL to build per-tab CSV links by gid */
+const BASE_PUBLISH_URL = (() => {
+  // Take your old SHEET_CSV_URL and strip query params to get ".../pub"
+  const u = new URL(SHEET_CSV_URL);
+  u.search = '';               // remove ?output=csv
+  return u.toString();         // e.g. .../pub
+})();
+
+function csvUrlForGid(gid){
+  const u = new URL(BASE_PUBLISH_URL);
+  u.searchParams.set('single','true');
+  u.searchParams.set('output','csv');
+  u.searchParams.set('gid', String(gid));
+  return u.toString();
+}
+
+/* --- Parse the Index (label, week_end, gid) --- */
+async function loadWeeksIndex(){
+  const res = await fetch(SHEET_INDEX_CSV_URL + '&_ts=' + Date.now(), { cache:'no-store' });
+  if(!res.ok) throw new Error('Index load failed: ' + res.status);
+  const text = await res.text();
+  const { headers, rows } = parseDelimited(text);
+
+  // normalise column names and map to objects
+  const H = name => headers.find(h => h.toLowerCase() === name.toLowerCase());
+  const out = rows.map(r => ({
+    label   : r[H('label')],
+    weekEnd : r[H('week_end')],  // "YYYY-MM-DD"
+    gid     : r[H('gid')]
+  })).filter(x => x && x.gid);
+
+  // newest first by week_end (desc)
+  out.sort((a,b) => String(b.weekEnd).localeCompare(String(a.weekEnd)));
+  return out;
+}
+
+/* --- Selection + persistence --- */
+const LS_LAST_WEEK = 'alsLastWeekEnd';
+function getUrlParam(n){ return new URLSearchParams(location.search).get(n); }
+function rememberWeek(w){ try{ localStorage.setItem(LS_LAST_WEEK, w.weekEnd); }catch{} }
+
+function chooseInitialWeek(weeks){
+  const q = new URLSearchParams(location.search);
+  const byGid  = q.get('gid');
+  const byDate = q.get('week');
+  const forceLatest = q.get('latest') === '1';
+
+  let chosen = null;
+  if (byGid)   chosen = weeks.find(w => String(w.gid) === String(byGid));
+  if (!chosen && byDate) chosen = weeks.find(w => String(w.weekEnd) === String(byDate));
+  if (!chosen && !forceLatest){
+    const last = localStorage.getItem(LS_LAST_WEEK);
+    if (last) chosen = weeks.find(w => String(w.weekEnd) === last);
+  }
+  return chosen || weeks[0]; // newest
+}
+
+/* --- Small UI: Week dropdown + prev/next --- */
+function setWeekBadge(text){
+  const titleEl = document.querySelector('.title'); if(!titleEl) return;
+  let badge = document.getElementById('week-badge');
+  if(!badge){
+    badge = document.createElement('span');
+    badge.id = 'week-badge';
+    badge.style.marginLeft = '10px';
+    badge.style.fontSize = '12px';
+    badge.style.fontWeight = '800';
+    badge.style.padding = '4px 8px';
+    badge.style.border = '1px solid var(--grid)';
+    badge.style.borderRadius = '999px';
+    badge.style.background = 'color-mix(in srgb, var(--als-blue) 10%, var(--paper))';
+    titleEl.appendChild(badge);
+  }
+  badge.textContent = `Week: ${text}`;
+}
+
+function renderWeekControls(weeks, selected){
+  const wrap = document.getElementById('weekPicker'); if(!wrap) return;
+  wrap.innerHTML = '';
+
+  const label = document.createElement('span');
+  label.textContent = 'Week';
+
+  const sel = document.createElement('select');
+  sel.ariaLabel = 'Select week';
+  weeks.forEach(w => {
+    const o = document.createElement('option');
+    o.value = w.weekEnd;
+    o.textContent = w.label || w.weekEnd;
+    if (w.weekEnd === selected.weekEnd) o.selected = true;
+    sel.appendChild(o);
+  });
+
+  const prev = document.createElement('button'); prev.className='btn'; prev.textContent='◀︎';
+  const next = document.createElement('button'); next.className='btn'; next.textContent='▶︎';
+  const idx  = weeks.findIndex(w => w.weekEnd === selected.weekEnd);
+  prev.disabled = idx === weeks.length - 1;  // list is newest-first
+  next.disabled = idx === 0;
+
+  function gotoWeekByIndex(i){
+    if (i < 0 || i >= weeks.length) return;
+    const w = weeks[i];
+    rememberWeek(w);
+    const url = new URL(location.href);
+    url.searchParams.set('week', w.weekEnd);
+    url.searchParams.delete('gid');
+    history.replaceState({}, '', url);
+    loadChosenGid(w);
+  }
+
+  sel.addEventListener('change', () => {
+    const i = weeks.findIndex(w => w.weekEnd === sel.value);
+    gotoWeekByIndex(i);
+  });
+  prev.addEventListener('click', () => gotoWeekByIndex(idx + 1));
+  next.addEventListener('click', () => gotoWeekByIndex(idx - 1));
+  document.addEventListener('keydown', e => {
+    if (e.key === '[' && !prev.disabled) prev.click();
+    if (e.key === ']' && !next.disabled) next.click();
+  });
+
+  wrap.append(label, sel, prev, next);
+}
+
+/* --- Fetch a chosen gid and render via your existing pipeline --- */
+async function loadChosenGid(meta){
+  const res = await fetch(csvUrlForGid(meta.gid) + '&_ts=' + Date.now(), { cache:'no-store' });
+  if(!res.ok) return alert('Failed to load selected week');
+  const text = await res.text();
+  let { headers, rows } = parseDelimited(text);
+  rows = dedupeRows(rows);
+  LAST_HEADERS = headers;
+  ALL_ROWS     = rows;
+  setWeekBadge(meta.label || meta.weekEnd);
+  ingestToDashboards(LAST_HEADERS, ALL_ROWS);
+}
+
+/* --- Entry point: read Index -> pick week -> load that tab --- */
+async function loadLatestOrChosenWeek(){
+  try{
+    const weeks = await loadWeeksIndex();
+    if (!weeks.length) throw new Error('Index is empty');
+    const chosen = chooseInitialWeek(weeks);
+    renderWeekControls(weeks, chosen);
+    rememberWeek(chosen);
+    await loadChosenGid(chosen);
+  }catch(err){
+    console.error(err);
+    alert('Could not load the latest dashboard. Check the Index publish URL and columns (label, week_end, gid).');
+  }
+}
+
+/* Replace your old DOMContentLoaded hook with this: */
+document.addEventListener('DOMContentLoaded', loadLatestOrChosenWeek);
+
 
 function normalizePriority(v){ if(v==null) return ''; let slug=slugify(String(v).trim()); if(!slug) return''; if(slug.endsWith('-priority')) slug=slug.replace(/-priority$/,''); if(slug==='med'||slug==='normal') slug='medium'; if(slug==='urgent'||slug==='emergency') slug='critical'; return slug; }
 function cmpPriority(a,b){ const ia=PRIORITY_ORDER.indexOf(normalizePriority(a)), ib=PRIORITY_ORDER.indexOf(normalizePriority(b)); const safe=i=>(i===-1?PRIORITY_ORDER.length:i); const diff=safe(ia)-safe(ib); return diff||String(a??'').localeCompare(String(b??''),undefined,{numeric:true,sensitivity:'base'}); }
@@ -2325,7 +2502,6 @@ rows = dedupeRows(rows);
     alert('Could not load Google Sheet. Check sharing/publish settings and URL.');
   }
 }
-document.addEventListener('DOMContentLoaded', loadFromGoogleSheetCSV);
 
 // Re-render on filter change
 function handleFilterChange(){
