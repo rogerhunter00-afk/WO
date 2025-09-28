@@ -1219,7 +1219,7 @@ function renderRowsScoped(tbodyEl, headers, rows, container){
           const pwp     = categoryColors['planned-winter-project'] || { background:'#E7F3FE', foreground:'#1887FC' };
           const style   = frozen ? ` style="--bg:${pwp.background}; --ring: color-mix(in srgb, ${pwp.foreground} 50%, transparent); color:${pwp.foreground}"` : '';
           const cls     = `age-chip age-${bucket}` + (frozen ? ' frozen' : '');
-          const title   = frozen ? `Planned for Winter • ${baseT}` : ${'baseT'};
+const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
           const aria    = frozen ? ' aria-label="Planned for Winter"' : '';
           return `<td data-col="Age"><span class="${cls}"${style} title="${esc(title)}"${aria}>${label}</span></td>`;
         }
@@ -1283,7 +1283,7 @@ function renderRowsScopedChunked(tbodyEl, headers, rows, container){
           const pwp     = categoryColors['planned-winter-project'] || { background:'#E7F3FE', foreground:'#1887FC' };
           const style   = frozen ? ` style="--bg:${pwp.background}; --ring: color-mix(in srgb, ${pwp.foreground} 50%, transparent); color:${pwp.foreground}"` : '';
           const cls     = `age-chip age-${bucket}` + (frozen ? ' frozen' : '');
-          const title   = frozen ? `Planned for Winter • ${baseT}` : ${'baseT'};
+const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
           const aria    = frozen ? ' aria-label="Planned for Winter"' : '';
           return `<td data-col="Age"><span class="${cls}"${style} title="${esc(title)}"${aria}>${label}</span></td>`;
         }
@@ -2321,56 +2321,7 @@ renderRowsSmart(tbody, headers, working, container);
   updatePriorityOnlyChip(container);
   updateTheadHeight();
 }
-  // table rows (desktop)
-if(!mobile && tbodyEl){
-  tbodyEl.innerHTML = safeRows.map(row => {
-    // ✅ add a row class when "Priority" is present in Categories
-    const rowCls = hasPriorityCategory(row) ? 'row-priority' : '';
-
-    return `<tr class="${rowCls}">` + 
-      headers.map(h=>{
-        const v=row[h]; 
-        const hNorm=norm(h);
-
-        if(hNorm==='categories'){
-          const chips = buildCategoryChips(v);
-          return `<td data-col="Categories"><div class="chip-stack">${chips}</div></td>`;
-        }
-
-        if(hNorm==='status'){
-          const cls = statusClass(v);
-          return `<td data-col="Status"><span class="status-chip ${cls}">${esc(v)}</span></td>`;
-        }
-
-if(hNorm==='age'){
-  const ms      = row.__ageMs;
-  const bucket  = row.__ageBucket || ageBucket(ms);
-  const label   = esc(getAgeLabel(row));
-  const baseT   = ms != null ? `${(ms/86400000).toFixed(1)} days` : 'Unknown';
-  const frozen  = isWinterPlanned(row);
-
-  // Use the Planned Winter Project chip colours when frozen
-  const pwp   = categoryColors['planned-winter-project'] || { background:'#E7F3FE', foreground:'#1887FC' };
-  const style = frozen
-    ? ` style="--bg:${pwp.background}; --ring: color-mix(in srgb, ${pwp.foreground} 50%, transparent); color:${pwp.foreground}"`
-    : '';
-
-  const cls   = `age-chip age-${bucket}` + (frozen ? ' frozen' : '');
-const title = frozen ? `Planned for Winter • ${baseT}` : baseT;
-  const aria  = frozen ? ' aria-label="Planned for Winter"' : '';
-
-  return `<td data-col="Age"><span class="${cls}"${style} title="${esc(title)}"${aria}>${label}</span></td>`;
-}
-
-        return `<td data-col="${esc(h)}">${esc(v)}</td>`;
-      }).join('') + 
-    `</tr>`;
-  }).join('\n');
-}else if(tbodyEl){
-    // keep DOM tidy when mobile: clear tbody
-    tbodyEl.innerHTML = '';
-  }
-
+ 
   // cards (mobile)
   if(container?.__mobileCards){
     if(mobile){
@@ -2437,6 +2388,14 @@ document.addEventListener('DOMContentLoaded', updateTheadHeight);
 
 // Run on resize
 window.addEventListener('resize', updateTheadHeight);
+
+  document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape' && legendWrap?.classList.contains('is-open')){
+    legendWrap.classList.remove('is-open');
+    legendBtn?.setAttribute('aria-expanded','false');
+    legendBtn?.focus();
+  }
+});
 
 function ingestToDashboards(headers, rows){
   // 1) Remember which dashboard is currently active
