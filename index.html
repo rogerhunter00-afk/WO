@@ -1571,40 +1571,6 @@ function setWeekBadge(text){
   badge.textContent = `Week: ${text}`;
 }
 
-function renderWeekControls(weeks, selected){
-  const wrap = document.getElementById('weekPicker'); if(!wrap) return;
-  wrap.innerHTML = '';
-
-  const label = document.createElement('span');
-  label.textContent = 'Week';
-
-  const sel = document.createElement('select');
-  sel.ariaLabel = 'Select week';
-  weeks.forEach(w => {
-    const o = document.createElement('option');
-    o.value = w.weekEnd;
-    o.textContent = w.label || w.weekEnd;
-    if (w.weekEnd === selected.weekEnd) o.selected = true;
-    sel.appendChild(o);
-  });
-
-  const prev = document.createElement('button'); prev.className='btn'; prev.textContent='◀︎';
-  const next = document.createElement('button'); next.className='btn'; next.textContent='▶︎';
-  const idx  = weeks.findIndex(w => w.weekEnd === selected.weekEnd);
-  prev.disabled = idx === weeks.length - 1;  // list is newest-first
-  next.disabled = idx === 0;
-
-  function gotoWeekByIndex(i){
-    if (i < 0 || i >= weeks.length) return;
-    const w = weeks[i];
-    rememberWeek(w);
-    const url = new URL(location.href);
-    url.searchParams.set('week', w.weekEnd);
-    url.searchParams.delete('gid');
-    history.replaceState({}, '', url);
-    loadChosenGid(w);
-  }
-
   sel.addEventListener('change', () => {
     const i = weeks.findIndex(w => w.weekEnd === sel.value);
     gotoWeekByIndex(i);
@@ -1617,50 +1583,6 @@ function renderWeekControls(weeks, selected){
   });
 
   wrap.append(label, sel, prev, next);
-}
-
-/* --- Fetch a chosen gid and render via your existing pipeline --- */
-async function loadChosenGid(meta){
-  const res = await fetch(csvUrlForGid(meta.gid) + '&_ts=' + Date.now(), { cache:'no-store' });
-  if(!res.ok) return alert('Failed to load selected week');
-  const text = await res.text();
-  let { headers, rows } = parseDelimited(text);
-  rows = dedupeRows(rows);
-  LAST_HEADERS = headers;
-  ALL_ROWS     = rows;
-  setWeekBadge(meta.label || meta.weekEnd);
-  ingestToDashboards(LAST_HEADERS, ALL_ROWS);
-}
-
-async function loadLatestOrChosenWeek(){
-  try{
-    const weeks = await loadWeeksIndex();       // tolerant now
-    const chosen = chooseInitialWeek(weeks);    // same logic as before
-    renderWeekControls(weeks, chosen);
-    rememberWeek(chosen);
-    await loadChosenGid(chosen);
-  }catch(err){
-    console.error('[Weeks bootstrap] ', err);
-
-    // Fallback: allow manual ?gid=12345 in the URL to force a specific tab
-    const qp = new URLSearchParams(location.search);
-    const forcedGid  = qp.get('gid');
-    const forcedDate = qp.get('week') || '';
-    if (forcedGid){
-      console.warn('[Fallback] Using ?gid=', forcedGid);
-      await loadChosenGid({ gid: forcedGid, label: forcedDate || '(manual)', weekEnd: forcedDate });
-      return;
-    }
-
-    alert(
-      'Could not load the latest dashboard.\n\n' +
-      'Things to check:\n' +
-      '• The Index tab is Published to the web (CSV)\n' +
-      '• It contains columns for: label, week_end, and gid (case-insensitive)\n' +
-      '  - Aliases like "Week end" and a URL column with gid=… are now supported\n' +
-      '• Open the browser console for header details and the first row preview.'
-    );
-  }
 }
 
 /* Replace your old DOMContentLoaded hook with this: */
@@ -2329,22 +2251,21 @@ if (container.__focusOldest) {
   setSortState(container, prevSort?.column || null, prevDir);
 
   // draw once for current viewport, then measure sticky
-renderRowsScopedChunked(tbody, headers, working, container);
+renderRowsSmart(tbody, headers, working, container);
   updateOldestOnlyChip(container);   // <-- add this
   updatePriorityOnlyChip(container);
   updateTheadHeight();
 }
+    function renderRowsScopedChunked(tbodyEl, headers, rows, container){
+  // On phones, or for tiny datasets, just use the original renderer
+  if (isMobileView() || !tbodyEl) {
+    return renderRowsScoped(tbodyEl, headers, rows, container);
+  }
 
 function renderRowsScoped(tbodyEl, headers, rows, container){
   const mobile = isMobileView();
   const norm = s => String(s||'').trim().toLowerCase();
   const safeRows = Array.isArray(rows) ? rows : [];
-
-  function renderRowsScopedChunked(tbodyEl, headers, rows, container){
-  // On phones, or for tiny datasets, just use the original renderer
-  if (isMobileView() || !tbodyEl) {
-    return renderRowsScoped(tbodyEl, headers, rows, container);
-  }
 
   const safe = Array.isArray(rows) ? rows : [];
   tbodyEl.innerHTML = '';
