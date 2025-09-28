@@ -930,9 +930,9 @@ html{ overflow-y: scroll; }
   </div>
 
 <script>
-// --- CONFIG: Google Sheet (Published CSV) ---
+// Published CSV of the *Index* tab
 const SHEET_INDEX_CSV_URL =
-  'https://docs.google.com/spreadsheets/d/e/2PACX-1vRJocigDhxneJtrUmezFU7FcWpzSSah8-Wb6Rce8NA1f7jKcINGyU29iYRqt5QQymWATX5zs5k8_rK0/pub?gid=105348743&single=true&output=csv';
+  'https://docs.google.com/spreadsheets/d/e/2PACX-1vRJocigDhxneJtrUmezFU7FcWpzSSah8-Wb6Rce8NA1f7jKcINgYU29iYRqt5QQymWATX5zs5k8_rK0/pub?single=true&output=csv&gid=105348743';
   
 // --- Layout helpers ---
 const $stickyTop = document.querySelector('.sticky-top');
@@ -1295,6 +1295,7 @@ function csvUrlForGid(gid){
 
 /* --- Parse the Index (label, week_end, gid) with aliases + diagnostics --- */
 async function loadWeeksIndex(){
+    console.log('Index CSV URL:', SHEET_INDEX_CSV_URL);   // 👈 add here
   const url = SHEET_INDEX_CSV_URL + '&_ts=' + Date.now();
   const res = await fetch(url, { cache:'no-store' });
   if(!res.ok) throw new Error('Index load failed: ' + res.status);
