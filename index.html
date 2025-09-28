@@ -938,15 +938,13 @@ const showLoading = () => { if ($loading) $loading.style.display = 'grid'; };
 const hideLoading = () => { if ($loading) $loading.style.display = 'none'; };
 
 async function loadChosenGid(meta){
-  // cancel any in-flight fetch if the user clicks another week quickly
   if (__loadController) __loadController.abort();
   __loadController = new AbortController();
 
   try{
-    const res = await fetch(
-      { cache:'no-store', signal: __loadController.signal }
-    );
-    if(!res.ok) return alert('Failed to load selected week');
+    const url = csvUrlForGid(meta.gid);
+    const res = await fetch(url, { cache:'no-store', signal: __loadController.signal });
+    if(!res.ok) { alert('Failed to load selected week'); return; }
 
     const text = await res.text();
     let { headers, rows } = parseDelimited(text);
@@ -957,7 +955,6 @@ async function loadChosenGid(meta){
     setWeekBadge(meta.label || meta.weekEnd);
     ingestToDashboards(LAST_HEADERS, ALL_ROWS);
   } catch (e){
-    // Ignore aborts (expected when user switches weeks fast)
     if (e.name !== 'AbortError') {
       console.error(e);
       alert('Could not load the selected week.');
@@ -1161,6 +1158,32 @@ async function loadLatestOrChosenWeek(){
     alert('Could not load the latest dashboard. Check the Index publish URL and columns (label, week_end, gid).');
   }
 }
+
+  document.addEventListener('DOMContentLoaded', () => {
+  loadLatestOrChosenWeek();
+});
+  
+function renderWeekControls(weeks, chosen){
+  const wrap = document.getElementById('weekPicker');
+  if(!wrap){ return; }
+  wrap.innerHTML = '';
+
+  const label = document.createElement('span');
+  label.textContent = 'Week';
+
+  const sel = document.createElement('select');
+  sel.innerHTML = weeks.map(w => 
+    `<option value="${esc(w.weekEnd)}"${w.weekEnd===chosen.weekEnd?' selected':''}>${esc(w.label || w.weekEnd)}</option>`
+  ).join('');
+
+  sel.addEventListener('change', ()=>{
+    const wk = weeks.find(w => w.weekEnd === sel.value);
+    if (wk){ setSelectedWeek(wk); refreshWeekArrowDisabled(); }
+  });
+
+  wrap.append(label, sel);
+  refreshWeekArrowDisabled();
+}
   
 function renderRowsSmart(tbodyEl, headers, rows, container){
   if (isMobileView() || (rows?.length ?? 0) < 600) {
@@ -1285,37 +1308,6 @@ function renderRowsScopedChunked(tbodyEl, headers, rows, container){
   }
 
   requestAnimationFrame(paintChunk);
-}
-
-  const prev = document.createElement('button'); prev.className='btn'; prev.id='weekPrev'; prev.textContent='◀︎';
-  const next = document.createElement('button'); next.className='btn'; next.id='weekNext'; next.textContent='▶︎';
-
-  function gotoWeekByIndex(i){
-    if (i < 0 || i >= weeks.length) return;
-    setSelectedWeek(weeks[i]);
-    // sync the <select> and arrow disabled state
-    sel.value = weeks[i].weekEnd;
-    refreshWeekArrowDisabled();
-  }
-
-  // internal select change
-  sel.addEventListener('change', () => {
-    const i = weeks.findIndex(w => w.weekEnd === sel.value);
-    gotoWeekByIndex(i);
-  });
-
-  // internal arrows
-  prev.addEventListener('click', () => gotoWeekByOffset(+1));
-  next.addEventListener('click', () => gotoWeekByOffset(-1));
-
-  // keyboard shortcuts
-  document.addEventListener('keydown', e => {
-    if (e.key === '[') gotoWeekByOffset(+1);
-    if (e.key === ']') gotoWeekByOffset(-1);
-  });
-
-  wrap.append(label, sel, prev, next);
-  refreshWeekArrowDisabled();
 }
 
 function buildCsv(headers, rows){
@@ -1642,22 +1634,25 @@ function chooseInitialWeek(weeks){
   return chosen || weeks[0]; // newest
 }
 
-/* --- Small UI: Week dropdown + prev/next --- */
 function setWeekBadge(text){
-  const titleEl = document.querySelector('.title'); if(!titleEl) return;
+  const titleEl = document.querySelector('.title'); 
+  if(!titleEl) return;
+
   let badge = document.getElementById('week-badge');
   if(!badge){
     badge = document.createElement('span');
     badge.id = 'week-badge';
-    badge.style.marginLeft = '10px';
-    badge.style.fontSize = '12px';
-    badge.style.fontWeight = '800';
-    badge.style.padding = '4px 8px';
-    badge.style.border = '1px solid var(--grid)';
+    badge.style.marginLeft   = '10px';
+    badge.style.fontSize     = '12px';
+    badge.style.fontWeight   = '800';
+    badge.style.padding      = '4px 8px';
+    badge.style.border       = '1px solid var(--grid)';
     badge.style.borderRadius = '999px';
-    badge.style.background = 'color-mix(in srgb, var(--als-blue) 10%, var(--paper))';
+    badge.style.background   = 'color-mix(in srgb, var(--als-blue) 10%, var(--paper))';
     titleEl.appendChild(badge);
   }
+  badge.textContent = `Week: ${text || 'Latest'}`;
+}
 
 function normalizePriority(v){ if(v==null) return ''; let slug=slugify(String(v).trim()); if(!slug) return''; if(slug.endsWith('-priority')) slug=slug.replace(/-priority$/,''); if(slug==='med'||slug==='normal') slug='medium'; if(slug==='urgent'||slug==='emergency') slug='critical'; return slug; }
 function cmpPriority(a,b){ const ia=PRIORITY_ORDER.indexOf(normalizePriority(a)), ib=PRIORITY_ORDER.indexOf(normalizePriority(b)); const safe=i=>(i===-1?PRIORITY_ORDER.length:i); const diff=safe(ia)-safe(ib); return diff||String(a??'').localeCompare(String(b??''),undefined,{numeric:true,sensitivity:'base'}); }
@@ -2326,80 +2321,6 @@ renderRowsSmart(tbody, headers, working, container);
   updatePriorityOnlyChip(container);
   updateTheadHeight();
 }
-    function renderRowsScopedChunked(tbodyEl, headers, rows, container){
-  // On phones, or for tiny datasets, just use the original renderer
-  if (isMobileView() || !tbodyEl) {
-    return renderRowsScoped(tbodyEl, headers, rows, container);
-  }
-
-function renderRowsScoped(tbodyEl, headers, rows, container){
-  const mobile = isMobileView();
-  const norm = s => String(s||'').trim().toLowerCase();
-  const safeRows = Array.isArray(rows) ? rows : [];
-
-  const safe = Array.isArray(rows) ? rows : [];
-  tbodyEl.innerHTML = '';
-
-  const CHUNK = 200; // tweak if you want bigger/smaller bursts
-  let i = 0;
-
-  function paintChunk(){
-    const frag = document.createDocumentFragment();
-
-    for (let c = 0; c < CHUNK && i < safe.length; c++, i++){
-      const row = safe[i];
-      const tr  = document.createElement('tr');
-      if (hasPriorityCategory(row)) tr.className = 'row-priority';
-
-      tr.innerHTML = headers.map(h=>{
-        const v = row[h];
-        const key = String(h || '').trim().toLowerCase();
-
-        if (key === 'categories'){
-          return `<td data-col="Categories"><div class="chip-stack">${buildCategoryChips(v)}</div></td>`;
-        }
-
-        if (key === 'status'){
-          return `<td data-col="Status"><span class="status-chip ${statusClass(v)}">${esc(v)}</span></td>`;
-        }
-
-        if (key === 'age'){
-          const ms     = row.__ageMs;
-          const bucket = row.__ageBucket || ageBucket(ms);
-          const frozen = isWinterPlanned(row);
-          const pwp    = categoryColors['planned-winter-project'] || { background:'#E7F3FE', foreground:'#1887FC' };
-          const style  = frozen ? ` style="--bg:${pwp.background}; --ring: color-mix(in srgb, ${pwp.foreground} 50%, transparent); color:${pwp.foreground}"` : '';
-          const cls    = `age-chip age-${bucket}` + (frozen ? ' frozen' : '');
-          const baseT  = ms != null ? `${(ms/86400000).toFixed(1)} days` : 'Unknown';
-          const title  = frozen ? `Planned for Winter • ${baseT}` : baseT;
-
-          return `<td data-col="Age"><span class="${cls}"${style} title="${esc(title)}">${esc(getAgeLabel(row))}</span></td>`;
-        }
-
-        return `<td data-col="${esc(h)}">${esc(v)}</td>`;
-      }).join('');
-
-      frag.appendChild(tr);
-    }
-
-    tbodyEl.appendChild(frag);
-
-    if (i < safe.length){
-      requestAnimationFrame(paintChunk);
-    } else {
-      // end-of-render housekeeping
-      const hasRows = safe.length > 0;
-      container?.__tableWrap && (container.__tableWrap.hidden = isMobileView() || !hasRows);
-      container?.__mobileSortWrap && (container.__mobileSortWrap.hidden = !isMobileView() || !hasRows);
-      container?.__mobileCards && (container.__mobileCards.hidden = true);
-      container?.__emptyState && (container.__emptyState.hidden = hasRows);
-      updateTheadHeight();
-    }
-  }
-
-  requestAnimationFrame(paintChunk);
-}
-
   // table rows (desktop)
 if(!mobile && tbodyEl){
   tbodyEl.innerHTML = safeRows.map(row => {
@@ -2435,7 +2356,7 @@ if(hNorm==='age'){
     : '';
 
   const cls   = `age-chip age-${bucket}` + (frozen ? ' frozen' : '');
-  const title = frozen ? `Planned for Winter • ${baseT}` : baseT;
+const title = frozen ? `Planned for Winter • ${baseT}` : baseT;
   const aria  = frozen ? ' aria-label="Planned for Winter"' : '';
 
   return `<td data-col="Age"><span class="${cls}"${style} title="${esc(title)}"${aria}>${label}</span></td>`;
