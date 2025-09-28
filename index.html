@@ -1041,6 +1041,136 @@ function csvEscape(value){
   return /[",\n\r]/.test(str) ? `"${str.replace(/"/g,'""')}"` : str;
 }
 
+  /* ========= Week arrows hookup ========= */
+
+/* cache the weeks list + current selection so external arrows can work */
+let __WEEKS = [];          // [{label, weekEnd, gid}, ...]
+let __WEEK_SELECTED = null; // string weekEnd
+
+function setSelectedWeek(weekObj){
+  // remember selection for external arrows
+  __WEEK_SELECTED = weekObj?.weekEnd || null;
+  rememberWeek(weekObj);
+
+  // update URL (?week=...)
+  const url = new URL(location.href);
+  url.searchParams.set('week', weekObj.weekEnd);
+  url.searchParams.delete('gid');
+  history.replaceState({}, '', url);
+
+  // load that gid
+  loadChosenGid(weekObj);
+}
+
+/* Move by an offset relative to the current option (list is newest-first) */
+function gotoWeekByOffset(offset){
+  if (!__WEEKS.length) return;
+  const idx = __WEEKS.findIndex(w => w.weekEnd === __WEEK_SELECTED);
+  const next = idx + offset;
+  if (next < 0 || next >= __WEEKS.length) return;
+  setSelectedWeek(__WEEKS[next]);
+  // also refresh enable/disable state on any arrows we can see
+  refreshWeekArrowDisabled();
+}
+
+/* Enable/disable whichever arrow buttons exist */
+function refreshWeekArrowDisabled(){
+  const idx = __WEEKS.findIndex(w => w.weekEnd === __WEEK_SELECTED);
+  const prevs = document.querySelectorAll('#weekPrev,[data-week-nav="prev"]');
+  const nexts = document.querySelectorAll('#weekNext,[data-week-nav="next"]');
+  prevs.forEach(btn => btn.disabled = (idx === __WEEKS.length - 1));
+  nexts.forEach(btn => btn.disabled = (idx <= 0));
+}
+
+/* Bind any external arrow buttons (call after weeks are known) */
+function wireExternalWeekArrows(){
+  const prevs = document.querySelectorAll('#weekPrev,[data-week-nav="prev"]');
+  const nexts = document.querySelectorAll('#weekNext,[data-week-nav="next"]');
+  prevs.forEach(btn => {
+    btn.type = btn.type || 'button';
+    btn.addEventListener('click', () => gotoWeekByOffset(+1)); // newer-first list → +1 is “previous” (older)
+  });
+  nexts.forEach(btn => {
+    btn.type = btn.type || 'button';
+    btn.addEventListener('click', () => gotoWeekByOffset(-1)); // move towards newer
+  });
+  refreshWeekArrowDisabled();
+}
+
+/* ========= integrate with your existing functions ========= */
+
+/* 1) After we fetch the index and choose the week, remember it globally */
+async function loadLatestOrChosenWeek(){
+  try{
+    const weeks = await loadWeeksIndex();
+    if (!weeks.length) throw new Error('Index is empty');
+
+    __WEEKS = weeks.slice();                                // <—
+    const chosen = chooseInitialWeek(__WEEKS);
+    __WEEK_SELECTED = chosen.weekEnd;                       // <—
+
+    renderWeekControls(__WEEKS, chosen);
+    rememberWeek(chosen);
+    await loadChosenGid(chosen);
+
+    wireExternalWeekArrows();                               // <— bind external arrows
+    refreshWeekArrowDisabled();
+  }catch(err){
+    console.error(err);
+    alert('Could not load the latest dashboard. Check the Index publish URL and columns (label, week_end, gid).');
+  }
+}
+
+/* 2) Inside renderWeekControls, keep your existing prev/next,
+      but route them through the same helpers so all arrows stay in sync. */
+function renderWeekControls(weeks, selected){
+  const wrap = document.getElementById('weekPicker'); if(!wrap) return;
+  wrap.innerHTML = '';
+
+  const label = document.createElement('span');
+  label.textContent = 'Week';
+
+  const sel = document.createElement('select');
+  sel.ariaLabel = 'Select week';
+  weeks.forEach(w => {
+    const o = document.createElement('option');
+    o.value = w.weekEnd;
+    o.textContent = w.label || w.weekEnd;
+    if (w.weekEnd === selected.weekEnd) o.selected = true;
+    sel.appendChild(o);
+  });
+
+  const prev = document.createElement('button'); prev.className='btn'; prev.id='weekPrev'; prev.textContent='◀︎';
+  const next = document.createElement('button'); next.className='btn'; next.id='weekNext'; next.textContent='▶︎';
+
+  function gotoWeekByIndex(i){
+    if (i < 0 || i >= weeks.length) return;
+    setSelectedWeek(weeks[i]);
+    // sync the <select> and arrow disabled state
+    sel.value = weeks[i].weekEnd;
+    refreshWeekArrowDisabled();
+  }
+
+  // internal select change
+  sel.addEventListener('change', () => {
+    const i = weeks.findIndex(w => w.weekEnd === sel.value);
+    gotoWeekByIndex(i);
+  });
+
+  // internal arrows
+  prev.addEventListener('click', () => gotoWeekByOffset(+1));
+  next.addEventListener('click', () => gotoWeekByOffset(-1));
+
+  // keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    if (e.key === '[') gotoWeekByOffset(+1);
+    if (e.key === ']') gotoWeekByOffset(-1);
+  });
+
+  wrap.append(label, sel, prev, next);
+  refreshWeekArrowDisabled();
+}
+
 function buildCsv(headers, rows){
   const safeHeaders = Array.isArray(headers) ? headers : [];
   const safeRows = Array.isArray(rows) ? rows : [];
