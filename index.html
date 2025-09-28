@@ -1293,22 +1293,60 @@ function csvUrlForGid(gid){
   return u.toString();
 }
 
-/* --- Parse the Index (label, week_end, gid) --- */
+/* --- Parse the Index (label, week_end, gid) with aliases + diagnostics --- */
 async function loadWeeksIndex(){
-  const res = await fetch(SHEET_INDEX_CSV_URL + '&_ts=' + Date.now(), { cache:'no-store' });
+  const url = SHEET_INDEX_CSV_URL + '&_ts=' + Date.now();
+  const res = await fetch(url, { cache:'no-store' });
   if(!res.ok) throw new Error('Index load failed: ' + res.status);
+
   const text = await res.text();
   const { headers, rows } = parseDelimited(text);
 
-  // normalise column names and map to objects
-  const H = name => headers.find(h => h.toLowerCase() === name.toLowerCase());
-  const out = rows.map(r => ({
-    label   : r[H('label')],
-    weekEnd : r[H('week_end')],  // "YYYY-MM-DD"
-    gid     : r[H('gid')]
-  })).filter(x => x && x.gid);
+  // Normalize headers once
+  const normHeaders = headers.map(h => String(h || '').trim());
+  const findHeader = (...candidates) => {
+    const wanted = candidates.map(c => String(c).trim().toLowerCase());
+    const idx = normHeaders.findIndex(h => wanted.includes(h.toLowerCase()));
+    return idx >= 0 ? headers[idx] : null;
+  };
 
-  // newest first by week_end (desc)
+  // Accept common aliases
+  const H_LABEL   = findHeader('label', 'week label', 'title', 'name');
+  const H_WEEKEND = findHeader('week_end', 'week end', 'week', 'weekending', 'week-ending', 'week_end_date', 'date', 'week ending (iso)');
+  const H_GID     = findHeader('gid', 'sheet_gid', 'tab_gid', 'tab id', 'sheet id', 'sheetid', 'tabid', 'sheet');
+
+  // Optional URL column (we can extract gid=12345 from it)
+  const H_URL     = findHeader('url', 'sheet url', 'link');
+
+  if (!H_GID && !H_URL){
+    console.error('[Index] Headers present:', headers);
+    throw new Error('Index is missing a "gid" or "url" column');
+  }
+  if (!H_LABEL || !H_WEEKEND){
+    console.warn('[Index] Using partial headers. Found:', { H_LABEL, H_WEEKEND, H_GID, H_URL, headers });
+  }
+
+  const gidFromUrl = (u) => {
+    if (!u) return null;
+    // Handles ...edit#gid=123, ...pub?gid=123, etc.
+    const m = String(u).match(/[?#&]gid=(\d+)/);
+    return m ? m[1] : null;
+  };
+
+  const out = rows.map(r => {
+    const label   = H_LABEL   ? r[H_LABEL]   : (r[H_WEEKEND] || '').trim();
+    const weekEnd = H_WEEKEND ? r[H_WEEKEND] : '';
+    let gid       = H_GID ? r[H_GID] : null;
+    if (!gid && H_URL) gid = gidFromUrl(r[H_URL]);
+    return { label, weekEnd, gid };
+  }).filter(x => x && x.gid);
+
+  if (!out.length){
+    console.error('[Index] No usable rows. Headers:', headers, 'Sample row:', rows[0]);
+    throw new Error('Index has no rows with a gid');
+  }
+
+  // newest first by week_end (string compare ok if YYYY-MM-DD)
   out.sort((a,b) => String(b.weekEnd).localeCompare(String(a.weekEnd)));
   return out;
 }
@@ -1414,18 +1452,34 @@ async function loadChosenGid(meta){
   ingestToDashboards(LAST_HEADERS, ALL_ROWS);
 }
 
-/* --- Entry point: read Index -> pick week -> load that tab --- */
 async function loadLatestOrChosenWeek(){
   try{
-    const weeks = await loadWeeksIndex();
-    if (!weeks.length) throw new Error('Index is empty');
-    const chosen = chooseInitialWeek(weeks);
+    const weeks = await loadWeeksIndex();       // tolerant now
+    const chosen = chooseInitialWeek(weeks);    // same logic as before
     renderWeekControls(weeks, chosen);
     rememberWeek(chosen);
     await loadChosenGid(chosen);
   }catch(err){
-    console.error(err);
-    alert('Could not load the latest dashboard. Check the Index publish URL and columns (label, week_end, gid).');
+    console.error('[Weeks bootstrap] ', err);
+
+    // Fallback: allow manual ?gid=12345 in the URL to force a specific tab
+    const qp = new URLSearchParams(location.search);
+    const forcedGid  = qp.get('gid');
+    const forcedDate = qp.get('week') || '';
+    if (forcedGid){
+      console.warn('[Fallback] Using ?gid=', forcedGid);
+      await loadChosenGid({ gid: forcedGid, label: forcedDate || '(manual)', weekEnd: forcedDate });
+      return;
+    }
+
+    alert(
+      'Could not load the latest dashboard.\n\n' +
+      'Things to check:\n' +
+      '• The Index tab is Published to the web (CSV)\n' +
+      '• It contains columns for: label, week_end, and gid (case-insensitive)\n' +
+      '  - Aliases like "Week end" and a URL column with gid=… are now supported\n' +
+      '• Open the browser console for header details and the first row preview.'
+    );
   }
 }
 
