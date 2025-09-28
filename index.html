@@ -2321,15 +2321,6 @@ renderRowsSmart(tbody, headers, working, container);
   updatePriorityOnlyChip(container);
   updateTheadHeight();
 }
- 
-  // cards (mobile)
-  if(container?.__mobileCards){
-    if(mobile){
-      container.__mobileCards.innerHTML = safeRows.map(cardHTML).join('');
-    }else{
-      container.__mobileCards.innerHTML = '';
-    }
-  }
 
   // toggle shells
   const hasRows = safeRows.length>0;
