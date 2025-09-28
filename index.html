@@ -851,6 +851,7 @@ html{ overflow-y: scroll; }
       <input id="file" type="file" accept=".csv,.tsv,.json,application/json,text/csv,text/tab-separated-values" style="display:none" />
       <button class="btn" id="themeBtn" type="button">Dark mode</button>
       <button class="btn" id="exportCsvBtn" type="button" disabled>Export CSV</button>
+      <button class="btn" id="refreshBtn" type="button">Refresh</button>
       <div id="weekPicker" class="filter-group"></div>
 <!-- Legend popover trigger -->
 <div class="legend-popover">
@@ -949,7 +950,7 @@ async function loadChosenGid(meta){
     const url = csvUrlForGid(meta.gid);
     console.log('[loadChosenGid] gid:', meta.gid, 'url:', url);
 
-    const res = await fetch(url, { cache:'no-store', signal: __loadController.signal });
+    const res = await fetch(url, { signal: __loadController.signal });
     if(!res.ok) {
       // show status code/message if Google returns an error
       throw new Error(`Fetch failed (${res.status} ${res.statusText})`);
@@ -1171,9 +1172,16 @@ function wireExternalWeekArrows(){
 /* ========= integrate with your existing functions ========= */
 
 /* 1) After we fetch the index and choose the week, remember it globally */
-async function loadLatestOrChosenWeek(){
+async function loadLatestOrChosenWeek(forceBust=false){
   try{
-    const weeks = await loadWeeksIndex();
+    let weeks;
+    if (forceBust){
+      const bustUrl = new URL(SHEET_INDEX_CSV_URL);
+      bustUrl.searchParams.set('_ts', Date.now());
+      weeks = await loadWeeksIndexFrom(bustUrl.toString());
+    } else {
+      weeks = await loadWeeksIndex();
+    }
     if (!weeks.length) throw new Error('Index is empty');
 
     __WEEKS = weeks.slice();                                // <—
@@ -1591,9 +1599,12 @@ function csvUrlForGid(gid){
 
 /* --- Parse the Index (label, week_end, gid) with aliases + diagnostics --- */
 async function loadWeeksIndex(){
-    console.log('Index CSV URL:', SHEET_INDEX_CSV_URL);   // 👈 add here
-  const url = SHEET_INDEX_CSV_URL + '&_ts=' + Date.now();
-  const res = await fetch(url, { cache:'no-store' });
+  return loadWeeksIndexFrom(SHEET_INDEX_CSV_URL);
+}
+
+async function loadWeeksIndexFrom(url){
+    console.log('Index CSV URL:', url);   // 👈 add here
+  const res = await fetch(url);
   if(!res.ok) throw new Error('Index load failed: ' + res.status);
 
   const text = await res.text();
@@ -2595,6 +2606,12 @@ document.getElementById('file').addEventListener('change', e=>{
     LAST_HEADERS=headers; ALL_ROWS=rows; ingestToDashboards(LAST_HEADERS, ALL_ROWS);
   };
   reader.readAsText(f);
+});
+
+// Refresh index + dashboards
+const refreshBtn=document.getElementById('refreshBtn');
+refreshBtn?.addEventListener('click', ()=>{
+  loadLatestOrChosenWeek(true);
 });
 
 // Theme toggle (unchanged)
