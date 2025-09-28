@@ -2407,6 +2407,11 @@ window.addEventListener('resize', updateTheadHeight);
 });
 
 function ingestToDashboards(headers, rows){
+  // Always reset cached data so future loads start fresh
+  window.__ALS_GROUPS = undefined;
+  window.__ALS_HEADERS = undefined;
+  window.__ALS_GROUP_MAP = undefined;
+
   // 1) Remember which dashboard is currently active
   const prevActiveId =
     document.querySelector('.dash[data-active="true"]:not([hidden])')?.id || null;
@@ -2475,17 +2480,32 @@ const displayHeaders = (() => {
     by   : filtered.filter(r=>toSiteKey(r.Location)==='by'),
   };
 
-  // ✅ Guard against missing dashboard containers
-  [
+  const dashEntries = [
     ['dash-all','all'],
     ['dash-ek','ek'],
     ['dash-mm','mm'],
     ['dash-keith','keith'],
     ['dash-by','by']
-  ].forEach(([id, key]) => {
+  ];
+
+  window.__ALS_GROUPS = groups;
+  window.__ALS_HEADERS = displayHeaders.slice();
+  window.__ALS_GROUP_MAP = dashEntries.reduce((acc, [id, key]) => {
+    acc[id] = key;
+    return acc;
+  }, {});
+
+  const currentActiveId = getActiveDashId();
+
+  dashEntries.forEach(([id, key]) => {
     const el = document.getElementById(id);
     if (!el){ console.warn?.(`Skipping dashboard "${id}" – element not found.`); return; }
-    renderDashboard(el, displayHeaders, groups[key]);
+    el.__needsRender = true;
+
+    if (id === currentActiveId){
+      renderDashboard(el, displayHeaders, groups[key] || []);
+      el.__needsRender = false;
+    }
   });
 
 // restore preferred/previous site
@@ -2518,6 +2538,14 @@ function setActiveDash(id){
     const controls = t.getAttribute('aria-controls');
     t.setAttribute('aria-selected', String(controls === id));
   });
+
+  if (active.__needsRender && window.__ALS_HEADERS && window.__ALS_GROUPS){
+    const map = window.__ALS_GROUP_MAP || {};
+    const key = map[id] || site;
+    const rows = window.__ALS_GROUPS[key] || [];
+    renderDashboard(active, window.__ALS_HEADERS, rows);
+    active.__needsRender = false;
+  }
 
   updateStickyControlsOffset();
   updateTheadHeight();
