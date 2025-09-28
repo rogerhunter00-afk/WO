@@ -931,23 +931,8 @@ html{ overflow-y: scroll; }
 
 <script>
 // --- CONFIG: Google Sheet (Published CSV) ---
-const SHEET_CSV_URL =
-  'https://docs.google.com/spreadsheets/d/e/2PACX-1vRJocigDhxneJtrUmezFU7FcWpzSSah8-Wb6Rce8NA1f7jKcINgYU29iYRqt5QQymWATX5zs5k8_rK0/pub?gid=105348743&single=true&output=csv';
-
-// Build a /pub CSV URL for any gid in this spreadsheet
-const BASE_PUBLISH_URL = (() => {
-  const u = new URL(SHEET_CSV_URL || SHEET_INDEX_CSV_URL);
-  u.search = ''; // strip ?... so we can set our own params
-  return u.toString();       // ends with .../pub
-})();
-
-function csvUrlForGid(gid){
-  const u = new URL(BASE_PUBLISH_URL);
-  u.searchParams.set('single','true');
-  u.searchParams.set('output','csv');
-  u.searchParams.set('gid', String(gid));
-  return u.toString();
-}
+const SHEET_INDEX_CSV_URL =
+  'https://docs.google.com/spreadsheets/d/e/2PACX-1vRJocigDhxneJtrUmezFU7FcWpzSSah8-Wb6Rce8NA1f7jKcINGyU29iYRqt5QQymWATX5zs5k8_rK0/pub?gid=105348743&single=true&output=csv';
   
 // --- Layout helpers ---
 const $stickyTop = document.querySelector('.sticky-top');
