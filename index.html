@@ -1199,14 +1199,11 @@ async function loadLatestOrChosenWeek(forceBust=false){
     alert('Could not load the latest dashboard. Check the Index publish URL and columns (label, week_end, gid).');
   }
 }
-
-  document.addEventListener('DOMContentLoaded', () => {
+  
+document.addEventListener('DOMContentLoaded', () => {
+  setActiveDash('dash-all');
+  PREFERRED_ACTIVE_DASH = 'dash-all';
   loadLatestOrChosenWeek();
-});
-
-  document.addEventListener('DOMContentLoaded', () => {
-  setActiveDash('dash-all');     // ensure All Sites is visible right away
-  loadLatestOrChosenWeek();      // your existing call
 });
   
 function renderWeekControls(weeks, chosen){
