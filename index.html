@@ -977,6 +977,8 @@ async function loadChosenGid(meta){
       throw new Error('Row dedupe failed – check required columns like ID/Title/Created on');
     }
 
+    saveWeekToCache(meta, { headers, rows });
+
     LAST_HEADERS = headers;
     ALL_ROWS     = rows;
     setWeekBadge(meta.label || meta.weekEnd);
@@ -996,7 +998,87 @@ async function loadChosenGid(meta){
     __loadController = null;
   }
 }
-  
+
+async function refreshInBG(meta){
+  if(!meta) return null;
+
+  const resolveUrl = () => {
+    if(meta.url) return meta.url;
+    if(meta.gid != null) return csvUrlForGid(meta.gid);
+    return null;
+  };
+
+  const url = resolveUrl();
+  if(!url) return null;
+
+  try {
+    const res = await fetch(url);
+    if(!res.ok){
+      throw new Error(`Fetch failed (${res.status} ${res.statusText})`);
+    }
+
+    const text = await res.text();
+    if(!text || !text.trim()){
+      throw new Error('Fetched CSV is empty');
+    }
+
+    let headers, rows;
+    try {
+      ({ headers, rows } = parseDelimited(text));
+    } catch (pErr) {
+      console.error('[refreshInBG] parseDelimited failed:', pErr);
+      throw new Error('Could not parse CSV – check delimiters/quotes');
+    }
+
+    try {
+      rows = dedupeRows(rows);
+    } catch (dErr) {
+      console.error('[refreshInBG] dedupeRows failed:', dErr);
+      throw new Error('Row dedupe failed – check required columns like ID/Title/Created on');
+    }
+
+    const cached = saveWeekToCache(meta, { headers, rows }) || { headers, rows };
+
+    const eq = (a,b) => String(a ?? '') === String(b ?? '');
+    let isCurrent = false;
+    if(__WEEK_SELECTED && meta.weekEnd){
+      isCurrent = eq(meta.weekEnd, __WEEK_SELECTED);
+    }
+
+    if(!isCurrent && meta.gid != null){
+      const selectedWeek = __WEEKS.find(w => eq(w.weekEnd, __WEEK_SELECTED));
+      if(selectedWeek && selectedWeek.gid != null){
+        isCurrent = eq(selectedWeek.gid, meta.gid);
+      }
+
+      if(!isCurrent){
+        const byGid = __WEEKS.find(w => w?.gid != null && eq(w.gid, meta.gid));
+        if(byGid && byGid.weekEnd && __WEEK_SELECTED){
+          isCurrent = eq(byGid.weekEnd, __WEEK_SELECTED);
+        }
+      }
+    }
+
+    if(!isCurrent){
+      return cached;
+    }
+
+    const nextHeaders = Array.isArray(cached.headers) ? cached.headers.slice() : Array.isArray(headers) ? headers.slice() : [];
+    const nextRows = Array.isArray(cached.rows) ? cached.rows.slice() : Array.isArray(rows) ? rows.slice() : [];
+
+    LAST_HEADERS = nextHeaders;
+    ALL_ROWS = nextRows;
+    setWeekBadge(meta.label || meta.weekEnd);
+    ingestToDashboards(LAST_HEADERS, ALL_ROWS);
+
+    return cached;
+  } catch(err){
+    if(err?.name === 'AbortError') return null;
+    console.error('[refreshInBG] failed:', err);
+    return null;
+  }
+}
+
 // Published CSV of the *Index* tab
 const SHEET_INDEX_CSV_URL =
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vRJocigDhxneJtrUmezFU7FcWpzSSah8-Wb6Rce8NA1f7jKcINgYU29iYRqt5QQymWATX5zs5k8_rK0/pub?single=true&output=csv&gid=105348743';
@@ -1083,6 +1165,62 @@ function getAgeLabel(row){
 let LAST_HEADERS = null;
 let ALL_ROWS = null;
 let __LAST_FILTERS_JSON = null;
+
+// --- Week data cache (in-memory) ---
+const WEEK_CACHE_LIMIT = 6;
+const WEEK_CACHE_BY_WEEK = new Map();
+const WEEK_CACHE_BY_GID = new Map();
+
+function cloneWeekEntry(entry){
+  if(!entry) return null;
+  return {
+    meta: { ...(entry.meta || {}) },
+    headers: Array.isArray(entry.headers) ? entry.headers.slice() : [],
+    rows: Array.isArray(entry.rows) ? entry.rows.map(row => ({ ...(row || {}) })) : []
+  };
+}
+
+function trimWeekCache(map){
+  while(map.size > WEEK_CACHE_LIMIT){
+    const oldestKey = map.keys().next().value;
+    if(oldestKey == null) break;
+    map.delete(oldestKey);
+  }
+}
+
+function saveWeekToCache(meta, payload){
+  if(!meta || !payload) return null;
+
+  const headers = Array.isArray(payload.headers) ? payload.headers.slice() : [];
+  const rows = Array.isArray(payload.rows) ? payload.rows.map(row => ({ ...(row || {}) })) : [];
+  const entry = { meta: { ...(meta || {}) }, headers, rows };
+
+  if(meta.weekEnd){
+    WEEK_CACHE_BY_WEEK.set(String(meta.weekEnd), entry);
+    trimWeekCache(WEEK_CACHE_BY_WEEK);
+  }
+  if(meta.gid != null){
+    WEEK_CACHE_BY_GID.set(String(meta.gid), entry);
+    trimWeekCache(WEEK_CACHE_BY_GID);
+  }
+
+  return entry;
+}
+
+function loadWeekFromCache(meta){
+  if(!meta) return null;
+  const weekKey = meta.weekEnd != null ? String(meta.weekEnd) : null;
+  if(weekKey && WEEK_CACHE_BY_WEEK.has(weekKey)){
+    return cloneWeekEntry(WEEK_CACHE_BY_WEEK.get(weekKey));
+  }
+
+  const gidKey = meta.gid != null ? String(meta.gid) : null;
+  if(gidKey && WEEK_CACHE_BY_GID.has(gidKey)){
+    return cloneWeekEntry(WEEK_CACHE_BY_GID.get(gidKey));
+  }
+
+  return null;
+}
 
 const $exportCsvBtn = document.getElementById('exportCsvBtn');
 
