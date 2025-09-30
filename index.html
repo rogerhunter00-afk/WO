@@ -934,9 +934,9 @@ html{ overflow-y: scroll; }
 
   let __loadController = null;
 
-  const $loading = document.getElementById('loadingOverlay');
-const showLoading = () => { if ($loading) $loading.style.display = 'grid'; };
-const hideLoading = () => { if ($loading) $loading.style.display = 'none'; };
+const $loading = () => document.getElementById('loadingOverlay');
+const showLoading = () => { const el = $loading(); if (el) el.style.display = 'grid'; };
+const hideLoading = () => { const el = $loading(); if (el) el.style.display = 'none'; };
 
 async function loadChosenGid(meta){
   if (__loadController) __loadController.abort();
@@ -1253,21 +1253,6 @@ function csvEscape(value){
 let __WEEKS = [];          // [{label, weekEnd, gid}, ...]
 let __WEEK_SELECTED = null; // string weekEnd
 
-function setSelectedWeek(weekObj){
-  // remember selection for external arrows
-  __WEEK_SELECTED = weekObj?.weekEnd || null;
-  rememberWeek(weekObj);
-
-  // update URL (?week=...)
-  const url = new URL(location.href);
-  url.searchParams.set('week', weekObj.weekEnd);
-  url.searchParams.delete('gid');
-  history.replaceState({}, '', url);
-
-  // load that gid
-  loadChosenGid(weekObj);
-}
-
 /* Move by an offset relative to the current option (list is newest-first) */
 function gotoWeekByOffset(offset){
   if (!__WEEKS.length) return;
@@ -1329,6 +1314,7 @@ async function loadLatestOrChosenWeek(forceBust=false){
     renderWeekControls(__WEEKS, chosen);
     rememberWeek(chosen);
     await loadChosenGid(chosen);
+    prefetchAdjacent(__WEEKS, chosen);   // <— add this line
 
     wireExternalWeekArrows();                               // <— bind external arrows
     refreshWeekArrowDisabled();
@@ -1373,23 +1359,41 @@ function renderWeekControls(weeks, chosen){
   refreshWeekArrowDisabled();
 }
 
-  function setSelectedWeek(weekObj){
+function setSelectedWeek(weekObj){
   __WEEK_SELECTED = weekObj?.weekEnd || null;
   rememberWeek(weekObj);
 
+  // keep URL tidy
   const url = new URL(location.href);
   url.searchParams.set('week', weekObj.weekEnd);
   url.searchParams.delete('gid');
   history.replaceState({}, '', url);
 
-  // keep the <select> showing the current choice
+  // sync the dropdown
   const sel = document.querySelector('#weekPicker select');
   if (sel){
     const i = __WEEKS.findIndex(w => w.weekEnd === weekObj.weekEnd);
     if (i >= 0) sel.value = String(i);
   }
 
-  loadChosenGid(weekObj);
+  // 1) if cached → render immediately (instant)
+  const cached = loadWeekFromCache(weekObj);
+  if (cached){
+    LAST_HEADERS = cached.headers;
+    ALL_ROWS     = cached.rows;
+    setWeekBadge(weekObj.label || weekObj.weekEnd);
+    ingestToDashboards(LAST_HEADERS, ALL_ROWS);
+
+    // 2) revalidate in background (quietly updates if changed)
+    refreshInBG(weekObj);
+  } else {
+    // first visit to this week → show loading once
+    showLoading?.();
+    loadChosenGid(weekObj).finally(()=> hideLoading?.());
+  }
+
+  // 3) speculative preload for next/prev weeks
+  prefetchAdjacent(__WEEKS, weekObj);
 }
   
 function renderRowsSmart(tbodyEl, headers, rows, container){
@@ -1461,7 +1465,7 @@ function renderRowsScopedChunked(tbodyEl, headers, rows, container){
 
   const safe = Array.isArray(rows) ? rows : [];
   tbodyEl.innerHTML = '';
-  const CHUNK = 400;
+  const CHUNK = 800;
   let i = 0;
 
   function paintChunk(){
@@ -1517,6 +1521,16 @@ function renderRowsScopedChunked(tbodyEl, headers, rows, container){
   }
 
   requestAnimationFrame(paintChunk);
+}
+  
+  function prefetchAdjacent(weeks, chosen){
+  if (!Array.isArray(weeks) || !chosen) return;
+  const idx = weeks.findIndex(w => w.weekEnd === chosen.weekEnd);
+  const newer = weeks[idx - 1]; // list is newest-first
+  const older = weeks[idx + 1];
+  [newer, older].forEach(w => {
+    if (w && !loadWeekFromCache(w)) refreshInBG(w); // fetch & cache, no re-render
+  });
 }
 
 function buildCsv(headers, rows){
