@@ -306,12 +306,11 @@ table{
     /* ==== NEW sticky table header system (one source of truth) ==== */
 .table-scroll{ position: relative; }
 
-/* A solid plate that travels with the sticky header
-   so body rows can never peek above it while scrolling */
-.thead-plate{
+/* Around line 270-285, update: */
+.thead-plate {
   position: sticky;
   top: var(--sticky-controls-offset);
-  z-index: 118;                               /* below th(119), above tbody */
+  z-index: 122;  /* ← increase this */
   height: var(--thead-height, 40px);
   margin-bottom: calc(-1 * var(--thead-height, 40px));
   background: var(--thead);
@@ -319,10 +318,10 @@ table{
 }
 
 /* Real sticky header cells */
-.table-scroll thead th{
+.table-scroll thead th {
   position: sticky;
   top: var(--sticky-controls-offset);
-  z-index: 119;
+  z-index: 123;  /* ← increase this */
   background: var(--thead);
   color: var(--thead-text);
 }
@@ -336,7 +335,7 @@ table{
   width:16px;
   background:var(--thead);
   pointer-events:none;
-  z-index:121;                                 /* above th background */
+  z-index:124;                                 /* above th background */
 }
 
 /* ==== Rail behind the ID + extra padding so digits never touch it ==== */
@@ -375,8 +374,8 @@ table th, table td{
     thead th:first-child{ border-top-left-radius:3px; }
     thead th:last-child{ border-top-right-radius:3px; border-right:none; }
 
-    tbody td{
-      background:var(--zebra);
+    tbody td {
+      background: var(--zebra);
       border-bottom:1px solid var(--grid);
       padding:8px 6px;
       vertical-align:top;
