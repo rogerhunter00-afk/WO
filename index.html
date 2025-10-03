@@ -1023,12 +1023,23 @@ thead th[data-sort] .sort-arrow{ opacity:1; }
     
  /* --- Sticky header fix: use dynamic offset again, no wrapper padding --- */
 .table-scroll { padding-top: 0 !important; }
+    
+/* FINAL: correct sticky header alignment (place at the very end) */
+.table-scroll{
+  /* reserve space so the header starts right under the controls */
+  padding-top: clamp(
+    0px,
+    calc(var(--ui-offset, var(--sticky-controls-offset, 0px)) - var(--thead-height, 40px)),
+    100vh
+  ) !important;
+}
 
 .table-scroll thead th,
-.thead-plate {
+.thead-plate{
+  /* header + plate stick under the top UI */
   top: var(--ui-offset, var(--sticky-controls-offset, 0px)) !important;
 }
-   
+
   </style>
 </head>
 <body>
