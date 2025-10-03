@@ -138,7 +138,7 @@
 
 /* Swap to cards on phones */
 @media (max-width: 700px){
-  .dash-table .table-scroll{ display:none; } /* hide desktop table */
+  .dash-table { display:none; } /* hide desktop table */
   .mobile-cards{ display:block; }            /* show card list */
   .page{ --page-pad-inline:16px; }
 }
@@ -295,32 +295,34 @@
 
     .top-rule{ height:6px; background:var(--als-blue); border-bottom:1px solid var(--als-blue-strong); margin:8px 0 10px; }
 
-/* let the browser window be the scroller */
-.table-scroll{
-  height: auto;           /* was: calc(100vh - var(--sticky-controls-offset) - 24px) */
-  max-height: none;
-  overflow: visible;      /* was: overflow:auto */
-}
-
-/* 1) Use window scroll only */
+/* 1) Page scroll only */
 .table-scroll{
   height: auto;
   max-height: none;
   overflow: visible;
 }
 
-/* 2) Make the THEAD sit above the rows so content scrolls behind it */
-.table-scroll thead{
-  position: sticky;
-  top: var(--sticky-controls-offset);   /* sits right under the controls */
-  z-index: 118;                         /* above scrim (111), below controls (120) */
-  background: var(--thead);
-  box-shadow: 0 1px 0 var(--grid), 0 6px 10px rgba(0,0,0,.08); /* subtle depth */
+/* 2) Header overlays the body: rows scroll beneath it */
+.table-scroll thead{ position: static; }          /* thead itself not sticky */
+.table-scroll thead th{
+  position: sticky;                               /* each cell is sticky */
+  top: var(--sticky-controls-offset);             /* sits under your controls */
+  z-index: 119;                                   /* above tbody, below controls (120) */
+  background: var(--thead);                       /* solid paint = clean mask */
+  color: var(--thead-text);          /* add this */
+  background-clip: padding-box;      /* optional: avoids any bleed at rounded corners */
+  box-shadow: 0 1px 0 var(--grid);
+  transform: translateZ(0);                       /* avoids flicker in some browsers */
 }
 
-/* 3) Keep the scrim only for the header height (no extra gap) */
-.sticky-top::after{
-  height: var(--thead-height, 40px);
+/* 3) Stop the red priority rail from peeking past the header edge */
+tr.row-priority > td:first-child::before{ z-index: 0; } /* keep it behind */
+.table-scroll thead th:first-child::before{
+  content: "";
+  position: absolute;
+  left: -12px; top: 0; bottom: 0; width: 12px;    /* masks the left gutter */
+  background: var(--thead);
+  pointer-events: none;
 }
 
 /* ✅ Merged table + cell styles */
