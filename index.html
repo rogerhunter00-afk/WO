@@ -842,6 +842,24 @@ html{ overflow-y: scroll; }
 /* keep the sticky controls clearly on top */
 .sticky-top { z-index: 400; }
 
+    :root { --ui-offset: 0px; } /* total space above tables (title + rule + sticky controls) */
+
+/* Use --ui-offset everywhere the sticky header aligns */
+.thead-plate{
+  top: var(--ui-offset, var(--sticky-controls-offset, 0px));
+}
+.table-scroll thead th{
+  top: var(--ui-offset, var(--sticky-controls-offset, 0px));
+}
+.table-scroll thead th:first-child::before{
+  top: var(--ui-offset, var(--sticky-controls-offset, 0px));
+}
+
+/* (optional) make the fixed scrim match the same offset */
+.sticky-top::after{
+  height: var(--ui-offset, var(--sticky-controls-offset, 0px));
+}
+
   </style>
 </head>
 <body>
@@ -1140,6 +1158,47 @@ if('ResizeObserver' in window && $stickyTop){
   const observer = new ResizeObserver(updateStickyControlsOffset);
   observer.observe($stickyTop);
 }
+
+  // Measure everything that sits above the tables and keep a dynamic offset.
+// It shrinks as the title/logo scroll out of view, so the table header
+// always hugs the bottom of the visible top UI without leaving a blue gap.
+function updateUiOffset(){
+  const head   = document.querySelector('.page-head');
+  const rule   = document.querySelector('.top-rule');
+  const sticky = document.querySelector('.sticky-top');
+
+  const rectH = el => (el ? el.getBoundingClientRect().height : 0);
+  const mb    = el => (el ? parseFloat(getComputedStyle(el).marginBottom) || 0 : 0);
+
+  // How much of the title+rule is still visible at the top of the viewport?
+  const headAndRuleTotal = rectH(head) + rectH(rule);
+  const scrolledPast     = Math.min(window.scrollY || 0, headAndRuleTotal);
+  const headAndRuleInView = Math.max(0, headAndRuleTotal - scrolledPast);
+
+  // Sticky block stays in view; include its margin-bottom to match layout.
+  const stickyBlock = rectH(sticky) + mb(sticky);
+
+  const offset = Math.round(headAndRuleInView + stickyBlock);
+  document.documentElement.style.setProperty('--ui-offset', `${offset}px`);
+}
+
+// keep both helpers in sync (either keep your old one or just call this)
+function wireUiOffsetObservers(){
+  updateUiOffset();
+  window.addEventListener('scroll', updateUiOffset, { passive: true });
+  window.addEventListener('resize', updateUiOffset);
+  window.addEventListener('load', updateUiOffset);
+  if ('ResizeObserver' in window){
+    const ro = new ResizeObserver(updateUiOffset);
+    const sticky = document.querySelector('.sticky-top');
+    const head   = document.querySelector('.page-head');
+    const rule   = document.querySelector('.top-rule');
+    sticky && ro.observe(sticky);
+    head   && ro.observe(head);
+    rule   && ro.observe(rule);
+  }
+}
+wireUiOffsetObservers();
 
   const MS = { min:6e4, hour:36e5, day:864e5 };
   const MIN_AGE_MINUTES = 30;
