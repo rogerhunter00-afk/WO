@@ -2606,7 +2606,10 @@ function sortScoped(th, container){
 }
   
 function updateTheadHeight(){
-  const activeDash = document.querySelector('.dash[data-active="true"]:not([hidden])');
+  const activeDash =
+    document.querySelector('.dash-table[data-active="true"]:not([hidden])') ||
+    Array.from(document.querySelectorAll('.dash-table'))
+      .find(el => el.offsetParent !== null && !el.hidden);
   const tableWrap = activeDash?.querySelector('.table-scroll');
   let h = 0;
   if(tableWrap && tableWrap.offsetParent !== null && !tableWrap.hidden){
