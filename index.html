@@ -838,28 +838,6 @@ html{ overflow-y: scroll; }
   position: relative;
   z-index: 350;
 }
-
-/* keep the sticky controls clearly on top */
-.sticky-top { z-index: 400; }
-
-    :root { --ui-offset: 0px; } /* total space above tables (title + rule + sticky controls) */
-
-/* Use --ui-offset everywhere the sticky header aligns */
-.thead-plate{
-  top: var(--ui-offset, var(--sticky-controls-offset, 0px));
-}
-.table-scroll thead th{
-  top: var(--ui-offset, var(--sticky-controls-offset, 0px));
-}
-.table-scroll thead th:first-child::before{
-  top: var(--ui-offset, var(--sticky-controls-offset, 0px));
-}
-
-/* (optional) make the fixed scrim match the same offset */
-.sticky-top::after{
-  height: var(--ui-offset, var(--sticky-controls-offset, 0px));
-}
-
   </style>
 </head>
 <body>
