@@ -1011,6 +1011,9 @@ thead th[data-sort] .sort-arrow{ opacity:1; }
 .table-scroll thead th + th{
   box-shadow: -1px 0 0 color-mix(in srgb, var(--thead-text) 10%, transparent) inset;
 }
+
+    /* remove the overhanging cap that causes the blue nub on narrow screens */
+.table-scroll thead th:first-child::before{ content: none !important; }
     
   </style>
 </head>
