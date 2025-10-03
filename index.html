@@ -586,25 +586,25 @@ body::before{
 .table-scroll thead th{
   position: sticky;
   top: var(--sticky-controls-offset, 0px);
-  background: var(--thead);
+  background: transparent(--thead);
   color: var(--thead-text);
   z-index: 220;                 /* above the plate */
 }
 
-/* Hard left “cap” so the red priority rail can’t show in the gutter */
-.table-scroll thead th:first-child::before{
+.table-scroll thead th:first-child::before{ content: none; }
+
+/* Keep body rows below the header */
+.table-scroll tbody{ position: relative; z-index: 0; }
+.table-scroll tbody tr{ position: relative; z-index: 0; }
+
+    /* extend the plate 12px into the gutter like the old cap did */
+.thead-plate::before{
   content: "";
   position: absolute;
   left: -12px; top: 0; bottom: 0;
   width: 16px;
   background: var(--thead);
-  pointer-events: none;
-  z-index: 221;
 }
-
-/* Keep body rows below the header */
-.table-scroll tbody{ position: relative; z-index: 0; }
-.table-scroll tbody tr{ position: relative; z-index: 0; }
 
 /* optional: keep vertical scrollbar width constant on all pages */
 html{ overflow-y: scroll; }
