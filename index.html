@@ -548,14 +548,14 @@ tr.row-priority > td{
 
 /* Optional: a fixed scrim under the controls so content never shows through
    while you scroll. Safe to remove if you don't need it. */
-.sticky-top::after{ content: none !important; }
+body::before{
   content: "";
   position: fixed;
   left: 0; right: 0; top: 0;
   height: var(--sticky-controls-offset, 0px);
   background: var(--paper);
   pointer-events: none;
-  z-index: 0;                 /* below the controls, above page content */
+  z-index: 180;                 /* below the controls, above page content */
 }
 
 /* ================================
@@ -895,6 +895,27 @@ html{ overflow-y: scroll; }
 .btn--pill{
   padding:4px 10px;
   font-size:12px;
+
+/* kill the old scrim that sat on top of everything */
+.sticky-top::after{
+  content: none !important;
+}
+
+/* new scrim: hides scrolled table rows, but sits behind the header/controls */
+body::before{
+  content: "";
+  position: fixed;
+  left: 0; right: 0; top: 0;
+  height: var(--sticky-controls-offset, 0px);
+  background: var(--paper);
+  pointer-events: none;
+  z-index: 180;  /* above rows, below header/controls */
+}
+
+/* make sure top-of-dashboard content is above the scrim */
+.page-head{ position: relative; z-index: 350; }      /* title/logo */
+.sticky-top{ z-index: 300; }                         /* controls (already sticky; no need to re-set top) */
+.legend-popover__panel{ z-index: 500; }              /* Index popover always on top */
 
   </style>
 </head>
