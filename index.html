@@ -988,6 +988,30 @@ body::before{
 thead th .sort-arrow{ opacity:.65; }
 thead th[data-sort] .sort-arrow{ opacity:1; }
 
+/* === Square sticky header bar (no rounded corners) === */
+.table-scroll thead th{
+  background: transparent; /* lets the plate show through */
+}
+
+.thead-plate{
+  border-radius: 0;                    /* square edges */
+  box-shadow:
+    0 1px 0 rgba(0,0,0,.25),           /* crisp bottom edge */
+    inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+/* extend into the left gutter with square corners */
+.table-scroll thead th:first-child::before{ content: none; }
+.thead-plate::before{
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+/* (optional) subtle column separators */
+.table-scroll thead th + th{
+  box-shadow: -1px 0 0 color-mix(in srgb, var(--thead-text) 10%, transparent) inset;
+}
+    
   </style>
 </head>
 <body>
