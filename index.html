@@ -1274,21 +1274,6 @@ function refreshWeekArrowDisabled(){
   nexts.forEach(btn => btn.disabled = (idx <= 0));
 }
 
-/* Bind any external arrow buttons (call after weeks are known) */
-function wireExternalWeekArrows(){
-  const prevs = document.querySelectorAll('#weekPrev,[data-week-nav="prev"]');
-  const nexts = document.querySelectorAll('#weekNext,[data-week-nav="next"]');
-  prevs.forEach(btn => {
-    btn.type = btn.type || 'button';
-    btn.addEventListener('click', () => gotoWeekByOffset(+1)); // newer-first list → +1 is “previous” (older)
-  });
-  nexts.forEach(btn => {
-    btn.type = btn.type || 'button';
-    btn.addEventListener('click', () => gotoWeekByOffset(-1)); // move towards newer
-  });
-  refreshWeekArrowDisabled();
-}
-
   function debounce(fn, ms=160){
   let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); };
 }
@@ -2611,14 +2596,6 @@ document.addEventListener('DOMContentLoaded', updateTheadHeight);
 
 // Run on resize
 window.addEventListener('resize', updateTheadHeight);
-
-  document.addEventListener('keydown', (e)=>{
-  if(e.key === 'Escape' && legendWrap?.classList.contains('is-open')){
-    legendWrap.classList.remove('is-open');
-    legendBtn?.setAttribute('aria-expanded','false');
-    legendBtn?.focus();
-  }
-});
 
 function ingestToDashboards(headers, rows){
   // Always reset cached data so future loads start fresh
