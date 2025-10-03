@@ -2623,12 +2623,10 @@ function updateTheadHeight(){
     document.querySelector('.dash-table[data-active="true"]:not([hidden])') ||
     Array.from(document.querySelectorAll('.dash-table'))
       .find(el => el.offsetParent !== null && !el.hidden);
-  const tableWrap = activeDash?.querySelector('.table-scroll');
-  let h = 0;
-  if(tableWrap && tableWrap.offsetParent !== null && !tableWrap.hidden){
-    const thead = tableWrap.querySelector('thead');
-    h = thead ? thead.getBoundingClientRect().height : 0;
-  }
+
+  const thead = activeDash?.querySelector('thead');
+  let h = thead ? thead.getBoundingClientRect().height : 40;
+  h = Math.max(28, Math.min(64, h)); // clamp
   document.documentElement.style.setProperty('--thead-height', `${h}px`);
 }
 
