@@ -822,77 +822,66 @@ html{ overflow-y: scroll; }
       .controls{ display:none !important; }
       .active-filter-chips{ display:none !important; }
     }
-
-/* lift ALL top-of-page UI above the plate */
-.page-head,          /* title + logo */
-.top-rule, 
-.controls,
-.active-filter-chips,
-.nav,
-.kpi-panels,
-.legend-popover,
-.legend-popover__panel {                     /* make sure the popover sits above too */
-  position: relative;
-  z-index: 350;
-}
-    /* ===== COMPACT DASHBOARD LAYOUT ===== */
-/* Add this at the END of your style block */
+/* ===== COMPACT DASHBOARD LAYOUT (final) ===== */
+/* Place this AFTER the existing stylesheet so it cleanly overrides it. */
 
 .page{
-  --page-pad-top: 12px;  /* Further reduced */
+  --page-pad-top:12px;
 }
 
-.page-head{ 
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 0;
-  border-bottom: 3px solid var(--als-blue);
-  padding-bottom: 6px;
-  margin-bottom: 6px;
+/* Header row: title + week badge + logo */
+.page-head{
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:12px;
+  border-bottom:3px solid var(--als-blue);
+  padding-bottom:8px;
+  margin-bottom:8px;
+}
+.title{
+  font-size:20px;
+  font-weight:800;
+  margin:0;
+  white-space:nowrap;
+}
+.logo{
+  height:36px;
+  margin-left:auto;
+  display:block;          /* avoid stray inline gaps */
 }
 
-.title{ 
-  font-size: 20px;
-  margin: 0;
-  white-space: nowrap;
+/* Week badge sits inline with the title */
+.week-badge{
+  display:inline-block;
+  margin-left:8px;
+  font-size:11px;
+  padding:3px 8px;
+  vertical-align:middle;
 }
 
-.logo{ 
-  height: 36px;
+/* Keep node for sticky offset, but remove its space */
+.top-rule{
+  height:0;
+  margin:0;
+  border:none;
 }
 
-#week-badge{
-  margin-left: 8px !important;
-  font-size: 11px !important;
-  padding: 3px 8px !important;
-}
-
-.top-rule{ 
-  display: none;  /* Remove the separate blue bar */
-}
-
+/* Sticky controls area — compact spacing */
 .sticky-top{
-  padding: 0;
-  margin: 0 0 6px;
-  gap: 6px;
+  padding:0;
+  margin:0 0 8px;
+  gap:8px;
 }
-
 .sticky-top__bar{
-  padding: 4px 0;
-  min-height: 28px;
+  padding:6px 0;
+  border-bottom:1px solid var(--grid);
 }
 
-.btn--pill{ 
-  padding: 4px 10px;
-  font-size: 12px;
-}
+/* Smaller pill buttons without changing color scheme */
+.btn--pill{
+  padding:4p
 
-.controls{
-  padding: 6px 0;
-  gap: 8px;
-}
   </style>
 </head>
 <body>
