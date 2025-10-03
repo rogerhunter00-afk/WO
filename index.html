@@ -304,18 +304,6 @@ table{
   table-layout:auto;
 }
 
-    /* Ensure tbody has a lower z-index */
-.table-scroll tbody {
-  position: relative;
-  z-index: 0; /* Below everything else */
-}
-
-/* Each row should also be below the header */
-.table-scroll tbody tr {
-  position: relative;
-  z-index: 0;
-}
-
 /* ==== Rail behind the ID + extra padding so digits never touch it ==== */
 .table-scroll tbody td:first-child{            /* ID column */
   padding-left: 14px;                          /* give the number breathing room */
@@ -1113,21 +1101,6 @@ async function refreshInBG(meta){
 // Published CSV of the *Index* tab
 const SHEET_INDEX_CSV_URL =
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vRJocigDhxneJtrUmezFU7FcWpzSSah8-Wb6Rce8NA1f7jKcINgYU29iYRqt5QQymWATX5zs5k8_rK0/pub?single=true&output=csv&gid=105348743';
-
-  function updateStickyControlsOffset(){
-  const el = document.querySelector('.sticky-top');
-  if (!el) return;
-  const mb = parseFloat(getComputedStyle(el).marginBottom) || 0;
-  const h  = Math.ceil(el.getBoundingClientRect().height + mb);
-  document.documentElement.style.setProperty('--sticky-controls-offset', h + 'px');
-}
-
-// already called on load/resize; add these:
-window.addEventListener('scroll', updateStickyControlsOffset, { passive: true });
-document.fonts?.ready?.then(updateStickyControlsOffset);
-
-// after you call renderDashboard(...) in setActiveDash / ingestToDashboards:
-updateStickyControlsOffset();
   
 // --- Layout helpers ---
 const $stickyTop = document.querySelector('.sticky-top');
