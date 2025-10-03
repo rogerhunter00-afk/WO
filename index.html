@@ -1579,23 +1579,14 @@ function slugify(str){ return str.toLowerCase().replace(/[^a-z0-9]+/g,'-').repla
 
 function applyColumnWidths(table, headers){
   const widthMap = {
-    'ID':'66px',
-    'Title':'200px',
-    'Status':'120px',
-    'Priority':'92px',
-    'Assigned to':'160px',
-    'Created on':'110px',
-    'Completed on':'110px',
-    'Last updated':'120px',
-    'Age':'96px',
-    'Location':'160px',
-    'Asset':'150px',
-    'Categories':'140px'
+    'ID':'66px','Title':'200px','Status':'120px','Priority':'92px','Assigned to':'160px',
+    'Created on':'110px','Completed on':'110px','Last updated':'120px','Age':'96px',
+    'Location':'160px','Asset':'150px','Categories':'140px'
   };
   const colgroup = document.createElement('colgroup');
   headers.forEach(h=>{
     const col = document.createElement('col');
-    if(widthMap[h]) col.style.minWidth = widthMap[h];
+    if(widthMap[h]) col.style.width = widthMap[h];   // ← use width
     colgroup.appendChild(col);
   });
   table.prepend(colgroup);
