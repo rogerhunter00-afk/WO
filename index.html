@@ -193,7 +193,7 @@
 
 .page{
   /* existing vars + padding kept */
-  --page-pad-top:20px;
+  --page-pad-top:16px;
   --page-pad-inline:48px;
   --page-pad-bottom:56px;
   padding:var(--page-pad-top) var(--page-pad-inline) var(--page-pad-bottom);
@@ -538,8 +538,8 @@ tr.row-priority > td{
   top: 0;
   z-index: 300;                 /* controls sit above everything in the table */
   background: var(--paper);
-  margin: 0 0 12px;
-  padding: 8px 0 10px;
+  margin: 0 0 4px;
+  padding: 0 0 8px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -746,7 +746,7 @@ html{ overflow-y: scroll; }
   .nav{ margin-top: 6px; }
 }
 
-.kpi-panels{ min-height:72px; }
+.kpi-panels{ min-height:72px; margin-bottom: 0; }
 .dash-kpis[hidden]{ display:none !important; }
 .kpis{display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin:0;}
 .card{ background:var(--paper); border:1px solid var(--grid); border-radius:14px; padding:12px; }
@@ -790,7 +790,7 @@ html{ overflow-y: scroll; }
 /* responsive tweaks */
 @media (max-width: 960px){
   .page{
-    --page-pad-top:32px;
+    --page-pad-top:16px;
     --page-pad-inline:32px;
     --page-pad-bottom:44px;
   }
@@ -798,7 +798,7 @@ html{ overflow-y: scroll; }
 
 @media (max-width: 680px){
   .page{
-    --page-pad-top:24px;
+    --page-pad-top:16px;
     --page-pad-inline:18px;
     --page-pad-bottom:32px;
   }
