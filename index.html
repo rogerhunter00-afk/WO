@@ -295,18 +295,18 @@
 
     .top-rule{ height:6px; background:var(--als-blue); border-bottom:1px solid var(--als-blue-strong); margin:8px 0 10px; }
 
+/* let the browser window be the scroller */
 .table-scroll{
-  height: calc(100vh - var(--sticky-controls-offset) - 24px);
-  overflow:auto;
-  border:1px solid var(--grid);
-  border-radius:12px;
+  height: auto;           /* was: calc(100vh - var(--sticky-controls-offset) - 24px) */
+  max-height: none;
+  overflow: visible;      /* was: overflow:auto */
 }
 
+/* keep the table header sticky under the controls bar */
 .table-scroll thead{
   position: sticky;
-  top: 0;
-  z-index:112;
-  background:var(--thead);
+  top: var(--sticky-controls-offset);  /* was: 0 */
+  z-index: 112;
 }
 
 /* Header cell visuals (no sticky here) */
