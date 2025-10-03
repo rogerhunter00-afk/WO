@@ -302,28 +302,32 @@
   overflow: visible;
 }
 
-/* 2) Header overlays the body: rows scroll beneath it */
-.table-scroll thead{ position: static; }          /* thead itself not sticky */
-.table-scroll thead th{
-  position: sticky;                               /* each cell is sticky */
-  top: var(--sticky-controls-offset);             /* sits under your controls */
-  z-index: 119;                                   /* above tbody, below controls (120) */
-  background: var(--thead);                       /* solid paint = clean mask */
-  color: var(--thead-text);          /* add this */
-  background-clip: padding-box;      /* optional: avoids any bleed at rounded corners */
-  box-shadow: 0 1px 0 var(--grid);
-  transform: translateZ(0);                       /* avoids flicker in some browsers */
+/* A solid plate that sits under the sticky header row */
+.thead-plate{
+  position: sticky;
+  top: var(--sticky-controls-offset);
+  height: var(--thead-height, 40px);
+  background: var(--thead);
+  z-index: 118;                       /* below header cells, above tbody */
+  margin-bottom: calc(-1 * var(--thead-height, 40px)); /* no layout shift */
+  pointer-events: none;
+  box-shadow: 0 1px 0 var(--grid);    /* crisp bottom rule like the header */
+  transform: translateZ(0);           /* avoids flicker on some GPUs */
 }
 
-/* 3) Stop the red priority rail from peeking past the header edge */
-tr.row-priority > td:first-child::before{ z-index: 0; } /* keep it behind */
-.table-scroll thead th:first-child::before{
-  content: "";
-  position: absolute;
-  left: -12px; top: 0; bottom: 0; width: 12px;    /* masks the left gutter */
+/* keep your sticky cells as-is, just ensure they’re above the plate */
+.table-scroll thead th{
+  position: sticky;
+  top: var(--sticky-controls-offset);
+  z-index: 119;                       /* above the plate */
   background: var(--thead);
-  pointer-events: none;
+  color: var(--thead-text);
+  background-clip: padding-box;
+  transform: translateZ(0);
 }
+
+/* rails stay behind everything */
+tr.row-priority > td:first-child::before{ z-index: 0; }
 
 /* ✅ Merged table + cell styles */
 table{
@@ -2466,45 +2470,73 @@ kpiWrap.appendChild(prioCard);
 
   if(kpiContainer){ kpiContainer.innerHTML=''; kpiContainer.appendChild(kpiWrap); }
 
-  // --- shell: table + mobile containers (both exist; CSS decides visibility) ---
-  const tableWrap=document.createElement('div'); tableWrap.className='table-scroll';
-  const table=document.createElement('table');
-  const thead=document.createElement('thead');
-  const tbody=document.createElement('tbody');
-  applyColumnWidths(table, headers); // ✅ add this line
-  table.append(thead, tbody); tableWrap.appendChild(table);
+// --- shell: table + mobile containers (both exist; CSS decides visibility) ---
+const tableWrap = document.createElement('div');
+tableWrap.className = 'table-scroll';
 
-  const mobileSortWrap=document.createElement('div'); mobileSortWrap.className='mobile-sort';
-  const selectId=`${container.id || siteKey || 'dash'}-mobile-sort`;
-  const mobileSortLabel=document.createElement('label');
-  mobileSortLabel.className='mobile-sort__label';
-  mobileSortLabel.setAttribute('for', selectId);
-  mobileSortLabel.textContent='Sort by';
-  const mobileSortSelect=document.createElement('select');
-  mobileSortSelect.id=selectId; mobileSortSelect.className='mobile-sort__select';
-  const defOpt=document.createElement('option'); defOpt.value=''; defOpt.textContent='Default order';
-  mobileSortSelect.appendChild(defOpt);
-  headers.forEach(h=>{ const o=document.createElement('option'); o.value=h; o.textContent=h; mobileSortSelect.appendChild(o); });
-  const mobileSortDirBtn=document.createElement('button');
-  mobileSortDirBtn.type='button'; mobileSortDirBtn.className='mobile-sort__direction';
-  mobileSortDirBtn.setAttribute('aria-label','Toggle sort direction');
-  mobileSortWrap.append(mobileSortLabel, mobileSortSelect, mobileSortDirBtn);
+// NEW: solid header plate sitting under sticky <th>s (prevents peeking)
+const plate = document.createElement('div');
+plate.className = 'thead-plate';
+plate.setAttribute('aria-hidden', 'true');
 
-  const mobileCards=document.createElement('div'); mobileCards.className='mobile-cards';
-  const emptyState=document.createElement('div'); emptyState.className='dash-empty'; emptyState.textContent='No work orders match the current filters.'; emptyState.hidden=true;
+const table  = document.createElement('table');
+const thead  = document.createElement('thead');
+const tbody  = document.createElement('tbody');
 
-  container.append(tableWrap, mobileSortWrap, mobileCards, emptyState);
+applyColumnWidths(table, headers);
+table.append(thead, tbody);
 
-  // cache refs on the dashboard section element
-  container.__headers = headers.slice();
-  container.__tableWrap = tableWrap;
-  container.__thead = thead;
-  container.__tbody = tbody;
-  container.__mobileCards = mobileCards;
-  container.__mobileSortWrap = mobileSortWrap;
-  container.__mobileSortSelect = mobileSortSelect;
-  container.__mobileSortDirectionBtn = mobileSortDirBtn;
-  container.__emptyState = emptyState;
+// insert the plate FIRST so it sits underneath the sticky header cells
+tableWrap.append(plate, table);
+
+const mobileSortWrap = document.createElement('div'); 
+mobileSortWrap.className = 'mobile-sort';
+
+const selectId = `${container.id || siteKey || 'dash'}-mobile-sort`;
+const mobileSortLabel = document.createElement('label');
+mobileSortLabel.className = 'mobile-sort__label';
+mobileSortLabel.setAttribute('for', selectId);
+mobileSortLabel.textContent = 'Sort by';
+
+const mobileSortSelect = document.createElement('select');
+mobileSortSelect.id = selectId;
+mobileSortSelect.className = 'mobile-sort__select';
+
+const defOpt = document.createElement('option');
+defOpt.value = '';
+defOpt.textContent = 'Default order';
+mobileSortSelect.appendChild(defOpt);
+headers.forEach(h => {
+  const o = document.createElement('option');
+  o.value = h; o.textContent = h;
+  mobileSortSelect.appendChild(o);
+});
+
+const mobileSortDirBtn = document.createElement('button');
+mobileSortDirBtn.type = 'button';
+mobileSortDirBtn.className = 'mobile-sort__direction';
+mobileSortWrap.append(mobileSortLabel, mobileSortSelect, mobileSortDirBtn);
+
+const mobileCards = document.createElement('div');
+mobileCards.className = 'mobile-cards';
+
+const emptyState = document.createElement('div');
+emptyState.className = 'dash-empty';
+emptyState.textContent = 'No work orders match the current filters.';
+emptyState.hidden = true;
+
+container.append(tableWrap, mobileSortWrap, mobileCards, emptyState);
+
+// cache refs on the dashboard section element
+container.__headers = headers.slice();
+container.__tableWrap = tableWrap;
+container.__thead = thead;
+container.__tbody = tbody;
+container.__mobileCards = mobileCards;
+container.__mobileSortWrap = mobileSortWrap;
+container.__mobileSortSelect = mobileSortSelect;
+container.__mobileSortDirectionBtn = mobileSortDirBtn;
+container.__emptyState = emptyState;
 
   // table header + sorting (desktop)
   thead.innerHTML = `<tr>${headers.map(h=>`<th scope="col" data-col="${esc(h)}" tabindex="0"><span>${esc(h)}</span><span class="sort-arrow" aria-hidden="true"></span></th>`).join('')}</tr>`;
