@@ -3011,6 +3011,27 @@ document.fonts?.ready?.then(() => {
     updateStickyControlsOffset();
   } catch {}
 });
+
+/* Layering fix: blue sticky plate behind all top UI */
+.thead-plate { z-index: 200; }               /* plate under header cells & UI */
+.table-scroll thead th { z-index: 220; }     /* header cells over the plate */
+
+/* lift ALL top-of-page UI above the plate */
+.page-head,          /* title + logo */
+.top-rule, 
+.controls,
+.active-filter-chips,
+.nav,
+.kpi-panels,
+.legend-popover,
+.legend-popover__panel {                     /* make sure the popover sits above too */
+  position: relative;
+  z-index: 350;
+}
+
+/* keep the sticky controls clearly on top */
+.sticky-top { z-index: 400; }
+
 </script> <!-- ← keep this closing tag -->
   <div id="loadingOverlay" style="
  position:fixed; inset:0; display:none; place-items:center;
