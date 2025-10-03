@@ -294,40 +294,51 @@
     .logo{ height:50px; }
 
     .top-rule{ height:6px; background:var(--als-blue); border-bottom:1px solid var(--als-blue-strong); margin:8px 0 10px; }
-
-/* 1) Page scroll only */
-.table-scroll{
-  height: auto;
-  max-height: none;
-  overflow: visible;
+/* put a hard cap on the far-left edge of the sticky header.
+   it sits on top of everything while scrolling, so the rail can't peek. */
+.table-scroll thead th:first-child::before{
+  content:"";
+  position:absolute;
+  left:-10px;                 /* reach into the gutter */
+  top:0; bottom:0;
+  width:14px;                 /* > any sub-pixel gap */
+  background:var(--thead);
+  pointer-events:none;
+  z-index:121;                /* above sticky th (119) & plate (118) */
 }
-
-/* A solid plate that sits under the sticky header row */
-.thead-plate{
-  position: sticky;
-  top: var(--sticky-controls-offset);
-  height: var(--thead-height, 40px);
-  background: var(--thead);
-  z-index: 118;                       /* below header cells, above tbody */
-  margin-bottom: calc(-1 * var(--thead-height, 40px)); /* no layout shift */
-  pointer-events: none;
-  box-shadow: 0 1px 0 var(--grid);    /* crisp bottom rule like the header */
-  transform: translateZ(0);           /* avoids flicker on some GPUs */
-}
-
-/* keep your sticky cells as-is, just ensure they’re above the plate */
+    /* sticky header base (ensure it's positioned + above rows) */
 .table-scroll thead th{
   position: sticky;
   top: var(--sticky-controls-offset);
-  z-index: 119;                       /* above the plate */
+  z-index: 119;
   background: var(--thead);
   color: var(--thead-text);
-  background-clip: padding-box;
-  transform: translateZ(0);
 }
 
-/* rails stay behind everything */
-tr.row-priority > td:first-child::before{ z-index: 0; }
+/* hard-left cap that covers any rail peek while scrolling */
+.table-scroll thead th:first-child::before{
+  content:"";
+  position:absolute;
+  left:-12px;             /* push into the gutter */
+  top:0; bottom:0;
+  width:16px;
+  background:var(--thead);
+  pointer-events:none;
+  z-index:121;
+}
+
+/* keep the thin red rail safely away from the extreme edge */
+tr.row-priority > td:first-child::before{
+  left:6px;                   /* was 0; try 6px to be bulletproof */
+  width:3px;
+}
+
+/* optional: if you STILL see a shimmer at some zoom levels,
+   slightly overpaint the plate as well */
+.thead-plate{
+  height:calc(var(--thead-height, 40px) + 3px);
+  margin-bottom:calc(-1 * (var(--thead-height, 40px) + 3px));
+}
 
 /* ✅ Merged table + cell styles */
 table{
@@ -438,6 +449,13 @@ tr.row-priority > td:first-child::before{
   /* optional: compact */
   font-size: 11px;
   padding: 3px 8px;
+}
+    /* — final rail position (wins) — */
+tr.row-priority > td:first-child{ position: relative; }
+tr.row-priority > td:first-child::before{
+  left: 6px !important;   /* keep it off the extreme edge */
+  top: 6px; bottom: 6px;
+  width: 3px;
 }
 
 /* STATUS-CHIPS v2 — search anchor: STATUS-CHIPS v2 */
@@ -2978,6 +2996,7 @@ document.addEventListener('click', (e)=>{
     legendBtn?.focus();
   }
 });
+  document.fonts?.ready?.then(() => { try { updateTheadHeight(); } catch {} });
 </script> <!-- ← keep this closing tag -->
   <div id="loadingOverlay" style="
  position:fixed; inset:0; display:none; place-items:center;
