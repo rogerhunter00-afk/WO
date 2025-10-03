@@ -1002,6 +1002,24 @@ thead th[data-sort] .sort-arrow{ opacity:1; }
   height: var(--thead-height, 40px);
   margin-bottom: calc(-1 * var(--thead-height, 40px));
 }
+
+    /* === FIX: keep sticky header at the top of its table === */
+
+/* 1) Reserve the dynamic UI space ABOVE the table */
+.table-scroll{
+  padding-top: var(--ui-offset, var(--sticky-controls-offset, 0px));
+}
+
+/* 2) Pin header + plate to the top of the wrapper */
+.table-scroll thead th,
+.thead-plate{
+  top: 0;                 /* override earlier top: var(--ui-offset) */
+}
+
+/* 3) Background typo fix (was: transparent(--thead)) */
+.table-scroll thead th{
+  background: transparent;    /* header cells are transparent; plate provides color */
+}
     
   </style>
 </head>
