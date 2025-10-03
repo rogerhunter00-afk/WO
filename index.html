@@ -548,7 +548,7 @@ tr.row-priority > td{
 
 /* Optional: a fixed scrim under the controls so content never shows through
    while you scroll. Safe to remove if you don't need it. */
-body::before{
+.sticky-top::after{ content: none !important; }
   content: "";
   position: fixed;
   left: 0; right: 0; top: 0;
