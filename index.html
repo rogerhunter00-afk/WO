@@ -570,22 +570,10 @@ body::before{
   overflow-y: visible; /* ← don’t clip sticky header vertically      */
 }
 
-/* A solid “plate” that sits behind the sticky <th> cells.
-   It prevents rows peeking through the gaps between header cells. */
-.thead-plate{
-  position: sticky;
-  top: var(--sticky-controls-offset, 0px);
-  height: var(--thead-height, 40px);
-  margin-bottom: calc(-1 * var(--thead-height, 40px));
-  background: var(--thead);     /* match your header colour */
-  z-index: 210;                 /* below header cells, above body rows */
-  pointer-events: none;
-}
-
 /* Real sticky header cells */
 .table-scroll thead th{
   position: sticky;
-  top: var(--sticky-controls-offset, 0px);
+  top: var(--ui-offset, var(--sticky-controls-offset, 0px));
   background: transparent(--thead);
   color: var(--thead-text);
   z-index: 220;                 /* above the plate */
@@ -596,15 +584,6 @@ body::before{
 /* Keep body rows below the header */
 .table-scroll tbody{ position: relative; z-index: 0; }
 .table-scroll tbody tr{ position: relative; z-index: 0; }
-
-    /* extend the plate 12px into the gutter like the old cap did */
-.thead-plate::before{
-  content: "";
-  position: absolute;
-  left: -12px; top: 0; bottom: 0;
-  width: 16px;
-  background: var(--thead);
-}
 
 /* optional: keep vertical scrollbar width constant on all pages */
 html{ overflow-y: scroll; }
@@ -931,7 +910,7 @@ body::before{
 /* Single rounded bar behind the <th> cells */
 .thead-plate{
   position: sticky;
-  top: var(--sticky-controls-offset, 0px);
+  top: var(--ui-offset, var(--sticky-controls-offset, 0px));
   height: var(--thead-height, 40px);
   margin-bottom: calc(-1 * var(--thead-height, 40px));
 
@@ -1352,6 +1331,18 @@ function wireUiOffsetObservers(){
 }
 wireUiOffsetObservers();
 
+function syncTheadPlateWidth(wrapper){
+  if (!wrapper) return;
+  const table = wrapper.querySelector('table');
+  const plate = wrapper.querySelector('.thead-plate');
+  if (!table || !plate) return;
+  plate.style.width = table.scrollWidth + 'px';
+}
+function syncAllTheadPlates(){
+  document.querySelectorAll('.table-scroll').forEach(syncTheadPlateWidth);
+}
+window.addEventListener('resize', syncAllTheadPlates);
+
   const MS = { min:6e4, hour:36e5, day:864e5 };
   const MIN_AGE_MINUTES = 30;
 
@@ -1679,6 +1670,7 @@ const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
     container?.__mobileSortWrap && (container.__mobileSortWrap.hidden = !mobile || !hasRows);
     container?.__mobileCards && (container.__mobileCards.hidden = true);
     container?.__emptyState && (container.__emptyState.hidden = hasRows);
+    syncTheadPlateWidth(container?.__tableWrap);
     updateTheadHeight();
     return;
   }
@@ -1692,6 +1684,7 @@ const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
     container.__mobileCards.hidden = !hasRows;
     container.__emptyState && (container.__emptyState.hidden = hasRows);
   }
+  syncTheadPlateWidth(container?.__tableWrap);
 }
 
 function renderRowsScopedChunked(tbodyEl, headers, rows, container){
@@ -1742,6 +1735,7 @@ function renderRowsScopedChunked(tbodyEl, headers, rows, container){
       while (tmp.firstChild){
         tbodyEl.appendChild(tmp.firstChild);
       }
+      syncTheadPlateWidth(container?.__tableWrap);
     }
 
     if (i < safe.length){
@@ -1752,6 +1746,7 @@ function renderRowsScopedChunked(tbodyEl, headers, rows, container){
       container?.__mobileSortWrap && (container.__mobileSortWrap.hidden = !isMobileView() || !hasRows);
       container?.__mobileCards && (container.__mobileCards.hidden = true);
       container?.__emptyState && (container.__emptyState.hidden = hasRows);
+      syncTheadPlateWidth(container?.__tableWrap);
       updateTheadHeight();
     }
   }
@@ -2727,8 +2722,9 @@ table.append(thead, tbody);
 
 // insert the plate FIRST so it sits underneath the sticky header cells
 tableWrap.append(plate, table);
+syncTheadPlateWidth(tableWrap);
 
-const mobileSortWrap = document.createElement('div'); 
+const mobileSortWrap = document.createElement('div');
 mobileSortWrap.className = 'mobile-sort';
 
 const selectId = `${container.id || siteKey || 'dash'}-mobile-sort`;
