@@ -1021,6 +1021,14 @@ thead th[data-sort] .sort-arrow{ opacity:1; }
   background: transparent;    /* header cells are transparent; plate provides color */
 }
     
+ /* --- Sticky header fix: use dynamic offset again, no wrapper padding --- */
+.table-scroll { padding-top: 0 !important; }
+
+.table-scroll thead th,
+.thead-plate {
+  top: var(--ui-offset, var(--sticky-controls-offset, 0px)) !important;
+}
+   
   </style>
 </head>
 <body>
