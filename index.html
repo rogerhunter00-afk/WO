@@ -303,14 +303,18 @@ table{
   border-spacing:0;
   table-layout:auto;
 }
-    /* ==== NEW sticky table header system (one source of truth) ==== */
-.table-scroll{ position: relative; }
+/* IMPORTANT: Set the table scroll wrapper to create a stacking context */
+.table-scroll {
+  position: relative;
+  z-index: 1; /* This creates a new stacking context */
+  overflow: hidden; /* Make sure overflow isn't hiding anything */
+}
 
 /* Around line 270-285, update: */
 .thead-plate {
   position: sticky;
   top: var(--sticky-controls-offset);
-  z-index: 122;  /* ← increase this */
+  z-index: 301;  /* ← increase this */
   height: var(--thead-height, 40px);
   margin-bottom: calc(-1 * var(--thead-height, 40px));
   background: var(--thead);
@@ -321,7 +325,7 @@ table{
 .table-scroll thead th {
   position: sticky;
   top: var(--sticky-controls-offset);
-  z-index: 123;  /* ← increase this */
+  z-index: 302;  /* ← increase this */
   background: var(--thead);
   color: var(--thead-text);
 }
@@ -335,7 +339,18 @@ table{
   width:16px;
   background:var(--thead);
   pointer-events:none;
-  z-index:124;                                 /* above th background */
+  z-index:204;                                 /* above th background */
+}
+    /* Ensure tbody has a lower z-index */
+.table-scroll tbody {
+  position: relative;
+  z-index: 0; /* Below everything else */
+}
+
+/* Each row should also be below the header */
+.table-scroll tbody tr {
+  position: relative;
+  z-index: 0;
 }
 
 /* ==== Rail behind the ID + extra padding so digits never touch it ==== */
@@ -442,6 +457,12 @@ tr.row-priority > td{
   /* optional: compact */
   font-size: 11px;
   padding: 3px 8px;
+}
+    /* Give the whole wrapper a defined height if needed */
+.dash-table {
+  position: relative;
+  overflow: hidden;
+  /* This ensures nothing escapes the bounds */
 }
 
 /* STATUS-CHIPS v2 — search anchor: STATUS-CHIPS v2 */
@@ -567,7 +588,7 @@ tr.row-priority > td{
 .sticky-top{
   position: sticky;
   top: 0;
-  z-index: 120;
+  z-index: 300;
   background: var(--paper);
   margin:0 0 12px;
   padding:10px 0 14px;
@@ -587,7 +608,7 @@ tr.row-priority > td{
   height: var(--thead-height, 40px);
   background: var(--paper);
   pointer-events: none;
-  z-index: 111;                    /* below sticky thead (112), below controls (120) */
+  z-index: 201;                    /* below sticky thead (112), below controls (120) */
 }
 
 /* keep these */
