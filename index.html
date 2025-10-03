@@ -302,29 +302,25 @@
   overflow: visible;      /* was: overflow:auto */
 }
 
-/* keep the table header sticky under the controls bar */
-.table-scroll thead{
-  position: sticky;
-  top: var(--sticky-controls-offset);  /* was: 0 */
-  z-index: 112;
+/* 1) Use window scroll only */
+.table-scroll{
+  height: auto;
+  max-height: none;
+  overflow: visible;
 }
 
-/* Header cell visuals (no sticky here) */
-.table-scroll thead th{
-  position: static;              /* reset from the old sticky-per-th */
-  background:var(--thead);
-  color:var(--thead-text);
-  text-transform:uppercase;
-  letter-spacing:.6px;
-  font-weight:800;
-  font-size:11px;
-  padding:8px 6px;
-  border-right:1px solid rgba(255,255,255,.08);
-  cursor:pointer;
-  box-shadow: 0 1px 0 var(--grid);
-  white-space:nowrap;
-  text-overflow:ellipsis;
-  overflow:hidden;
+/* 2) Make the THEAD sit above the rows so content scrolls behind it */
+.table-scroll thead{
+  position: sticky;
+  top: var(--sticky-controls-offset);   /* sits right under the controls */
+  z-index: 118;                         /* above scrim (111), below controls (120) */
+  background: var(--thead);
+  box-shadow: 0 1px 0 var(--grid), 0 6px 10px rgba(0,0,0,.08); /* subtle depth */
+}
+
+/* 3) Keep the scrim only for the header height (no extra gap) */
+.sticky-top::after{
+  height: var(--thead-height, 40px);
 }
 
 /* ✅ Merged table + cell styles */
