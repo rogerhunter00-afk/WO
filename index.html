@@ -2996,7 +2996,12 @@ document.addEventListener('click', (e)=>{
     legendBtn?.focus();
   }
 });
-  document.fonts?.ready?.then(() => { try { updateTheadHeight(); } catch {} });
+document.fonts?.ready?.then(() => {
+  try {
+    updateTheadHeight();
+    updateStickyControlsOffset();
+  } catch {}
+});
 </script> <!-- ← keep this closing tag -->
   <div id="loadingOverlay" style="
  position:fixed; inset:0; display:none; place-items:center;
