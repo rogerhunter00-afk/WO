@@ -835,6 +835,64 @@ html{ overflow-y: scroll; }
   position: relative;
   z-index: 350;
 }
+    /* ===== COMPACT DASHBOARD LAYOUT ===== */
+/* Add this at the END of your style block */
+
+.page{
+  --page-pad-top: 12px;  /* Further reduced */
+}
+
+.page-head{ 
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 0;
+  border-bottom: 3px solid var(--als-blue);
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+}
+
+.title{ 
+  font-size: 20px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.logo{ 
+  height: 36px;
+}
+
+#week-badge{
+  margin-left: 8px !important;
+  font-size: 11px !important;
+  padding: 3px 8px !important;
+}
+
+.top-rule{ 
+  display: none;  /* Remove the separate blue bar */
+}
+
+.sticky-top{
+  padding: 0;
+  margin: 0 0 6px;
+  gap: 6px;
+}
+
+.sticky-top__bar{
+  padding: 4px 0;
+  min-height: 28px;
+}
+
+.btn--pill{ 
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.controls{
+  padding: 6px 0;
+  gap: 8px;
+}
   </style>
 </head>
 <body>
