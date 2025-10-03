@@ -830,41 +830,44 @@ html{ overflow-y: scroll; }
 }
 
 /* Header row: title + week badge + logo */
-.page-head{
-  display:grid;
-  grid-template-columns:auto 1fr auto;
-  align-items:center;
-  gap:12px;
-  border-bottom:3px solid var(--als-blue);
-  padding-bottom:8px;
-  margin-bottom:8px;
+.page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  margin-bottom: 0;
 }
-.title{
-  font-size:20px;
-  font-weight:800;
-  margin:0;
-  white-space:nowrap;
+    
+.title {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0;
 }
+    
 .logo{
-  height:36px;
+  height:50px;
   margin-left:auto;
   display:block;          /* avoid stray inline gaps */
 }
 
-/* Week badge sits inline with the title */
-.week-badge{
-  display:inline-block;
-  margin-left:8px;
-  font-size:11px;
-  padding:3px 8px;
-  vertical-align:middle;
+.week-badge {
+  display: inline-block;
+  margin-left: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border: 1px solid var(--grid);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--als-blue) 10%, var(--paper));
+  vertical-align: middle;
 }
 
-/* Keep node for sticky offset, but remove its space */
-.top-rule{
-  height:0;
-  margin:0;
-  border:none;
+.top-rule {
+  height: 2px;
+  background: var(--als-blue);
+  border-bottom: 1px solid var(--als-blue-strong);
+  margin: 0 0 12px;
 }
 
 /* Sticky controls area — compact spacing */
@@ -873,9 +876,19 @@ html{ overflow-y: scroll; }
   margin:0 0 8px;
   gap:8px;
 }
-.sticky-top__bar{
-  padding:6px 0;
-  border-bottom:1px solid var(--grid);
+    
+.sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: 300;
+  background: var(--paper);
+  padding: 12px 0;
+  margin: 0 0 8px;
+  border-bottom: 1px solid var(--grid);
+}
+   
+.sticky-top__bar {
+  display: none;
 }
 
 /* Smaller pill buttons without changing color scheme */
