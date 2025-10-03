@@ -294,7 +294,7 @@
     .title{ font-size:28px; font-weight:800; color:var(--ink); margin:0 0 8px; }
     .logo{ height:50px; }
 
-    .top-rule{ height:2px; background:var(--als-blue); border-bottom:1px solid var(--als-blue-strong); margin:4px 0 6px; }
+    .top-rule{ height:2px; background:var(--als-blue); border-bottom:1px solid var(--als-blue-strong); margin: 0 0 12px; }
 
 /* ✅ Merged table + cell styles */
 table{
@@ -915,6 +915,7 @@ body::before{
 
 /* make sure top-of-dashboard content is above the scrim */
 .page-head{ position: relative; z-index: 350; }      /* title/logo */
+.top-rule { position: relative; z-index:320; }  /* ← make the blue rule visible */
 .sticky-top{ z-index: 300; }                         /* controls (already sticky; no need to re-set top) */
 .legend-popover__panel{ z-index: 500; }              /* Index popover always on top */
 
