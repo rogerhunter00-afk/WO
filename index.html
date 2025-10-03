@@ -991,6 +991,18 @@ thead th[data-sort] .sort-arrow{ opacity:1; }
   box-shadow: -1px 0 0 color-mix(in srgb, var(--thead-text) 10%, transparent) inset;
 }
 
+/* === FINAL OVERRIDE: sticky header uses dynamic UI offset === */
+.table-scroll thead th{
+  position: sticky;
+  top: var(--ui-offset, var(--sticky-controls-offset, 0px));
+}
+.thead-plate{
+  position: sticky;
+  top: var(--ui-offset, var(--sticky-controls-offset, 0px));
+  height: var(--thead-height, 40px);
+  margin-bottom: calc(-1 * var(--thead-height, 40px));
+}
+    
   </style>
 </head>
 <body>
