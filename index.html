@@ -822,6 +822,22 @@ html{ overflow-y: scroll; }
       .controls{ display:none !important; }
       .active-filter-chips{ display:none !important; }
     }
+    /* Put the sticky header "plate" below the top UI, but above table rows */
+.thead-plate { z-index: 210; }              /* stays above tbody rows */
+.table-scroll thead th { z-index: 220; }    /* header cells over the plate */
+
+/* Lift the UI above the plate */
+.page-head,
+.active-filter-chips,
+.nav,
+.kpi-panels {
+  position: relative; 
+  z-index: 260;                              /* higher than 210 */
+}
+
+/* already there, but keep it clearly on top */
+.sticky-top { z-index: 300; }
+
   </style>
 </head>
 <body>
