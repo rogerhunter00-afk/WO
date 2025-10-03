@@ -566,8 +566,8 @@ body::before{
    Also keep overflow visible so sticky elements aren’t clipped. */
 .table-scroll{
   position: relative;
-  z-index: auto;                /* was 1 — remove/clobber that */
-  overflow: visible;            /* was hidden — let sticky escape */
+  overflow-x: auto;    /* ← shows a horizontal scrollbar when needed */
+  overflow-y: visible; /* ← don’t clip sticky header vertically      */
 }
 
 /* A solid “plate” that sits behind the sticky <th> cells.
@@ -1012,9 +1012,6 @@ thead th[data-sort] .sort-arrow{ opacity:1; }
   box-shadow: -1px 0 0 color-mix(in srgb, var(--thead-text) 10%, transparent) inset;
 }
 
-    /* remove the overhanging cap that causes the blue nub on narrow screens */
-.table-scroll thead th:first-child::before{ content: none !important; }
-    
   </style>
 </head>
 <body>
