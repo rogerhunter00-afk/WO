@@ -919,6 +919,75 @@ body::before{
 .sticky-top{ z-index: 300; }                         /* controls (already sticky; no need to re-set top) */
 .legend-popover__panel{ z-index: 500; }              /* Index popover always on top */
 
+/* Only the plate paints the blue; cells are transparent */
+.table-scroll thead th{
+  background: transparent;
+  color: var(--thead-text);
+  font-weight: 800;
+  letter-spacing: .2px;
+  padding: 10px 10px;
+}
+
+/* Single rounded bar behind the <th> cells */
+.thead-plate{
+  position: sticky;
+  top: var(--sticky-controls-offset, 0px);
+  height: var(--thead-height, 40px);
+  margin-bottom: calc(-1 * var(--thead-height, 40px));
+
+  /* soft gradient so it feels less “blocky” */
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--thead) 94%, black),
+    color-mix(in srgb, var(--thead) 82%, black)
+  );
+
+  border: 1px solid color-mix(in srgb, var(--thead) 35%, black);
+  border-bottom-color: color-mix(in srgb, var(--thead) 55%, black);
+  border-radius: 12px;
+
+  box-shadow:
+    0 2px 10px rgba(0,0,0,.12),           /* outer drop */
+    inset 0 1px 0 rgba(255,255,255,.06);  /* faint inner top highlight */
+  z-index: 210;
+  pointer-events: none;
+}
+
+/* Extend the plate left into the gutter (replaces the old <th>:before cap) */
+.table-scroll thead th:first-child::before{ content: none; }
+.thead-plate::before{
+  content: "";
+  position: absolute;
+  left: -12px; top: -1px; bottom: -1px;
+  width: 16px;
+  background: inherit;
+  border-left: 1px solid color-mix(in srgb, var(--thead) 35%, black);
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+}
+
+/* Subtle vertical separators between header cells */
+.table-scroll thead th + th{
+  box-shadow: -1px 0 0 color-mix(in srgb, var(--thead-text) 10%, transparent) inset;
+}
+
+/* Hover / focus glow and “sorted column” emphasis */
+.table-scroll thead th::after{
+  content:"";
+  position:absolute; inset:0;
+  background: color-mix(in srgb, #fff 10%, transparent);
+  opacity: 0; transition: opacity .12s ease;
+  border-radius: 10px;          /* purely visual; won’t affect layout */
+  pointer-events: none;
+}
+.table-scroll thead th:hover::after,
+.table-scroll thead th:focus-visible::after { opacity: .07; }
+.table-scroll thead th[data-sort]::after { opacity: .12; }  /* active sort column pops slightly */
+
+/* Make the arrow a touch crisper when active */
+thead th .sort-arrow{ opacity:.65; }
+thead th[data-sort] .sort-arrow{ opacity:1; }
+
   </style>
 </head>
 <body>
