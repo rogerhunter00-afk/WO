@@ -938,7 +938,7 @@ const $loading = () => document.getElementById('loadingOverlay');
 const showLoading = () => { const el = $loading(); if (el) el.style.display = 'grid'; };
 const hideLoading = () => { const el = $loading(); if (el) el.style.display = 'none'; };
 
-async function loadChosenGid(meta){
+async function loadChosenGid(meta, { bust=false } = {}){
   if (__loadController) __loadController.abort();
   __loadController = new AbortController();
 
@@ -947,7 +947,8 @@ async function loadChosenGid(meta){
       throw new Error('Selected week is missing a valid gid');
     }
 
-    const url = meta.url ? meta.url : csvUrlForGid(meta.gid);
+const base = meta.url ? meta.url : csvUrlForGid(meta.gid);
+const url  = bust ? withBust(base) : base;
     console.log('[loadChosenGid] gid:', meta.gid, 'url:', url);
 
     const res = await fetch(url, { signal: __loadController.signal });
@@ -1313,7 +1314,7 @@ async function loadLatestOrChosenWeek(forceBust=false){
 
     renderWeekControls(__WEEKS, chosen);
     rememberWeek(chosen);
-    await loadChosenGid(chosen);
+await loadChosenGid(chosen, { bust: forceBust });
     prefetchAdjacent(__WEEKS, chosen);   // <— add this line
 
     wireExternalWeekArrows();                               // <— bind external arrows
@@ -1775,6 +1776,12 @@ function csvUrlForGid(gid){
   u.searchParams.set('single','true');
   u.searchParams.set('output','csv');
   return u.toString();
+}
+  
+  function withBust(u){
+  const x = new URL(u);
+  x.searchParams.set('_ts', Date.now());
+  return x.toString();
 }
 
 /* --- Parse the Index (label, week_end, gid) with aliases + diagnostics --- */
@@ -2803,10 +2810,34 @@ document.getElementById('file').addEventListener('change', e=>{
 });
 
 // Refresh index + dashboards
-const refreshBtn=document.getElementById('refreshBtn');
-refreshBtn?.addEventListener('click', ()=>{
-  loadLatestOrChosenWeek(true);
+const refreshBtn = document.getElementById('refreshBtn');
+refreshBtn?.addEventListener('click', async ()=>{
+  showLoading();
+  try{
+    await loadLatestOrChosenWeek(true); // busts index + week now
+  }catch(e){
+    console.error(e);
+    alert('Could not refresh. ' + (e?.message || ''));
+  }finally{
+    hideLoading();
+  }
 });
+
+  function wireExternalWeekArrows(){
+  const prevs = document.querySelectorAll('#weekPrev,[data-week-nav="prev"]');
+  const nexts = document.querySelectorAll('#weekNext,[data-week-nav="next"]');
+
+  const wire = (btn, handler) => {
+    if (btn.dataset.wired === '1') return;
+    btn.dataset.wired = '1';
+    btn.type = btn.type || 'button';
+    btn.addEventListener('click', handler);
+  };
+
+  prevs.forEach(btn => wire(btn, () => gotoWeekByOffset(+1)));
+  nexts.forEach(btn => wire(btn, () => gotoWeekByOffset(-1)));
+  refreshWeekArrowDisabled();
+}
 
 // Theme toggle (unchanged)
 const themeBtn=document.getElementById('themeBtn');
