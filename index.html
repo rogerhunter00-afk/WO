@@ -139,7 +139,7 @@ html{overflow-y:scroll}
 @media(min-width:960px){table{table-layout:auto}}
 @media(max-width:960px){.page{--page-pad-top:16px;--page-pad-inline:32px;--page-pad-bottom:44px}}
 @media(max-width:680px){.page{--page-pad-top:16px;--page-pad-inline:18px;--page-pad-bottom:32px}.page-head{flex-direction:column;align-items:flex-start;gap:12px}.title{font-size:24px;margin-bottom:4px}.logo{height:42px}.controls{gap:10px}.controls textarea{width:100%;min-width:0}.controls .search-input{flex-basis:100%;max-width:none}}
-@media print{@page{size:A4 landscape;margin:10mm}body{font-size:11.5px}thead{display:table-header-group}table{width:100%!important;table-layout:fixed;border-collapse:collapse}th,td{box-sizing:border-box;overflow-wrap:anywhere;word-break:break-word;hyphens:auto}thead th{position:static}.title-cell,.col-categories{break-inside:avoid}html{-webkit-print-color-adjust:exact}.controls{display:none!important}.active-filter-chips{display:none!important}.thead-plate{display:none!important}}
+@media print{@page{size:A4 landscape;margin:10mm}body{font-size:11.5px}thead{display:table-header-group}table{width:100%!important;table-layout:fixed;border-collapse:collapse}th,td{box-sizing:border-box;overflow-wrap:anywhere;word-break:break-word;hyphens:auto}thead th{position:static}.title-cell,.col-categories{break-inside:avoid}html{-webkit-print-color-adjust:exact}.controls{display:none!important}.active-filter-chips{display:none!important}}
 .week-badge{display:inline-block;margin-left:12px;font-size:12px;font-weight:700;padding:4px 10px;border:1px solid var(--grid);border-radius:999px;background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));vertical-align:middle}
 .sticky-top{position:sticky;top:0;z-index:300;background:var(--paper);padding:12px 0;margin:0 0 8px;border-bottom:1px solid var(--grid)}
 .sticky-top__bar{display:none}
@@ -147,16 +147,156 @@ html{overflow-y:scroll}
 .page-head{position:relative;z-index:350}
 .top-rule{position:relative;z-index:320}
 .legend-popover__panel{z-index:500}
-.thead-plate::before{content:"";position:absolute;left:-12px;top:-1px;bottom:-1px;width:16px;background:inherit;border-left:1px solid color-mix(in srgb,var(--thead) 35%,#000);border-top-left-radius:0;border-bottom-left-radius:0}
-.table-scroll thead th+th{box-shadow:-1px 0 0 color-mix(in srgb,var(--thead-text) 10%,transparent) inset}
-.table-scroll thead th::after{content:"";position:absolute;inset:0;background:color-mix(in srgb,#fff 10%,transparent);opacity:0;transition:opacity .12s ease;border-radius:10px;pointer-events:none}
+.table-scroll thead{background:var(--thead);}
+.table-scroll thead th+th{box-shadow:-1px 0 0 color-mix(in srgb,var(--thead-text) 12%,transparent) inset}
+.table-scroll thead th::after{content:"";position:absolute;inset:0;background:color-mix(in srgb,#fff 16%,transparent);opacity:0;transition:opacity .12s ease;border-radius:10px;pointer-events:none}
 .table-scroll thead th:hover::after,.table-scroll thead th:focus-visible::after{opacity:.07}
 .table-scroll thead th[data-sort]::after{opacity:.12}
 thead th .sort-arrow{opacity:.65}
 thead th[data-sort] .sort-arrow{opacity:1}
-.table-scroll thead th{position:sticky;top:var(--ui-offset,var(--sticky-controls-offset,0px))!important;z-index:220;background:transparent;color:var(--thead-text);font-weight:800;letter-spacing:.2px;padding:10px}
-.thead-plate{position:sticky;top:var(--ui-offset,var(--sticky-controls-offset,0px))!important;height:var(--thead-height,40px);margin-bottom:calc(-1 * var(--thead-height,40px));z-index:210;background:var(--thead);box-shadow:0 1px 0 rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.05)}
+.table-scroll thead th{position:sticky;top:var(--ui-offset,var(--sticky-controls-offset,0px))!important;z-index:220;background:var(--thead);color:var(--thead-text);font-weight:800;letter-spacing:.2px;padding:10px;border-bottom:1px solid color-mix(in srgb,#000 25%,transparent);box-shadow:0 1px 0 rgba(0,0,0,.25);background-clip:padding-box}
 </style>
+</head>
+<body class="light">
+  <div class="page">
+    <header class="page-head">
+      <div class="page-head__title">
+        <h1 class="title">Work Orders Dashboard</h1>
+        <span class="week-badge" id="week-badge" aria-live="polite">Loading…</span>
+      </div>
+      <img src="LOGOlesswhitespace.png" alt="Aberdeen Laundry Services logo" class="logo" />
+    </header>
+
+    <div class="top-rule" aria-hidden="true"></div>
+
+    <main>
+      <div class="legend-popover">
+        <button id="legendBtn" class="btn btn--pill" type="button" aria-haspopup="dialog" aria-expanded="false">Legend</button>
+        <div class="legend-popover__panel" role="dialog" aria-modal="false" aria-label="Legend">
+          <div class="legend legend--compact">
+            <p class="legend__title">How to read this dashboard</p>
+            <ul class="legend__list">
+              <li class="legend__sample">
+                <span><span class="legend__rail"></span> Priority</span>
+                <span>Rows with the Priority tag are highlighted.</span>
+              </li>
+              <li class="legend__sample">
+                <span><span class="status-chip open">Open</span></span>
+                <span>Status chips show the live state of a work order.</span>
+              </li>
+              <li class="legend__sample">
+                <span><span class="age-chip age-old">14d</span></span>
+                <span>Age chips measure how long the order has been active.</span>
+              </li>
+              <li class="legend__sample">
+                <span><span class="chip-cat">Category</span></span>
+                <span>Category chips map directly to the sheet.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="legend legend--full">
+        <p class="legend__title">Legend</p>
+        <ul class="legend__list">
+          <li class="legend__sample">
+            <span><span class="legend__rail"></span> Priority</span>
+            <span>Rows with the Priority tag are highlighted.</span>
+          </li>
+          <li class="legend__sample">
+            <span><span class="status-chip open">Open</span></span>
+            <span>Status chips show the live state of a work order.</span>
+          </li>
+          <li class="legend__sample">
+            <span><span class="age-chip age-old">14d</span></span>
+            <span>Age chips measure how long the order has been active.</span>
+          </li>
+          <li class="legend__sample">
+            <span><span class="chip-cat">Category</span></span>
+            <span>Category chips map directly to the sheet.</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="sticky-top" data-collapsed="false">
+        <div class="sticky-top__bar">
+          <button id="collapseBtn" class="btn btn--pill" type="button" aria-expanded="true">Hide controls</button>
+        </div>
+        <div class="sticky-content">
+          <div class="controls">
+            <input id="globalSearch" class="search-input" type="search" placeholder="Search work orders…" aria-label="Search work orders" />
+
+            <div class="filter-group week-picker">
+              <button id="weekPrev" class="btn btn--pill" type="button" data-week-nav="prev" aria-label="View previous week">‹ Prev</button>
+              <div id="weekPicker" aria-live="polite"></div>
+              <button id="weekNext" class="btn btn--pill" type="button" data-week-nav="next" aria-label="View next week">Next ›</button>
+            </div>
+
+            <div class="filter-group">
+              <label for="statusFilter">Status</label>
+              <select id="statusFilter">
+                <option value="">All statuses</option>
+                <option value="Open">Open</option>
+                <option value="In Progress">In Progress</option>
+                <option value="On Hold">On Hold</option>
+                <option value="Done">Done</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label for="priorityFilter">Priority</label>
+              <select id="priorityFilter">
+                <option value="">All priorities</option>
+                <option value="Critical">Critical</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+
+            <label class="btn" for="file">Import CSV/JSON</label>
+            <input id="file" class="visually-hidden" type="file" accept=".csv,.tsv,.json,text/csv,text/tab-separated-values" />
+
+            <button id="refreshBtn" class="btn" type="button">Refresh data</button>
+            <button id="exportCsvBtn" class="btn" type="button" disabled>Export CSV</button>
+            <button id="themeBtn" class="btn btn--pill" type="button" aria-pressed="false">Dark mode</button>
+          </div>
+
+          <div id="activeFilterChips" class="active-filter-chips" hidden></div>
+
+          <nav class="nav" role="tablist" aria-label="Dashboard views">
+            <button class="tab" type="button" role="tab" aria-selected="true" aria-controls="dash-all">All sites</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="dash-ek">East Kilbride</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="dash-mm">Mugiemoss</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="dash-keith">Keith</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="dash-by">Byron</button>
+          </nav>
+        </div>
+      </div>
+
+      <div class="kpi-panels">
+        <section class="dash-kpis" data-site="all"></section>
+        <section class="dash-kpis" data-site="ek" hidden></section>
+        <section class="dash-kpis" data-site="mm" hidden></section>
+        <section class="dash-kpis" data-site="keith" hidden></section>
+        <section class="dash-kpis" data-site="by" hidden></section>
+      </div>
+
+      <section class="dashboards">
+        <section id="dash-all" class="dash dash-table" data-site="all" data-active="true"></section>
+        <section id="dash-ek" class="dash dash-table" data-site="ek" hidden></section>
+        <section id="dash-mm" class="dash dash-table" data-site="mm" hidden></section>
+        <section id="dash-keith" class="dash dash-table" data-site="keith" hidden></section>
+        <section id="dash-by" class="dash dash-table" data-site="by" hidden></section>
+      </section>
+    </main>
+  </div>
+  <div id="loadingOverlay" style=" position:fixed; inset:0; display:none; place-items:center; background:color-mix(in srgb, var(--paper) 70%, transparent); z-index:9999;">
+    <div style="padding:10px 14px;border:1px solid var(--grid);border-radius:10px;background:var(--paper);font-weight:800">
+      Loading…
+    </div>
+  </div>
 <script>
 
   let __loadController = null;
@@ -369,18 +509,6 @@ function wireUiOffsetObservers(){
   }
 }
 wireUiOffsetObservers();
-
-function syncTheadPlateWidth(wrapper){
-  if (!wrapper) return;
-  const table = wrapper.querySelector('table');
-  const plate = wrapper.querySelector('.thead-plate');
-  if (!table || !plate) return;
-  plate.style.width = table.scrollWidth + 'px';
-}
-function syncAllTheadPlates(){
-  document.querySelectorAll('.table-scroll').forEach(syncTheadPlateWidth);
-}
-window.addEventListener('resize', syncAllTheadPlates);
 
   const MS = { min:6e4, hour:36e5, day:864e5 };
   const MIN_AGE_MINUTES = 30;
@@ -709,7 +837,6 @@ const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
     container?.__mobileSortWrap && (container.__mobileSortWrap.hidden = !mobile || !hasRows);
     container?.__mobileCards && (container.__mobileCards.hidden = true);
     container?.__emptyState && (container.__emptyState.hidden = hasRows);
-    syncTheadPlateWidth(container?.__tableWrap);
     updateTheadHeight();
     return;
   }
@@ -723,7 +850,6 @@ const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
     container.__mobileCards.hidden = !hasRows;
     container.__emptyState && (container.__emptyState.hidden = hasRows);
   }
-  syncTheadPlateWidth(container?.__tableWrap);
 }
 
 function renderRowsScopedChunked(tbodyEl, headers, rows, container){
@@ -774,7 +900,6 @@ function renderRowsScopedChunked(tbodyEl, headers, rows, container){
       while (tmp.firstChild){
         tbodyEl.appendChild(tmp.firstChild);
       }
-      syncTheadPlateWidth(container?.__tableWrap);
     }
 
     if (i < safe.length){
@@ -785,7 +910,6 @@ function renderRowsScopedChunked(tbodyEl, headers, rows, container){
       container?.__mobileSortWrap && (container.__mobileSortWrap.hidden = !isMobileView() || !hasRows);
       container?.__mobileCards && (container.__mobileCards.hidden = true);
       container?.__emptyState && (container.__emptyState.hidden = hasRows);
-      syncTheadPlateWidth(container?.__tableWrap);
       updateTheadHeight();
     }
   }
@@ -1747,11 +1871,6 @@ kpiWrap.appendChild(prioCard);
 const tableWrap = document.createElement('div');
 tableWrap.className = 'table-scroll';
 
-// NEW: solid header plate sitting under sticky <th>s (prevents peeking)
-const plate = document.createElement('div');
-plate.className = 'thead-plate';
-plate.setAttribute('aria-hidden', 'true');
-
 const table  = document.createElement('table');
 const thead  = document.createElement('thead');
 const tbody  = document.createElement('tbody');
@@ -1759,9 +1878,7 @@ const tbody  = document.createElement('tbody');
 applyColumnWidths(table, headers);
 table.append(thead, tbody);
 
-// insert the plate FIRST so it sits underneath the sticky header cells
-tableWrap.append(plate, table);
-syncTheadPlateWidth(tableWrap);
+tableWrap.append(table);
 
 const mobileSortWrap = document.createElement('div');
 mobileSortWrap.className = 'mobile-sort';
@@ -2026,6 +2143,11 @@ function setActiveDash(id){
     sec.hidden = !isMatch;
   });
 
+  document.querySelectorAll('.dash-kpis').forEach(panel => {
+    const isMatch = panel.dataset.site === site;
+    panel.hidden = !isMatch;
+  });
+
   // sync tabs safely
   document.querySelectorAll('.nav .tab').forEach(t => {
     const controls = t.getAttribute('aria-controls');
@@ -2257,13 +2379,6 @@ document.fonts?.ready?.then(() => {
     updateStickyControlsOffset();
   } catch {}
 });
-</script> <!-- ← keep this closing tag -->
-  <div id="loadingOverlay" style="
- position:fixed; inset:0; display:none; place-items:center;
- background:color-mix(in srgb, var(--paper) 70%, transparent); z-index:9999;">
-  <div style="padding:10px 14px;border:1px solid var(--grid);border-radius:10px;background:var(--paper);font-weight:800">
-    Loading…
-  </div>
-</div>
+</script>
 </body>
 </html>
