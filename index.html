@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Work Orders List – Aberdeen Laundry Services (Engineering)</title>
-  <style>
+<style>
     :root{
       --ink:#0b0f1a;
       --muted:#6b7280;
@@ -192,14 +192,11 @@
     }
 
 .page{
-  /* existing vars + padding kept */
-  --page-pad-top:16px;
+  --page-pad-top:12px;
   --page-pad-inline:48px;
   --page-pad-bottom:56px;
   padding:var(--page-pad-top) var(--page-pad-inline) var(--page-pad-bottom);
   box-sizing:border-box;
-
-  /* NEW: center the page and cap width */
   max-width: clamp(960px, 96vw, 1680px);
   margin-inline: auto;
 }
@@ -290,9 +287,9 @@
   .legend--full{ display:block; }
 }
     
-    .page-head{ display:flex; align-items:flex-start; justify-content:space-between; }
-    .title{ font-size:28px; font-weight:800; color:var(--ink); margin:0 0 8px; }
-    .logo{ height:50px; }
+    .page-head{ display:flex; align-items:center; justify-content:space-between; padding-bottom:12px; margin-bottom:0; }
+    .title{ font-size:28px; font-weight:800; color:var(--ink); margin:0; }
+    .logo{ height:50px; margin-left:auto; display:block; }
 
     .top-rule{ height:2px; background:var(--als-blue); border-bottom:1px solid var(--als-blue-strong); margin: 0 0 12px; }
 
@@ -547,11 +544,11 @@ body::before{
    ================================ */
 
 /* Wrapper should NOT create a stacking context.
-   Also keep overflow visible so sticky elements aren’t clipped. */
+   Also keep overflow visible so sticky elements aren't clipped. */
 .table-scroll{
   position: relative;
   overflow-x: auto;    /* ← shows a horizontal scrollbar when needed */
-  overflow-y: visible; /* ← don’t clip sticky header vertically      */
+  overflow-y: visible; /* ← don't clip sticky header vertically      */
 }
 
 .table-scroll thead th:first-child::before{ content: none; }
@@ -572,7 +569,7 @@ html{ overflow-y: scroll; }
 }
 .controls input[type="file"], .controls textarea{ font:inherit; }
 
-/* Search input (works whether or not it’s inside .controls, but it is) */
+/* Search input (works whether or not it's inside .controls, but it is) */
 .search-input{
   flex:1 1 280px;
   min-width:220px;
@@ -618,10 +615,19 @@ html{ overflow-y: scroll; }
   display:flex;
   flex-wrap:wrap;
   gap:8px;
-  margin:-4px 0 0;
+  align-items: center;
+  margin:4px 0 12px;
   padding:0;
 }
 .active-filter-chips[hidden]{ display:none; }
+.active-filter-chips::before{
+  content: "Active filters";
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .4px;
+  color: var(--muted);
+  margin-right: 8px;
+}
 .filter-chip{
   display:inline-flex;
   align-items:center;
@@ -656,35 +662,20 @@ html{ overflow-y: scroll; }
 
 /* --- Per-site dashboards --- */
 .nav{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 0; }
-.nav .tab{ padding:8px 12px; border:1px solid var(--grid); border-radius:999px; cursor:pointer; background:var(--paper); color:var(--ink); font-weight:700; }
-.nav .tab[aria-selected="true"]{ border-color:var(--als-blue); box-shadow:0 0 0 2px color-mix(in srgb, var(--als-blue) 25%, transparent); }
-    /* === Chips & tabs tweaks (mobile-friendly) === */
-
-/* 1) Active-filter chips: clearer spacing + label */
-.active-filter-chips{
-  align-items: center;
-  margin-top: 4px;
-  margin-bottom: 12px;  /* space above the site tabs */
-}
-.active-filter-chips::before{
-  content: "Active filters";
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .4px;
-  color: var(--muted);
-  margin-right: 8px;
-}
-
-/* 2) Visually separate site tabs from chips */
-.nav .tab{
-  background: transparent;
-  border-color: var(--grid);
+.nav .tab{ 
+  padding:8px 12px; 
+  border:1px solid var(--grid); 
+  border-radius:999px; 
+  cursor:pointer; 
+  background:transparent; 
+  color:var(--ink); 
+  font-weight:700; 
   box-shadow: none;
 }
-.nav .tab[aria-selected="true"]{
+.nav .tab[aria-selected="true"]{ 
   background: color-mix(in srgb, var(--als-blue) 8%, var(--paper));
-  border-color: var(--als-blue);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--als-blue) 25%, transparent);
+  border-color:var(--als-blue); 
+  box-shadow:0 0 0 2px color-mix(in srgb, var(--als-blue) 25%, transparent); 
 }
 
 /* 3) Mobile: chips scroll horizontally instead of wrapping */
@@ -764,46 +755,21 @@ html{ overflow-y: scroll; }
   .controls .search-input{ flex-basis:100%; max-width:none; }
 }
 
-    @media print{
-      @page{ size: A4 landscape; margin: 10mm; }
-      body{ font-size:11.5px; }
-      thead{ display:table-header-group; }
-      table{ width:100% !important; table-layout:fixed; border-collapse:collapse; }
-      th, td{ box-sizing:border-box; overflow-wrap:anywhere; word-break:break-word; hyphens:auto; }
-      thead th { position: static; }
-      .title-cell, .col-categories{ break-inside:avoid; }
-      html{-webkit-print-color-adjust:exact;}
-      .controls{ display:none !important; }
-      .active-filter-chips{ display:none !important; }
-    }
-/* ===== COMPACT DASHBOARD LAYOUT (final) ===== */
-/* Place this AFTER the existing stylesheet so it cleanly overrides it. */
-
-.page{
-  --page-pad-top:12px;
+@media print{
+  @page{ size: A4 landscape; margin: 10mm; }
+  body{ font-size:11.5px; }
+  thead{ display:table-header-group; }
+  table{ width:100% !important; table-layout:fixed; border-collapse:collapse; }
+  th, td{ box-sizing:border-box; overflow-wrap:anywhere; word-break:break-word; hyphens:auto; }
+  thead th { position: static; }
+  .title-cell, .col-categories{ break-inside:avoid; }
+  html{-webkit-print-color-adjust:exact;}
+  .controls{ display:none !important; }
+  .active-filter-chips{ display:none !important; }
+  .thead-plate{ display:none !important; }
 }
 
-/* Header row: title + week badge + logo */
-.page-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 12px;
-  margin-bottom: 0;
-}
-    
-.title {
-  font-size: 28px;
-  font-weight: 800;
-  color: var(--ink);
-  margin: 0;
-}
-    
-.logo{
-  height:50px;
-  margin-left:auto;
-  display:block;          /* avoid stray inline gaps */
-}
+/* ===== COMPACT DASHBOARD LAYOUT ===== */
 
 .week-badge {
   display: inline-block;
@@ -817,20 +783,7 @@ html{ overflow-y: scroll; }
   vertical-align: middle;
 }
 
-.top-rule {
-  height: 2px;
-  background: var(--als-blue);
-  border-bottom: 1px solid var(--als-blue-strong);
-  margin: 0 0 12px;
-}
-
 /* Sticky controls area — compact spacing */
-.sticky-top{
-  padding:0;
-  margin:0 0 8px;
-  gap:8px;
-}
-    
 .sticky-top {
   position: sticky;
   top: 0;
@@ -856,34 +809,12 @@ html{ overflow-y: scroll; }
   content: none !important;
 }
 
-/* new scrim: hides scrolled table rows, but sits behind the header/controls */
-body::before{
-  content: "";
-  position: fixed;
-  left: 0; right: 0; top: 0;
-  height: var(--sticky-controls-offset, 0px);
-  background: var(--paper);
-  pointer-events: none;
-  z-index: 180;  /* above rows, below header/controls */
-}
-
 /* make sure top-of-dashboard content is above the scrim */
-.page-head{ position: relative; z-index: 350; }      /* title/logo */
-.top-rule { position: relative; z-index:320; }  /* ← make the blue rule visible */
-.sticky-top{ z-index: 300; }                         /* controls (already sticky; no need to re-set top) */
-.legend-popover__panel{ z-index: 500; }              /* Index popover always on top */
+.page-head{ position: relative; z-index: 350; }
+.top-rule { position: relative; z-index:320; }
+.legend-popover__panel{ z-index: 500; }
 
-/* Only the plate paints the blue; cells are transparent */
-.table-scroll thead th{
-  background: transparent;
-  color: var(--thead-text);
-  font-weight: 800;
-  letter-spacing: .2px;
-  padding: 10px 10px;
-}
-
-/* Extend the plate left into the gutter (replaces the old <th>:before cap) */
-.table-scroll thead th:first-child::before{ content: none; }
+/* Extend the plate left into the gutter */
 .thead-plate::before{
   content: "";
   position: absolute;
@@ -891,8 +822,8 @@ body::before{
   width: 16px;
   background: inherit;
   border-left: 1px solid color-mix(in srgb, var(--thead) 35%, black);
-  border-top-left-radius: 12px;
-  border-bottom-left-radius: 12px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
 }
 
 /* Subtle vertical separators between header cells */
@@ -900,88 +831,46 @@ body::before{
   box-shadow: -1px 0 0 color-mix(in srgb, var(--thead-text) 10%, transparent) inset;
 }
 
-/* Hover / focus glow and “sorted column” emphasis */
+/* Hover / focus glow and "sorted column" emphasis */
 .table-scroll thead th::after{
   content:"";
   position:absolute; inset:0;
   background: color-mix(in srgb, #fff 10%, transparent);
   opacity: 0; transition: opacity .12s ease;
-  border-radius: 10px;          /* purely visual; won’t affect layout */
+  border-radius: 10px;
   pointer-events: none;
 }
 .table-scroll thead th:hover::after,
 .table-scroll thead th:focus-visible::after { opacity: .07; }
-.table-scroll thead th[data-sort]::after { opacity: .12; }  /* active sort column pops slightly */
+.table-scroll thead th[data-sort]::after { opacity: .12; }
 
 /* Make the arrow a touch crisper when active */
 thead th .sort-arrow{ opacity:.65; }
 thead th[data-sort] .sort-arrow{ opacity:1; }
 
-/* === Square sticky header bar (no rounded corners) === */
-.table-scroll thead th{
-  background: transparent; /* lets the plate show through */
-}
-
-.thead-plate{
-  border-radius: 0;                    /* square edges */
-  box-shadow:
-    0 1px 0 rgba(0,0,0,.25),           /* crisp bottom edge */
-    inset 0 1px 0 rgba(255,255,255,.05);
-}
-
-/* extend into the left gutter with square corners */
-.table-scroll thead th:first-child::before{ content: none; }
-.thead-plate::before{
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-}
-
-/* (optional) subtle column separators */
-.table-scroll thead th + th{
-  box-shadow: -1px 0 0 color-mix(in srgb, var(--thead-text) 10%, transparent) inset;
-}
-
-/* 3) Background typo fix (was: transparent(--thead)) */
-.table-scroll thead th{
-  background: transparent;    /* header cells are transparent; plate provides color */
-}
-
 /* ===== Sticky header — single source of truth ===== */
-/* The JS already sets --sticky-controls-offset to the live height of the sticky bar. */
-
-.table-scroll{
-  position: relative;
-  overflow-x: auto;
-  overflow-y: visible;
 
 /* Header cells sit on top of the blue plate */
 .table-scroll thead th{
   position: sticky;
-  top: var(--sticky-controls-offset, 0px) !important;
+  top: var(--ui-offset, var(--sticky-controls-offset, 0px)) !important;
   z-index: 220;
-  background: transparent; /* the plate paints the blue */
+  background: transparent;
   color: var(--thead-text);
+  font-weight: 800;
+  letter-spacing: .2px;
+  padding: 10px 10px;
 }
 
+/* The blue bar behind the header */
 .thead-plate{
   position: sticky;
   top: var(--ui-offset, var(--sticky-controls-offset, 0px)) !important;
   height: var(--thead-height, 40px);
-  margin-bottom: calc(-1 * var(--thead-height, 40px));  /* Pull table up to overlap */
+  margin-bottom: calc(-1 * var(--thead-height, 40px));
   z-index: 210;
   background: var(--thead);
   box-shadow: 0 1px 0 rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.05);
-}
-
-    .table-scroll thead th{
-  top: var(--ui-offset, var(--sticky-controls-offset, 0px)) !important;
-}
-.thead-plate{
-  top: var(--ui-offset, var(--sticky-controls-offset, 0px)) !important;
-}
-/* Don’t duplicate visuals in print */
-@media print{
-  .thead-plate{ display:none !important; }
 }
 
   </style>
