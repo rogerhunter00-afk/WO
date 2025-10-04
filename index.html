@@ -850,10 +850,9 @@ thead th[data-sort] .sort-arrow{ opacity:1; }
 
 /* ===== Sticky header — single source of truth ===== */
 
-/* Header cells sit on top of the blue plate */
+/* Header cells - make them RELATIVE, not sticky */
 .table-scroll thead th{
-  position: sticky;
-  top: var(--ui-offset, var(--sticky-controls-offset, 0px)) !important;
+  position: relative;  /* ← Changed from sticky */
   z-index: 220;
   background: transparent;
   color: var(--thead-text);
@@ -862,18 +861,15 @@ thead th[data-sort] .sort-arrow{ opacity:1; }
   padding: 10px 10px;
 }
 
-/* The blue bar behind the header */
+/* The blue bar - this is the ONLY sticky element */
 .thead-plate{
   position: sticky;
   top: var(--ui-offset, var(--sticky-controls-offset, 0px)) !important;
   height: var(--thead-height, 40px);
-  margin-bottom: 0;  /* ← Remove the negative margin */
+  margin-bottom: calc(-1 * var(--thead-height, 40px));  /* ← Keep the negative margin */
   z-index: 210;
   background: var(--thead);
   box-shadow: 0 1px 0 rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.05);
-}
-  .table-scroll table {
-  margin-top: calc(-1 * var(--thead-height, 40px));
 }
 
   </style>
