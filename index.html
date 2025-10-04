@@ -530,22 +530,6 @@ tr.row-priority > td{
   outline-offset: 2px;
 }
 
-/* ================================
-   STICKY CONTROLS (top toolbar)
-   ================================ */
-.sticky-top{
-  position: sticky;
-  top: 0;
-  z-index: 300;                 /* controls sit above everything in the table */
-  background: var(--paper);
-  margin: 0 0 4px;
-  padding: 0 0 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  box-shadow: 0 1px 0 var(--grid);
-}
-
 /* Optional: a fixed scrim under the controls so content never shows through
    while you scroll. Safe to remove if you don't need it. */
 body::before{
@@ -994,6 +978,23 @@ thead th[data-sort] .sort-arrow{ opacity:1; }
   height: var(--thead-height, 40px);
   margin-bottom: calc(-1 * var(--thead-height, 40px));
   z-index: 210;            /* under the <th>s */
+}
+
+    .table-scroll thead th{
+  top: var(--ui-offset, var(--sticky-controls-offset, 0px)) !important;
+}
+.thead-plate{
+  top: var(--ui-offset, var(--sticky-controls-offset, 0px)) !important;
+}
+    .thead-plate{
+  background: var(--thead);
+  box-shadow:
+    0 1px 0 rgba(0,0,0,.25),
+    inset 0 1px 0 rgba(255,255,255,.05);
+}
+/* Don’t duplicate visuals in print */
+@media print{
+  .thead-plate{ display:none !important; }
 }
 
   </style>
