@@ -536,7 +536,7 @@ body::before{
   content: "";
   position: fixed;
   left: 0; right: 0; top: 0;
-  height: var(--sticky-controls-offset, 0px);
+  height: var(--ui-offset, var(--sticky-controls-offset, 0px));
   background: var(--paper);
   pointer-events: none;
   z-index: 180;                 /* below the controls, above page content */
@@ -954,10 +954,10 @@ thead th[data-sort] .sort-arrow{ opacity:1; }
   overflow-x: auto;
   overflow-y: visible;
 
-  /* Reserve only the leftover space so body rows start right under the sticky header */
+  /* Use the SAME offset as the sticky header */
   padding-top: clamp(
     0px,
-    calc(var(--sticky-controls-offset, 0px) - var(--thead-height, 40px)),
+    calc(var(--ui-offset, var(--sticky-controls-offset, 0px)) - var(--thead-height, 40px)),
     100vh
   ) !important;
 }
