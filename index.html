@@ -850,11 +850,12 @@ thead th[data-sort] .sort-arrow{ opacity:1; }
 
 /* ===== Sticky header — single source of truth ===== */
 
-/* Header cells - make them RELATIVE, not sticky */
+/* Header cells - sticky with blue background */
 .table-scroll thead th{
-  position: relative;  /* ← Changed from sticky */
+  position: sticky;
+  top: var(--ui-offset, var(--sticky-controls-offset, 0px));
   z-index: 220;
-  background: transparent;
+  background: var(--thead);
   color: var(--thead-text);
   font-weight: 800;
   letter-spacing: .2px;
