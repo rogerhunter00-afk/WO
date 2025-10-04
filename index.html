@@ -139,7 +139,7 @@ html{overflow-y:scroll}
 @media(min-width:960px){table{table-layout:auto}}
 @media(max-width:960px){.page{--page-pad-top:16px;--page-pad-inline:32px;--page-pad-bottom:44px}}
 @media(max-width:680px){.page{--page-pad-top:16px;--page-pad-inline:18px;--page-pad-bottom:32px}.page-head{flex-direction:column;align-items:flex-start;gap:12px}.title{font-size:24px;margin-bottom:4px}.logo{height:42px}.controls{gap:10px}.controls textarea{width:100%;min-width:0}.controls .search-input{flex-basis:100%;max-width:none}}
-@media print{@page{size:A4 landscape;margin:10mm}body{font-size:11.5px}thead{display:table-header-group}table{width:100%!important;table-layout:fixed;border-collapse:collapse}th,td{box-sizing:border-box;overflow-wrap:anywhere;word-break:break-word;hyphens:auto}thead th{position:static}.title-cell,.col-categories{break-inside:avoid}html{-webkit-print-color-adjust:exact}.controls{display:none!important}.active-filter-chips{display:none!important}.thead-plate{display:none!important}}
+@media print{@page{size:A4 landscape;margin:10mm}body{font-size:11.5px}thead{display:table-header-group}table{width:100%!important;table-layout:fixed;border-collapse:collapse}th,td{box-sizing:border-box;overflow-wrap:anywhere;word-break:break-word;hyphens:auto}thead th{position:static}.title-cell,.col-categories{break-inside:avoid}html{-webkit-print-color-adjust:exact}.controls{display:none!important}.active-filter-chips{display:none!important}}
 .week-badge{display:inline-block;margin-left:12px;font-size:12px;font-weight:700;padding:4px 10px;border:1px solid var(--grid);border-radius:999px;background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));vertical-align:middle}
 .sticky-top{position:sticky;top:0;z-index:300;background:var(--paper);padding:12px 0;margin:0 0 8px;border-bottom:1px solid var(--grid)}
 .sticky-top__bar{display:none}
@@ -147,15 +147,14 @@ html{overflow-y:scroll}
 .page-head{position:relative;z-index:350}
 .top-rule{position:relative;z-index:320}
 .legend-popover__panel{z-index:500}
-.thead-plate::before{content:"";position:absolute;left:-12px;top:-1px;bottom:-1px;width:16px;background:inherit;border-left:1px solid color-mix(in srgb,var(--thead) 35%,#000);border-top-left-radius:0;border-bottom-left-radius:0}
-.table-scroll thead th+th{box-shadow:-1px 0 0 color-mix(in srgb,var(--thead-text) 10%,transparent) inset}
-.table-scroll thead th::after{content:"";position:absolute;inset:0;background:color-mix(in srgb,#fff 10%,transparent);opacity:0;transition:opacity .12s ease;border-radius:10px;pointer-events:none}
+.table-scroll thead{background:var(--thead);}
+.table-scroll thead th+th{box-shadow:-1px 0 0 color-mix(in srgb,var(--thead-text) 12%,transparent) inset}
+.table-scroll thead th::after{content:"";position:absolute;inset:0;background:color-mix(in srgb,#fff 16%,transparent);opacity:0;transition:opacity .12s ease;border-radius:10px;pointer-events:none}
 .table-scroll thead th:hover::after,.table-scroll thead th:focus-visible::after{opacity:.07}
 .table-scroll thead th[data-sort]::after{opacity:.12}
 thead th .sort-arrow{opacity:.65}
 thead th[data-sort] .sort-arrow{opacity:1}
-.table-scroll thead th{position:sticky;top:var(--ui-offset,var(--sticky-controls-offset,0px))!important;z-index:220;background:transparent;color:var(--thead-text);font-weight:800;letter-spacing:.2px;padding:10px}
-.thead-plate{position:sticky;top:var(--ui-offset,var(--sticky-controls-offset,0px))!important;height:var(--thead-height,40px);margin-bottom:calc(-1 * var(--thead-height,40px));z-index:210;background:var(--thead);box-shadow:0 1px 0 rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.05)}
+.table-scroll thead th{position:sticky;top:var(--ui-offset,var(--sticky-controls-offset,0px))!important;z-index:220;background:var(--thead);color:var(--thead-text);font-weight:800;letter-spacing:.2px;padding:10px;border-bottom:1px solid color-mix(in srgb,#000 25%,transparent);box-shadow:0 1px 0 rgba(0,0,0,.25);background-clip:padding-box}
 </style>
 </head>
 <body class="light">
@@ -511,18 +510,6 @@ function wireUiOffsetObservers(){
 }
 wireUiOffsetObservers();
 
-function syncTheadPlateWidth(wrapper){
-  if (!wrapper) return;
-  const table = wrapper.querySelector('table');
-  const plate = wrapper.querySelector('.thead-plate');
-  if (!table || !plate) return;
-  plate.style.width = table.scrollWidth + 'px';
-}
-function syncAllTheadPlates(){
-  document.querySelectorAll('.table-scroll').forEach(syncTheadPlateWidth);
-}
-window.addEventListener('resize', syncAllTheadPlates);
-
   const MS = { min:6e4, hour:36e5, day:864e5 };
   const MIN_AGE_MINUTES = 30;
 
@@ -850,7 +837,6 @@ const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
     container?.__mobileSortWrap && (container.__mobileSortWrap.hidden = !mobile || !hasRows);
     container?.__mobileCards && (container.__mobileCards.hidden = true);
     container?.__emptyState && (container.__emptyState.hidden = hasRows);
-    syncTheadPlateWidth(container?.__tableWrap);
     updateTheadHeight();
     return;
   }
@@ -864,7 +850,6 @@ const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
     container.__mobileCards.hidden = !hasRows;
     container.__emptyState && (container.__emptyState.hidden = hasRows);
   }
-  syncTheadPlateWidth(container?.__tableWrap);
 }
 
 function renderRowsScopedChunked(tbodyEl, headers, rows, container){
@@ -915,7 +900,6 @@ function renderRowsScopedChunked(tbodyEl, headers, rows, container){
       while (tmp.firstChild){
         tbodyEl.appendChild(tmp.firstChild);
       }
-      syncTheadPlateWidth(container?.__tableWrap);
     }
 
     if (i < safe.length){
@@ -926,7 +910,6 @@ function renderRowsScopedChunked(tbodyEl, headers, rows, container){
       container?.__mobileSortWrap && (container.__mobileSortWrap.hidden = !isMobileView() || !hasRows);
       container?.__mobileCards && (container.__mobileCards.hidden = true);
       container?.__emptyState && (container.__emptyState.hidden = hasRows);
-      syncTheadPlateWidth(container?.__tableWrap);
       updateTheadHeight();
     }
   }
@@ -1888,11 +1871,6 @@ kpiWrap.appendChild(prioCard);
 const tableWrap = document.createElement('div');
 tableWrap.className = 'table-scroll';
 
-// NEW: solid header plate sitting under sticky <th>s (prevents peeking)
-const plate = document.createElement('div');
-plate.className = 'thead-plate';
-plate.setAttribute('aria-hidden', 'true');
-
 const table  = document.createElement('table');
 const thead  = document.createElement('thead');
 const tbody  = document.createElement('tbody');
@@ -1900,9 +1878,7 @@ const tbody  = document.createElement('tbody');
 applyColumnWidths(table, headers);
 table.append(thead, tbody);
 
-// insert the plate FIRST so it sits underneath the sticky header cells
-tableWrap.append(plate, table);
-syncTheadPlateWidth(tableWrap);
+tableWrap.append(table);
 
 const mobileSortWrap = document.createElement('div');
 mobileSortWrap.className = 'mobile-sort';
