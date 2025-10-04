@@ -164,6 +164,22 @@ thead th[data-sort] .sort-arrow{opacity:1}
 /* When the table is the scrollport, pin header to the container’s top */
 .table-scroll thead th{top: 0 !important;}
 .table-scroll{ --ui-offset: 0px; }
+
+  /* Keep KPI cards visible under the search/filters bar */
+.kpi-panels{
+  position: sticky;
+  top: var(--ui-offset, 0px);   /* sits right below the title + controls */
+  z-index: 260;                 /* above the table header (220) */
+  background: var(--paper);     /* avoid see-through on scroll */
+  padding: 4px 0 8px;
+  border-bottom: 1px solid var(--grid);
+}
+
+/* Table header stays pinned inside the scrolling table */
+.table-scroll thead th{
+  top: 0 !important;
+}
+
 </style>
 </head>
 <body class="light">
