@@ -161,6 +161,9 @@ html{overflow-y:scroll}
 thead th .sort-arrow{opacity:.65}
 thead th[data-sort] .sort-arrow{opacity:1}
 .table-scroll thead th{position:sticky;top:var(--ui-offset,var(--sticky-controls-offset,0px))!important;z-index:220;background:var(--thead);color:var(--thead-text);font-weight:800;letter-spacing:.2px;padding:10px;border-bottom:1px solid color-mix(in srgb,#000 25%,transparent);box-shadow:0 1px 0 rgba(0,0,0,.25);background-clip:padding-box}
+/* When the table is the scrollport, pin header to the container’s top */
+.table-scroll thead th{top: 0 !important;}
+.table-scroll{ --ui-offset: 0px; }
 </style>
 </head>
 <body class="light">
