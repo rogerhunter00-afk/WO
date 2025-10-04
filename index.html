@@ -179,7 +179,11 @@ thead th[data-sort] .sort-arrow{opacity:1}
 .table-scroll thead th{
   top: 0 !important;
 }
-
+.table-scroll{ overflow-x:auto; overflow-y:visible; }
+.table-scroll thead th{
+  position: sticky;
+  top: var(--ui-offset, 0px) !important;
+}
 </style>
 </head>
 <body class="light">
