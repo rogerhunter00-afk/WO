@@ -954,14 +954,6 @@ thead th[data-sort] .sort-arrow{ opacity:1; }
   overflow-x: auto;
   overflow-y: visible;
 
-  /* Use the SAME offset as the sticky header */
-  padding-top: clamp(
-    0px,
-    calc(var(--ui-offset, var(--sticky-controls-offset, 0px)) - var(--thead-height, 40px)),
-    100vh
-  ) !important;
-}
-
 /* Header cells sit on top of the blue plate */
 .table-scroll thead th{
   position: sticky;
@@ -971,13 +963,12 @@ thead th[data-sort] .sort-arrow{ opacity:1; }
   color: var(--thead-text);
 }
 
-/* The solid blue bar behind the header */
 .thead-plate{
   position: sticky;
-  top: var(--sticky-controls-offset, 0px) !important;
+  top: var(--ui-offset, var(--sticky-controls-offset, 0px)) !important;
   height: var(--thead-height, 40px);
-  margin-bottom: calc(-1 * var(--thead-height, 40px));
-  z-index: 210;            /* under the <th>s */
+  margin-bottom: 0;
+  z-index: 210;
 }
 
     .table-scroll thead th{
