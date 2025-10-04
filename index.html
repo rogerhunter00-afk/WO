@@ -967,8 +967,10 @@ thead th[data-sort] .sort-arrow{ opacity:1; }
   position: sticky;
   top: var(--ui-offset, var(--sticky-controls-offset, 0px)) !important;
   height: var(--thead-height, 40px);
-  margin-bottom: 0;
+  margin-bottom: calc(-1 * var(--thead-height, 40px));  /* Pull table up to overlap */
   z-index: 210;
+  background: var(--thead);
+  box-shadow: 0 1px 0 rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.05);
 }
 
     .table-scroll thead th{
@@ -976,12 +978,6 @@ thead th[data-sort] .sort-arrow{ opacity:1; }
 }
 .thead-plate{
   top: var(--ui-offset, var(--sticky-controls-offset, 0px)) !important;
-}
-    .thead-plate{
-  background: var(--thead);
-  box-shadow:
-    0 1px 0 rgba(0,0,0,.25),
-    inset 0 1px 0 rgba(255,255,255,.05);
 }
 /* Don’t duplicate visuals in print */
 @media print{
