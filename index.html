@@ -860,17 +860,12 @@ thead th[data-sort] .sort-arrow{ opacity:1; }
   font-weight: 800;
   letter-spacing: .2px;
   padding: 10px 10px;
+  box-shadow: 0 1px 0 rgba(0,0,0,.25);
 }
 
-/* The blue bar - this is the ONLY sticky element */
+  /* The blue bar - hidden now that headers have their own background */
 .thead-plate{
-  position: sticky;
-  top: var(--ui-offset, var(--sticky-controls-offset, 0px)) !important;
-  height: var(--thead-height, 40px);
-  margin-bottom: calc(-1 * var(--thead-height, 40px));  /* ← Keep the negative margin */
-  z-index: 210;
-  background: var(--thead);
-  box-shadow: 0 1px 0 rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.05);
+  display: none;
 }
 
   </style>
