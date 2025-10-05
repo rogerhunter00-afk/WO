@@ -67,7 +67,7 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
 .nav .tab[aria-selected="true"]{background:color-mix(in srgb,var(--als-blue) 8%,var(--paper));border-color:var(--als-blue);box-shadow:0 0 0 2px color-mix(in srgb,var(--als-blue) 25%,transparent)}
 
 /* KPI row sticks just below the controls */
-.kpi-panels{min-height:72px;margin-bottom:0;position:sticky;top:var(--ui-offset,0px);z-index:260;background:var(--paper);padding:4px 0 0;border-bottom:1px solid var(--grid)}
+.kpi-panels{min-height:72px;margin-bottom:0;position:sticky;top:var(--sticky-controls-offset,0px);z-index:260;background:var(--paper);padding:4px 0 0;border-bottom:1px solid var(--grid)}
 .dash-kpis[hidden]{display:none!important}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:0}
 .card{background:var(--paper);border:1px solid var(--grid);border-radius:14px;padding:12px}
