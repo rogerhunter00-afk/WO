@@ -191,6 +191,40 @@ tbody td{background:var(--zebra);border-bottom:1px solid var(--grid);padding:8px
 .table-scroll thead th:focus{
   background: color-mix(in srgb, var(--thead) 92%, #000);
 }
+  /* ✅ Highlight DONE rows (green), similar to Priority tint + rail) */
+/* Only apply when the row is NOT already marked as "Priority" */
+.table-scroll tbody tr:not(.row-priority):has(td[data-col="Status"] .status-chip.done) > td{
+  background: color-mix(in srgb, var(--done-tx) 12%, var(--paper));
+}
+
+/* add a green rail on the left, like the Priority rail */
+.table-scroll tbody tr:not(.row-priority):has(td[data-col="Status"] .status-chip.done) > td:first-child{
+  position: relative;
+  z-index: 0;
+}
+.table-scroll tbody tr:not(.row-priority):has(td[data-col="Status"] .status-chip.done) > td:first-child::before{
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--done-tx);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--done-tx) 28%, transparent);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* optional: slightly stronger tint in dark mode to stand out */
+.dark .table-scroll tbody tr:not(.row-priority):has(td[data-col="Status"] .status-chip.done) > td{
+  background: color-mix(in srgb, var(--done-tx) 18%, var(--zebra));
+}
+/* Mobile cards: give DONE cards a green accent so they pop */
+.mobile-cards .mobile-card:has(.status-chip.done){
+  border-color: color-mix(in srgb, var(--done-tx) 55%, var(--grid));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--done-tx) 22%, transparent);
+}
 /* row priority rail */
 tr.row-priority>td:first-child{position:relative;z-index:0}
 tr.row-priority>td:first-child::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:3px;border-radius:999px;background:var(--priority-rail);box-shadow:0 0 0 1px color-mix(in srgb,var(--priority-rail) 28%,transparent);pointer-events:none;z-index:-1}
