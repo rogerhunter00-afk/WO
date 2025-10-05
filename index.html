@@ -627,6 +627,14 @@ function updateTableMaxHeight(){
   const available = Math.max(200, window.innerHeight - Math.max(0, Math.round(top)));
   scroller.style.maxHeight = available + 'px';
 }
+  // visual feedback flash when filters/sorts apply
+function pulse(el, cls='filter-flash'){
+  if(!el) return;
+  el.classList.remove(cls);
+  // force reflow so the animation retriggers
+  void el.offsetWidth;
+  el.classList.add(cls);
+}
 
 // keep both helpers in sync (either keep your old one or just call this)
 function wireUiOffsetObservers(){
@@ -1252,7 +1260,7 @@ function dedupeRows(rows){
   return [...map.values()];
 }
 
-  function makeStatusKpi(label, statusValue, count, container){
+function makeStatusKpi(label, statusValue, count, container){
   const el = kpiCard(label, count);
   el.classList.add('kpi-clickable');
   el.setAttribute('role','button');
@@ -1260,7 +1268,6 @@ function dedupeRows(rows){
   el.setAttribute('title', `Toggle status filter: ${label}`);
   el.setAttribute('aria-label', `Toggle status filter: ${label}`);
 
-  // pressed when this status filter is active (and not negated)
   const f = getFilters();
   const pressed = f.status === statusClass(statusValue) && !f.excludeStatus;
   el.setAttribute('aria-pressed', pressed ? 'true' : 'false');
@@ -1269,12 +1276,24 @@ function dedupeRows(rows){
     const curr = getFilters();
     const isOn = curr.status === statusClass(statusValue) && !curr.excludeStatus;
 
-    // clear any "Oldest only" focus when switching to a status filter
-    if (container) { container.__focusOldest = false; updateOldestOnlyChip(container); }
+    // clear "Oldest only" focus when switching status
+    if (container) {
+      container.__focusOldest = false;
+      updateOldestOnlyChip(container);
+    }
 
-    // toggle the <select> so chips/UI stay in sync
-    $statusFilter.value = isOn ? '' : statusValue;
-    $statusFilter.dispatchEvent(new Event('change', { bubbles:true }));
+    if ($statusFilter) {
+      // set/clear the real select so all chips/UI stay consistent
+      $statusFilter.value = isOn ? '' : statusValue;
+      // fire both events + call directly for robustness
+      $statusFilter.dispatchEvent(new Event('change', { bubbles:true }));
+      handleFilterChange?.();
+    } else {
+      // ultra-defensive fallback: re-ingest this container only
+      const base = container.__rawRows || [];
+      container.__rows = base.slice();
+      renderRowsSmart(container.__tbody, container.__headers, container.__rows, container);
+    }
   };
 
   el.addEventListener('click', toggle);
@@ -1949,6 +1968,7 @@ if (container.__focusOldest) {
 renderRowsSmart(container.__tbody, container.__headers, working, container);
   updateOldestOnlyChip(container);
   updateTheadHeight();
+  pulse(container.__tableWrap);   // 👈 add this line
 };
 
   oldestCard.addEventListener('click', applyFocusOldest);
@@ -1996,6 +2016,7 @@ if (container.__focusOldest) {
 renderRowsSmart(container.__tbody, container.__headers, working, container);
   updatePriorityOnlyChip(container);
   updateTheadHeight();
+  pulse(container.__tableWrap);   // 👈 add this line
 };
 
 prioCard.addEventListener('click', togglePrio);
@@ -2139,6 +2160,7 @@ function sortScoped(th, container){
 
   setSortState(container, col, nextDir);               // updates desktop + mobile UI
   renderRowsScoped(tbodyEl, headers, sorted, container);
+  setSortState(container, col, nextDir);
 }
   
 function updateTheadHeight(){
