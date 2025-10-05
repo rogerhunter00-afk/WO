@@ -592,12 +592,12 @@ function wireUiOffsetObservers(){
     kpis   && ro.observe(kpis);
   }
 }
-wireUiOffsetObservers
-  updateTheadOffset();
-  window.addEventListener('scroll', updateTheadOffset, { passive: true });
-  window.addEventListener('resize', updateTheadOffset);
-  window.addEventListener('load', updateTheadOffset);
-  ();
+wireUiOffsetObservers();
+
+updateTheadOffset();
+window.addEventListener('scroll', updateTheadOffset, { passive: true });
+window.addEventListener('resize', updateTheadOffset);
+window.addEventListener('load', updateTheadOffset);
 
   const MS = { min:6e4, hour:36e5, day:864e5 };
   const MIN_AGE_MINUTES = 30;
