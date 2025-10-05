@@ -77,37 +77,31 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
 .kpi-clickable:hover{box-shadow:0 0 0 2px color-mix(in srgb,var(--als-blue) 25%,transparent);border-color:var(--als-blue)}
 .kpi-clickable[aria-pressed="true"]{background:color-mix(in srgb,var(--als-blue) 12%,var(--paper));border-color:var(--als-blue);box-shadow:0 0 0 2px color-mix(in srgb,var(--als-blue) 25%,transparent)}
 
-.columns-bar{
-  position:sticky;
-  top:var(--ui-offset,0px);
-  z-index:240;
-  display:grid;
-  grid-template-columns:
-    var(--col-id) var(--col-title) var(--col-status) var(--col-priority)
-    var(--col-assigned) var(--col-created) var(--col-updated)
-    var(--col-completed) var(--col-age) var(--col-location)
-    var(--col-asset) minmax(var(--col-categories), 1fr);
-  gap:0;
-  align-items:center;
-  border-top:1px solid color-mix(in srgb,#000 25%,transparent);
-  border-bottom:1px solid color-mix(in srgb,#000 25%,transparent);
-  background:var(--thead);
-  color:var(--thead-text);
-  font-weight:800;
-  letter-spacing:.2px;
-  box-shadow:0 1px 0 rgba(0,0,0,.25);
-  padding:10px 10px 10px 14px;
-  height:44px;
-  margin:0;
-  box-sizing:border-box;
-  overflow:visible;
-}
-
 /* ===== TABLE (no sticky header) ===== */
 table{width:100%;min-width:1100px;border-collapse:separate;border-spacing:0;table-layout:fixed}
 .table-scroll{position:relative;overflow-x:auto;overflow-y:visible}
-.table-scroll thead{display:none}              /* hide real thead */
-.table-scroll tbody td:first-child{padding-left:14px}
+.table-scroll thead{
+  position: sticky;
+  top: var(--ui-offset, 0px);
+  z-index: 240;
+  background: var(--thead);
+}
+
+.table-scroll thead th{
+  background: var(--thead);
+  color: var(--thead-text);
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  padding: 10px 6px;
+  border-top: 1px solid color-mix(in srgb, #000 25%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, #000 25%, transparent);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.table-scroll thead th:first-child{
+  padding-left: 14px;
+}
 tbody td{background:var(--zebra);border-bottom:1px solid var(--grid);padding:8px 6px;vertical-align:top;overflow-wrap:anywhere;word-break:break-word;hyphens:auto;line-height:1.35}
 
 /* row priority rail */
@@ -365,48 +359,12 @@ tbody td{padding:8px 6px;box-sizing:border-box}
         <section class="dash-kpis" data-site="by" hidden></section>
       </div>
 
- <section class="dashboards">
-
-  <div class="columns-bar" data-site="all">
-    <span>ID</span><span>Title</span><span>Status</span><span>Priority</span>
-    <span>Assigned to</span><span>Created on</span><span>Last updated</span>
-    <span>Completed on</span><span>Age</span><span>Location</span>
-    <span>Asset</span><span>Categories</span>
-  </div>
+<section class="dashboards">
   <section id="dash-all" class="dash dash-table" data-site="all" data-active="true"></section>
-
-  <div class="columns-bar" data-site="ek">
-    <span>ID</span><span>Title</span><span>Status</span><span>Priority</span>
-    <span>Assigned to</span><span>Created on</span><span>Last updated</span>
-    <span>Completed on</span><span>Age</span><span>Location</span>
-    <span>Asset</span><span>Categories</span>
-  </div>
   <section id="dash-ek" class="dash dash-table" data-site="ek" hidden></section>
-
-  <div class="columns-bar" data-site="mm">
-    <span>ID</span><span>Title</span><span>Status</span><span>Priority</span>
-    <span>Assigned to</span><span>Created on</span><span>Last updated</span>
-    <span>Completed on</span><span>Age</span><span>Location</span>
-    <span>Asset</span><span>Categories</span>
-  </div>
   <section id="dash-mm" class="dash dash-table" data-site="mm" hidden></section>
-
-  <div class="columns-bar" data-site="keith">
-    <span>ID</span><span>Title</span><span>Status</span><span>Priority</span>
-    <span>Assigned to</span><span>Created on</span><span>Last updated</span>
-    <span>Completed on</span><span>Age</span><span>Location</span>
-    <span>Asset</span><span>Categories</span>
-  </div>
   <section id="dash-keith" class="dash dash-table" data-site="keith" hidden></section>
-
-  <div class="columns-bar" data-site="by">
-    <span>ID</span><span>Title</span><span>Status</span><span>Priority</span>
-    <span>Assigned to</span><span>Created on</span><span>Last updated</span>
-    <span>Completed on</span><span>Age</span><span>Location</span>
-    <span>Asset</span><span>Categories</span>
-  </div>
   <section id="dash-by" class="dash dash-table" data-site="by" hidden></section>
-
 </section>
     </main>
   </div>
@@ -2265,11 +2223,6 @@ function setActiveDash(id){
     const isMatch = panel.dataset.site === site;
     panel.hidden = !isMatch;
   });
-  // Keep the matching columns bar in sync with the active site
-document.querySelectorAll('.columns-bar').forEach(bar => {
-  const isMatch = (bar.dataset.site || '') === site;
-  bar.hidden = !isMatch;
-});
 
   // sync tabs safely
   document.querySelectorAll('.nav .tab').forEach(t => {
