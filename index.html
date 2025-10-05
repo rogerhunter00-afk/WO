@@ -213,6 +213,28 @@ tr.row-priority>td{background:color-mix(in srgb,var(--als-blue) 6%,var(--paper))
 }
 
 .week-badge{display:inline-block;margin-left:12px;font-size:12px;font-weight:700;padding:4px 10px;border:1px solid var(--grid);border-radius:999px;background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));vertical-align:middle}
+  /* === Columns bar height (one source of truth) === */
+:root{ --columns-bar-h: 44px; }
+
+/* Ensure the columns bar has a fixed height and doesn’t scroll its own content */
+.columns-bar{
+  height: var(--columns-bar-h);
+  padding: 0 10px;
+  overflow: hidden;
+}
+
+/* Reserve vertical space so the first data row never sits under the bar.
+   IMPORTANT: the .columns-bar element must be the immediate previous sibling of the .dash section. */
+.columns-bar + .dash .table-scroll::before,
+.columns-bar + .dash-table .table-scroll::before{
+  content:"";
+  display:block;
+  height: var(--columns-bar-h);
+}
+
+/* We are not using the real thead any more */
+.table-scroll thead{ display:none; }
+
 </style>
 </head>
 <body class="light">
@@ -341,13 +363,49 @@ tr.row-priority>td{background:color-mix(in srgb,var(--als-blue) 6%,var(--paper))
         <section class="dash-kpis" data-site="by" hidden></section>
       </div>
 
-      <section class="dashboards">
-        <section id="dash-all" class="dash dash-table" data-site="all" data-active="true"></section>
-        <section id="dash-ek" class="dash dash-table" data-site="ek" hidden></section>
-        <section id="dash-mm" class="dash dash-table" data-site="mm" hidden></section>
-        <section id="dash-keith" class="dash dash-table" data-site="keith" hidden></section>
-        <section id="dash-by" class="dash dash-table" data-site="by" hidden></section>
-      </section>
+ <section class="dashboards">
+
+  <div class="columns-bar" data-site="all">
+    <span>ID</span><span>Title</span><span>Status</span><span>Priority</span>
+    <span>Assigned to</span><span>Created on</span><span>Last updated</span>
+    <span>Completed on</span><span>Age</span><span>Location</span>
+    <span>Asset</span><span>Categories</span>
+  </div>
+  <section id="dash-all" class="dash dash-table" data-site="all" data-active="true"></section>
+
+  <div class="columns-bar" data-site="ek">
+    <span>ID</span><span>Title</span><span>Status</span><span>Priority</span>
+    <span>Assigned to</span><span>Created on</span><span>Last updated</span>
+    <span>Completed on</span><span>Age</span><span>Location</span>
+    <span>Asset</span><span>Categories</span>
+  </div>
+  <section id="dash-ek" class="dash dash-table" data-site="ek" hidden></section>
+
+  <div class="columns-bar" data-site="mm">
+    <span>ID</span><span>Title</span><span>Status</span><span>Priority</span>
+    <span>Assigned to</span><span>Created on</span><span>Last updated</span>
+    <span>Completed on</span><span>Age</span><span>Location</span>
+    <span>Asset</span><span>Categories</span>
+  </div>
+  <section id="dash-mm" class="dash dash-table" data-site="mm" hidden></section>
+
+  <div class="columns-bar" data-site="keith">
+    <span>ID</span><span>Title</span><span>Status</span><span>Priority</span>
+    <span>Assigned to</span><span>Created on</span><span>Last updated</span>
+    <span>Completed on</span><span>Age</span><span>Location</span>
+    <span>Asset</span><span>Categories</span>
+  </div>
+  <section id="dash-keith" class="dash dash-table" data-site="keith" hidden></section>
+
+  <div class="columns-bar" data-site="by">
+    <span>ID</span><span>Title</span><span>Status</span><span>Priority</span>
+    <span>Assigned to</span><span>Created on</span><span>Last updated</span>
+    <span>Completed on</span><span>Age</span><span>Location</span>
+    <span>Asset</span><span>Categories</span>
+  </div>
+  <section id="dash-by" class="dash dash-table" data-site="by" hidden></section>
+
+</section>
     </main>
   </div>
   <div id="loadingOverlay" style=" position:fixed; inset:0; display:none; place-items:center; background:color-mix(in srgb, var(--paper) 70%, transparent); z-index:9999;">
@@ -2205,6 +2263,11 @@ function setActiveDash(id){
     const isMatch = panel.dataset.site === site;
     panel.hidden = !isMatch;
   });
+  // Keep the matching columns bar in sync with the active site
+document.querySelectorAll('.columns-bar').forEach(bar => {
+  const isMatch = (bar.dataset.site || '') === site;
+  bar.hidden = !isMatch;
+});
 
   // sync tabs safely
   document.querySelectorAll('.nav .tab').forEach(t => {
