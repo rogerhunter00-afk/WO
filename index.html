@@ -351,19 +351,98 @@ tbody td{padding:8px 6px;box-sizing:border-box}
   pointer-events:auto;
 }
 
-.legend{border:1px solid var(--grid);border-radius:12px;background:var(--paper);padding:12px;margin:8px 0 12px}
-.legend__title{margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
-.legend__list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:auto 1fr;gap:8px 10px}
-.legend__sample{display:contents}
-.legend__list>.legend__sample>:first-child{display:inline-flex;align-items:center;gap:6px;min-height:22px}
-.legend__rail{width:6px;height:16px;border-radius:999px;background:var(--priority-rail);box-shadow:0 0 0 1px color-mix(in srgb,var(--priority-rail) 28%,transparent)}
-.legend__kpi{display:inline-block;padding:4px 8px;border:1px solid var(--grid);border-radius:10px;font-weight:800;font-size:12px;background:color-mix(in srgb,var(--als-blue) 8%,var(--paper));color:var(--ink)}
-.legend--full{display:none}
-@media print{.legend--full{display:block}}
+/* Legend card + base */
+.legend{
+  border:1px solid var(--grid);
+  border-radius:12px;
+  background:var(--paper);
+  padding:12px;
+  margin:8px 0 12px;
+}
+.legend__title{
+  margin:0 0 8px;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.4px;
+  color:var(--muted);
+}
+.legend__list{
+  list-style:none;
+  margin:0;
+  padding:0;
+  display:grid;
+  /* two columns: responsive label + flexible description */
+  grid-template-columns:minmax(150px,210px) 1fr;
+  gap:8px 10px;
+  row-gap:10px;
+}
+.legend__sample{ display:contents; }
+.legend__list > .legend__sample > :first-child{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;                  /* a touch more air */
+  min-height:22px;
+  min-width:clamp(140px,22vw,210px);
+  white-space:nowrap;       /* keep labels on one line by default */
+}
+.legend__list > .legend__sample > :last-child{
+  min-width:0;              /* allow wrapping in grid */
+  overflow-wrap:anywhere;
+}
 
-.dash{display:none}
-.dash[data-active="true"]{display:block}
-.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+/* Separator lines that work with display:contents */
+.legend__list > .legend__sample > :last-child{ position:relative; }
+.legend__list > .legend__sample:nth-child(n+2) > :last-child{
+  border-top:1px solid color-mix(in srgb, var(--grid) 70%, transparent);
+  padding-top:8px;
+  margin-top:8px;
+}
+
+/* Inline samples */
+.legend__rail{
+  width:6px;
+  height:16px;
+  border-radius:999px;
+  background:var(--priority-rail);
+  box-shadow:0 0 0 1px color-mix(in srgb, var(--priority-rail) 28%, transparent);
+}
+.legend__kpi{
+  display:inline-block;
+  padding:4px 8px;
+  border:1px solid var(--grid);
+  border-radius:10px;
+  font-weight:800;
+  font-size:12px;
+  background:color-mix(in srgb, var(--als-blue) 8%, var(--paper));
+  color:var(--ink);
+}
+
+/* Align chip baselines nicely */
+.legend__list .status-chip,
+.legend__list .chip-cat,
+.legend__list .age-chip{
+  transform:translateY(-1px);
+}
+
+/* Print */
+.legend--full{ display:none; }
+@media print{ .legend--full{ display:block; } }
+
+/* Dark-mode contrast nudge */
+.dark .legend{
+  border-color:color-mix(in srgb, var(--grid) 65%, transparent);
+}
+
+/* Small-screen layout: stack per rule for readability */
+@media (max-width:520px){
+  .legend__list{ grid-template-columns:1fr; }
+  .legend__list > .legend__sample > :first-child{ margin-bottom:4px; }
+}
+
+/* Ultra-narrow phones: allow label wrapping to avoid overflow */
+@media (max-width:360px){
+  .legend__list > .legend__sample > :first-child{ white-space:normal; }
+}
 
 /* responsive layout tweaks */
 @media(min-width:960px){table{table-layout:fixed}}
@@ -521,32 +600,54 @@ tbody td{padding:8px 6px;box-sizing:border-box}
     <div class="legend">
       <p class="legend__title">How to read this dashboard</p>
 <ul class="legend__list">
-  <li class="legend__sample">
-    <span><span class="legend__rail"></span> Priority</span>
-    <span>Rows with the “Priority” category show a red rail and a subtle background tint.</span>
-  </li>
-
-  <li class="legend__sample">
-    <span><span class="status-chip done">Done</span></span>
-    <span>Completed work orders are lightly tinted green to stand out.</span>
-  </li>
-
+  <!-- PRIORITY -->
   <li class="legend__sample">
     <span>
-      <span class="legend__rail"></span>
+      <span class="legend__rail" aria-hidden="true"></span>
+      <strong>Priority</strong>
+    </span>
+    <span>Red rail + subtle tint. Set by the “Priority” category.</span>
+  </li>
+
+  <!-- STATUS: DONE -->
+  <li class="legend__sample">
+    <span><span class="status-chip done">Done</span></span>
+    <span>Completed items get a light green tint.</span>
+  </li>
+
+  <!-- COMBINED: PRIORITY + DONE -->
+  <li class="legend__sample">
+    <span>
+      <span class="legend__rail" aria-hidden="true"></span>
       <span class="status-chip done" style="margin-left:6px">Done</span>
     </span>
-    <span><strong>Done + Priority</strong>: keeps the red rail (Priority) and adds the green DONE tint.</span>
+    <span><strong>Priority + Done</strong>: keeps the red rail and adds the green tint.</span>
   </li>
 
+  <!-- OTHER STATUSES (optional but helpful) -->
+  <li class="legend__sample">
+    <span><span class="status-chip open">Open</span></span>
+    <span>Unstarted or awaiting work.</span>
+  </li>
+  <li class="legend__sample">
+    <span><span class="status-chip in-progress">In&nbsp;Progress</span></span>
+    <span>Work is underway.</span>
+  </li>
+  <li class="legend__sample">
+    <span><span class="status-chip on-hold">On&nbsp;Hold</span></span>
+    <span>Paused pending parts/info/contractor.</span>
+  </li>
+
+  <!-- CATEGORIES -->
   <li class="legend__sample">
     <span><span class="chip-cat">Category</span></span>
-    <span>Category chips map directly to the sheet values.</span>
+    <span>Matches the sheet’s category values; colours are consistent.</span>
   </li>
 
+  <!-- AGE -->
   <li class="legend__sample">
     <span><span class="age-chip age-old">14d</span></span>
-    <span>Age shows how long the order has been active. Snowflake indicates a frozen winter task.</span>
+    <span>Age since creation. ❄ on the chip = frozen winter task.</span>
   </li>
 </ul>
     </div>
