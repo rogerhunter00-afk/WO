@@ -79,8 +79,13 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
 
 /* ===== TABLE (no sticky header) ===== */
 table{width:100%;min-width:1100px;border-collapse:separate;border-spacing:0;table-layout:fixed}
-.table-scroll{position:relative;overflow-x:auto;overflow-y:visible}
+.table-scroll{
+  position: relative;
+  overflow-x: auto;
+  overflow-y: visible;
+}
 .table-scroll thead{
+  position: -webkit-sticky;
   position: sticky;
   top: 0;
   z-index: 250;
