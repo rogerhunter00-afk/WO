@@ -33,8 +33,7 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
 .page-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;margin-bottom:0;position:relative;z-index:350}
 .title{font-size:28px;font-weight:800;margin:0;color:var(--ink)}
 .logo{height:50px;margin-left:auto;display:block}
-.top-rule{height:2px;background:var(--als-blue);border-bottom:1px solid var(--als-blue-strong);margin:0 0 12px;position:relative;z-index:320}
-
+.top-rule{height:2px;background:var(--als-blue);border-bottom:1px solid var(--als-blue-strong);margin:0;position:relative;z-index:320}
 /* sticky controls block */
 .sticky-top{position:sticky;top:0;z-index:300;background:var(--paper);padding:12px 0;margin:0;border-bottom:1px solid var(--grid)}
 .sticky-top__bar{display:flex;justify-content:flex-end;align-items:center;gap:8px}
@@ -214,14 +213,15 @@ tr.row-priority>td{background:color-mix(in srgb,var(--als-blue) 6%,var(--paper))
 }
 
 .week-badge{display:inline-block;margin-left:12px;font-size:12px;font-weight:700;padding:4px 10px;border:1px solid var(--grid);border-radius:999px;background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));vertical-align:middle}
-  /* === Columns bar height (one source of truth) === */
+/* === Columns bar height (one source of truth) === */
 :root{ --columns-bar-h: 44px; }
 
-/* Ensure the columns bar has a fixed height and doesn’t scroll its own content */
+/* Ensure the columns bar has a fixed height and doesn't scroll its own content */
 .columns-bar{
   height: var(--columns-bar-h);
   padding: 0 10px;
   overflow: hidden;
+  margin-bottom: 0;
 }
 
 /* Reserve vertical space so the first data row never sits under the bar.
@@ -229,8 +229,7 @@ tr.row-priority>td{background:color-mix(in srgb,var(--als-blue) 6%,var(--paper))
 .columns-bar + .dash .table-scroll::before,
 .columns-bar + .dash-table .table-scroll::before{
   content:"";
-  display:block;
-  height: var(--columns-bar-h);
+  display:none;
 }
 
 /* We are not using the real thead any more */
