@@ -541,6 +541,7 @@ function updateUiOffset(){
   const head   = document.querySelector('.page-head');
   const rule   = document.querySelector('.top-rule');
   const sticky = document.querySelector('.sticky-top');
+  const kpis   = document.querySelector('.kpi-panels');
 
   const rectH = el => (el ? el.getBoundingClientRect().height : 0);
   const mb    = el => (el ? parseFloat(getComputedStyle(el).marginBottom) || 0 : 0);
@@ -552,8 +553,11 @@ function updateUiOffset(){
 
   // Sticky block stays in view; include its margin-bottom to match layout.
   const stickyBlock = rectH(sticky) + mb(sticky);
+  
+  // KPI panels also stay in view
+  const kpiBlock = rectH(kpis) + mb(kpis);
 
-  const offset = Math.round(headAndRuleInView + stickyBlock);
+  const offset = Math.round(headAndRuleInView + stickyBlock + kpiBlock);
   document.documentElement.style.setProperty('--ui-offset', `${offset}px`);
 }
 
