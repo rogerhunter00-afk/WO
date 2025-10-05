@@ -5,104 +5,43 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Work Orders List – Aberdeen Laundry Services (Engineering)</title>
 <style>
-:root{--ink:#0b0f1a;--muted:#6b7280;--als-blue:#0b67c2;--als-blue-strong:#0a5cb0;--thead:#0b67c2;--thead-text:#fff;--grid:#e6e9ef;--zebra:#fff;--chip-cat-tx:#0b67c2;--chip-cat-br:#0b67c2;--done-tx:#059669;--open-tx:#0b67c2;--hold-tx:#b45309;--thead-height:40px;--done-bg:#0596691a;--open-bg:#0b67c21a;--hold-bg:#f59e0b1a;--paper:#fff;--priority-rail:#E85A70;--sticky-controls-offset:0px}
+:root{--ink:#0b0f1a;--muted:#6b7280;--als-blue:#0b67c2;--als-blue-strong:#0a5cb0;--thead:#0b67c2;--thead-text:#fff;--grid:#e6e9ef;--zebra:#fff;--done-tx:#059669;--open-tx:#0b67c2;--hold-tx:#b45309;--done-bg:#0596691a;--open-bg:#0b67c21a;--hold-bg:#f59e0b1a;--paper:#fff;--priority-rail:#E85A70;--sticky-controls-offset:0px;--ui-offset:0px}
+
+/* column width vars for both the bar and table */
+:root{
+  --col-id:66px; --col-title:280px; --col-status:120px; --col-priority:92px;
+  --col-assigned:160px; --col-created:110px; --col-updated:120px;
+  --col-completed:110px; --col-age:96px; --col-location:180px;
+  --col-asset:220px; --col-categories:160px;
+}
+
 @media(prefers-color-scheme:dark){:root{color-scheme:dark;--ink:#f3f4f6;--muted:#9ca3af;--als-blue:#3b82f6;--als-blue-strong:#2563eb;--thead:#1e3a8a;--grid:#374151;--zebra:#1f2937;--done-tx:#10b981;--open-tx:#3b82f6;--hold-tx:#fbbf24;--done-bg:#10b98133;--open-bg:#3b82f633;--hold-bg:#f59e0b33;--paper:#111827}}
+
 .dark{--ink:#f3f4f6;--muted:#9ca3af;--als-blue:#3b82f6;--als-blue-strong:#2563eb;--thead:#1e3a8a;--grid:#374151;--zebra:#1f2937;--done-tx:#10b981;--open-tx:#3b82f6;--hold-tx:#fbbf24;--done-bg:#10b98133;--open-bg:#3b82f633;--hold-bg:#f59e0b33;--paper:#111827;color-scheme:dark}
 .light{--ink:#0b0f1a;--muted:#6b7280;--als-blue:#0b67c2;--als-blue-strong:#0a5cb0;--thead:#0b67c2;--grid:#e6e9ef;--zebra:#fff;--done-tx:#059669;--open-tx:#0b67c2;--hold-tx:#b45309;--done-bg:#0596691a;--open-bg:#0b67c21a;--hold-bg:#f59e0b1a;--paper:#fff;color-scheme:light}
+
+html,body{height:100%}
+html{overflow-y:scroll}
+body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";color:var(--ink);background:var(--paper);margin:0;font-size:13px;line-height:1.32;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+/* paint under sticky elements to avoid blue gap as things pin */
+body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offset, var(--sticky-controls-offset,0px));background:var(--paper);pointer-events:none;z-index:180}
+
+.page{--page-pad-top:12px;--page-pad-inline:48px;--page-pad-bottom:56px;padding:var(--page-pad-top) var(--page-pad-inline) var(--page-pad-bottom);box-sizing:border-box;max-width:clamp(960px,96vw,1680px);margin-inline:auto}
+
+.page-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;margin-bottom:0;position:relative;z-index:350}
+.title{font-size:28px;font-weight:800;margin:0;color:var(--ink)}
+.logo{height:50px;margin-left:auto;display:block}
+.top-rule{height:2px;background:var(--als-blue);border-bottom:1px solid var(--als-blue-strong);margin:0 0 12px;position:relative;z-index:320}
+
+/* sticky controls block */
+.sticky-top{position:sticky;top:0;z-index:300;background:var(--paper);padding:12px 0;margin:0 0 8px;border-bottom:1px solid var(--grid)}
 .sticky-top__bar{display:flex;justify-content:flex-end;align-items:center;gap:8px}
 .btn--pill{border-radius:999px;padding:6px 12px}
 .sticky-content{transition:opacity .18s ease}
 .sticky-top[data-collapsed="true"]{padding:6px 0}
 .sticky-top[data-collapsed="true"] .sticky-content{display:none!important;opacity:0}
-.mobile-cards{display:none}
-.mobile-card{border:1px solid var(--grid);border-radius:14px;padding:12px;background:var(--paper);display:grid;grid-template-columns:1fr auto;gap:8px 12px}
-.mobile-card+.mobile-card{margin-top:10px}
-.mobile-card__title{font-weight:800;line-height:1.3}
-.mobile-card__id{font-weight:900;opacity:.7}
-.mobile-card__meta{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--muted)}
-.mobile-card__row{grid-column:1/-1;display:flex;gap:8px;align-items:center}
-.mobile-card .status-chip{font-size:12px}
-.mobile-card .chip-cat{padding:3px 8px;font-size:11px;margin:2px 4px 0 0}
-@media(max-width:700px){.dash-table{display:none}.mobile-cards{display:block}.page{--page-pad-inline:16px}}
-.mobile-sort{display:none;align-items:center;gap:8px;margin:0 0 12px}
-.mobile-sort__label{font-size:11px;text-transform:uppercase;letter-spacing:.4px;font-weight:700;color:var(--muted)}
-.mobile-sort__select{flex:1 1 auto;font:inherit;font-weight:600;padding:8px 12px;border-radius:8px;border:1px solid var(--grid);background:var(--paper);color:var(--ink)}
-.mobile-sort__direction{font:inherit;font-weight:700;padding:8px 12px;border-radius:8px;border:1px solid var(--grid);background:color-mix(in srgb,var(--als-blue) 16%,var(--paper));color:var(--ink);cursor:pointer}
-.mobile-sort__direction[disabled]{opacity:.5;cursor:not-allowed}
-@media(max-width:700px){.mobile-sort{display:flex;flex-wrap:wrap}}
-html,body{height:100%}
-body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";color:var(--ink);background:var(--paper);margin:0;font-size:13px;line-height:1.32;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.page{--page-pad-top:12px;--page-pad-inline:48px;--page-pad-bottom:56px;padding:var(--page-pad-top) var(--page-pad-inline) var(--page-pad-bottom);box-sizing:border-box;max-width:clamp(960px,96vw,1680px);margin-inline:auto}
-.legend-popover{position:relative}
-.legend-popover__panel{position:absolute;right:0;top:calc(100% + 8px);width:min(320px,86vw);max-height:70vh;overflow:auto;background:var(--paper);color:var(--ink);border:1px solid var(--grid);border-radius:12px;padding:10px;box-shadow:0 12px 30px rgba(0,0,0,.18);opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity .15s ease,transform .15s ease;z-index:350}
-.legend-popover__panel::before{content:"";position:absolute;top:-6px;right:24px;width:12px;height:12px;transform:rotate(45deg);background:var(--paper);border-left:1px solid var(--grid);border-top:1px solid var(--grid)}
-.legend-popover:hover .legend-popover__panel,.legend-popover:focus-within .legend-popover__panel,.legend-popover.is-open .legend-popover__panel{opacity:1;transform:none;pointer-events:auto}
-.legend--compact{margin:0;padding:10px;background:var(--paper)}
-.legend--compact .legend__title{margin:0 0 6px;font-size:10px}
-.legend--compact .legend__list{gap:6px 8px}
-.legend--compact .status-chip{font-size:11px;padding:3px 9px}
-.legend--compact .age-chip{font-size:11.5px;padding:3px 7px}
-.legend--compact .chip-cat{font-size:11px;padding:3px 8px}
-.legend--compact .legend__kpi{font-size:11px;padding:3px 8px}
-@media(max-width:700px){.legend-popover__panel{position:fixed;left:12px;right:12px;top:calc(var(--sticky-controls-offset) + 8px);width:auto;max-height:60vh}.legend-popover__panel::before{display:none}}
-.legend{border:1px solid var(--grid);border-radius:12px;background:var(--paper);padding:12px;margin:8px 0 12px}
-.legend__title{margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
-.legend__list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:auto 1fr;gap:8px 10px}
-.legend__sample{display:contents}
-.legend__list>.legend__sample>:first-child{display:inline-flex;align-items:center;gap:6px;min-height:22px}
-.legend__rail{width:6px;height:16px;border-radius:999px;background:var(--priority-rail);box-shadow:0 0 0 1px color-mix(in srgb,var(--priority-rail) 28%,transparent)}
-.legend__kpi{display:inline-block;padding:4px 8px;border:1px solid var(--grid);border-radius:10px;font-weight:800;font-size:12px;background:color-mix(in srgb,var(--als-blue) 8%,var(--paper));color:var(--ink)}
-.legend--full{display:none}
-@media print{.legend--full{display:block}}
-.page-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;margin-bottom:0}
-.title{font-size:28px;font-weight:800;color:var(--ink);margin:0}
-.logo{height:50px;margin-left:auto;display:block}
-.top-rule{height:2px;background:var(--als-blue);border-bottom:1px solid var(--als-blue-strong);margin:0 0 12px}
-table{width:100%;min-width:1100px;border-collapse:separate;border-spacing:0;table-layout:auto}
-.table-scroll tbody td:first-child{padding-left:14px}
-tr.row-priority>td:first-child{position:relative;z-index:0}
-tr.row-priority>td:first-child::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:3px;border-radius:999px;background:var(--priority-rail);box-shadow:0 0 0 1px color-mix(in srgb,var(--priority-rail) 28%,transparent);pointer-events:none;z-index:-1}
-table th,table td{overflow-wrap:anywhere;word-break:break-word;hyphens:auto}
-tbody td,tbody th{position:static}
-thead th .sort-arrow{margin-left:4px}
-thead th[data-sort="asc"] .sort-arrow::after{content:'\25B2'}
-thead th[data-sort="desc"] .sort-arrow::after{content:'\25BC'}
-thead th:first-child{border-top-left-radius:3px}
-thead th:last-child{border-top-right-radius:3px;border-right:none}
-tbody td{background:var(--zebra);border-bottom:1px solid var(--grid);padding:8px 6px;vertical-align:top;overflow-wrap:anywhere;word-break:break-word;hyphens:auto;line-height:1.35}
-tr.row-priority>td{background:color-mix(in srgb,var(--als-blue) 6%,var(--paper))}
-.dark tr.row-priority>td{background:color-mix(in srgb,var(--als-blue) 10%,var(--zebra))}
-.col-id{width:66px}.col-title{width:280px}.col-status{width:120px}.col-priority{width:92px}.col-createdby{width:140px}.col-createdon{width:110px}.col-completedon{width:110px}.col-updated{width:120px}.col-location{width:180px}.col-asset{width:220px}.col-categories{width:auto!important}
-.id{font-weight:700}
-.title-cell b{display:block;font-weight:800}
-.chip-cat{display:inline-flex;align-items:center;border-radius:999px;padding:4px 10px;border:1px solid currentColor;background:transparent;margin:2px 6px 2px 0;font-weight:600;font-size:12px;line-height:1;white-space:nowrap}
-.table-scroll td[data-col="Categories"]{white-space:normal;min-width:140px;width:1%}
-.table-scroll td[data-col="Categories"] .chip-stack{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}
-.table-scroll td[data-col="Categories"] .chip-cat{margin:0;white-space:nowrap;font-size:11px;padding:3px 8px}
-.status-chip{--ring:color-mix(in srgb,currentColor 40%,transparent);--bg:color-mix(in srgb,currentColor 18%,transparent);display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-weight:700;font-size:12px;line-height:1;border:1px solid var(--ring);background:var(--bg);color:currentColor}
-.status-chip::before{content:"";width:14px;height:14px;display:inline-block;background:currentColor;mask:var(--icon) no-repeat center/14px 14px;-webkit-mask:var(--icon) no-repeat center/14px 14px}
-.status-chip.open{--icon:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='5.5' fill='none' stroke='black' stroke-width='2'/></svg>");color:var(--open-tx);border-color:color-mix(in srgb,var(--open-tx) 55%,transparent);background:color-mix(in srgb,var(--open-tx) 12%,var(--paper));box-shadow:none;padding:4px 12px}
-.status-chip.open::before{background:var(--open-tx)}
-.status-chip.open::after{content:none!important}
-.status-chip.in-progress{color:var(--open-tx);--icon:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='black' fill-rule='evenodd' d='M8 1a7 7 0 1 1 0 14A7 7 0 0 1 8 1zm0 2a5 5 0 1 0 0 10A5 5 0 0 0 8 3z'/><rect x='7.25' y='3' width='1.5' height='5' rx='0.75' fill='black'/><rect x='7.25' y='8' width='4.5' height='1.5' rx='0.75' fill='black'/></svg>")}
-.status-chip.on-hold{color:var(--hold-tx);--icon:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='3' y='2' width='4' height='12' rx='1' fill='black'/><rect x='9' y='2' width='4' height='12' rx='1' fill='black'/></svg>")}
-.status-chip.done{color:var(--done-tx);--icon:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='black' d='M6.6 12.2 2.9 8.5l1.4-1.4 2.3 2.3 4.9-4.9 1.4 1.4-6.3 6.3z'/></svg>");--bg:color-mix(in srgb,var(--done-tx) 18%,transparent);--ring:color-mix(in srgb,var(--done-tx) 40%,transparent)}
-@supports not(mask:url("")){.status-chip::before{mask:none;-webkit-mask:none;background:none;width:auto;margin-right:2px;content:var(--glyph,"•")}.status-chip.open{--glyph:"○"}.status-chip.in-progress{--glyph:"⏳"}.status-chip.on-hold{--glyph:"⏸"}.status-chip.done{--glyph:"✓"}}
-.age-chip{--ring:color-mix(in srgb,currentColor 50%,transparent);--bg:color-mix(in srgb,currentColor 26%,transparent);display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;font-weight:800;font-size:12.5px;line-height:1;border:1px solid var(--ring);background:var(--bg);font-variant-numeric:tabular-nums}
-.age-chip.frozen{position:relative;padding-right:22px;border-style:dashed;background:var(--bg);cursor:help}
-.age-chip.frozen::after{content:"❄";font-size:12px;line-height:1;position:absolute;right:6px;top:50%;transform:translateY(-50%);opacity:.9}
-.age-chip.age-fresh{color:#10b981}
-.age-chip.age-stale{color:#b45309}
-.age-chip.age-old{color:#dc2626;--bg:color-mix(in srgb,currentColor 32%,transparent)}
-.age-chip.age-ancient{color:#991b1b;--bg:color-mix(in srgb,currentColor 38%,transparent)}
-.dark .age-chip{text-shadow:0 1px 0 rgba(0,0,0,.35);box-shadow:0 0 0 1px color-mix(in srgb,currentColor 30%,transparent)}
-.age-chip:focus-visible{outline:2px solid color-mix(in srgb,currentColor 55%,transparent);outline-offset:2px}
-body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offset,var(--sticky-controls-offset,0px));background:var(--paper);pointer-events:none;z-index:180}
-.table-scroll{position:relative;overflow-x:auto;overflow-y:visible}
-.table-scroll thead th:first-child::before{content:none}
-.table-scroll tbody{position:relative;z-index:0}
-.table-scroll tbody tr{position:relative;z-index:0}
-html{overflow-y:scroll}
+
 .controls{display:flex;gap:12px;align-items:center;font-size:12px;flex-wrap:wrap}
 .controls input[type="file"],.controls textarea{font:inherit}
 .search-input{flex:1 1 280px;min-width:220px;max-width:460px;order:-1;padding:9px 16px;border-radius:999px;border:2px solid color-mix(in srgb,var(--als-blue) 65%,transparent);background:color-mix(in srgb,var(--als-blue) 12%,var(--paper));color:var(--ink);font:inherit;font-weight:600;box-shadow:0 4px 10px color-mix(in srgb,var(--als-blue) 18%,transparent);transition:border-color .18s ease,box-shadow .18s ease,background-color .18s ease;appearance:none}
@@ -112,6 +51,7 @@ html{overflow-y:scroll}
 .filter-group select{font:inherit;padding:6px 10px;border:1px solid var(--grid);border-radius:8px;background:var(--paper);color:inherit;cursor:pointer}
 .filter-group select:focus-visible{outline:2px solid color-mix(in srgb,var(--als-blue) 65%,transparent);outline-offset:2px}
 .btn{padding:6px 10px;border:1px solid var(--als-blue);border-radius:8px;background:var(--paper);color:var(--als-blue);font-weight:700;cursor:pointer}
+
 .active-filter-chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 12px;padding:0}
 .active-filter-chips[hidden]{display:none}
 .active-filter-chips::before{content:"Active filters";font-size:11px;font-weight:700;letter-spacing:.4px;color:var(--muted);margin-right:8px}
@@ -120,11 +60,14 @@ html{overflow-y:scroll}
 .filter-chip:focus-visible{outline:2px solid color-mix(in srgb,var(--als-blue) 65%,transparent);outline-offset:2px}
 .filter-chip__label{display:inline-block;max-width:min(280px,100%);white-space:normal;word-break:break-word}
 .filter-chip__icon{font-size:16px;line-height:1}
+
+/* tabs */
 .nav{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 0}
 .nav .tab{padding:8px 12px;border:1px solid var(--grid);border-radius:999px;cursor:pointer;background:transparent;color:var(--ink);font-weight:700;box-shadow:none}
 .nav .tab[aria-selected="true"]{background:color-mix(in srgb,var(--als-blue) 8%,var(--paper));border-color:var(--als-blue);box-shadow:0 0 0 2px color-mix(in srgb,var(--als-blue) 25%,transparent)}
-@media(max-width:700px){.active-filter-chips{gap:6px;overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px;-webkit-overflow-scrolling:touch}.active-filter-chips .filter-chip{flex:0 0 auto}.nav{margin-top:6px}}
-.kpi-panels{min-height:72px;margin-bottom:0}
+
+/* KPI row sticks just below the controls */
+.kpi-panels{min-height:72px;margin-bottom:0;position:sticky;top:var(--ui-offset,0px);z-index:260;background:var(--paper);padding:4px 0 8px;border-bottom:1px solid var(--grid)}
 .dash-kpis[hidden]{display:none!important}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:0}
 .card{background:var(--paper);border:1px solid var(--grid);border-radius:14px;padding:12px}
@@ -133,30 +76,360 @@ html{overflow-y:scroll}
 .kpi-clickable{cursor:pointer;user-select:none;transition:box-shadow .18s ease,border-color .18s ease,background-color .18s ease}
 .kpi-clickable:hover{box-shadow:0 0 0 2px color-mix(in srgb,var(--als-blue) 25%,transparent);border-color:var(--als-blue)}
 .kpi-clickable[aria-pressed="true"]{background:color-mix(in srgb,var(--als-blue) 12%,var(--paper));border-color:var(--als-blue);box-shadow:0 0 0 2px color-mix(in srgb,var(--als-blue) 25%,transparent)}
+
+/* ===== STATIC COLUMNS BAR (new) ===== */
+.columns-bar{
+  position:sticky;
+  top:calc(var(--ui-offset,0px) + 0px); /* sits right under KPIs */
+  z-index:240;                           /* under KPI (260), over table rows */
+  display:grid;
+  grid-template-columns:
+    var(--col-id) var(--col-title) var(--col-status) var(--col-priority)
+    var(--col-assigned) var(--col-created) var(--col-updated)
+    var(--col-completed) var(--col-age) var(--col-location)
+    var(--col-asset) minmax(var(--col-categories), 1fr);
+  gap:0;
+  align-items:center;
+  border:1px solid color-mix(in srgb,#000 25%,transparent);
+  border-left:0;border-right:0;
+  background:var(--thead);
+  color:var(--thead-text);
+  font-weight:800;letter-spacing:.2px;
+  box-shadow:0 1px 0 rgba(0,0,0,.25);
+  padding:8px 10px;
+  overflow:auto; /* allows horizontal scroll alongside table */
+}
+.columns-bar > span{padding:2px 6px;white-space:nowrap}
+
+/* ===== TABLE (no sticky header) ===== */
+table{width:100%;min-width:1100px;border-collapse:separate;border-spacing:0;table-layout:auto}
+.table-scroll{position:relative;overflow-x:auto;overflow-y:visible}
+.table-scroll thead{display:none}              /* hide real thead */
+.table-scroll tbody td:first-child{padding-left:14px}
+tbody td{background:var(--zebra);border-bottom:1px solid var(--grid);padding:8px 6px;vertical-align:top;overflow-wrap:anywhere;word-break:break-word;hyphens:auto;line-height:1.35}
+
+/* row priority rail */
+tr.row-priority>td:first-child{position:relative;z-index:0}
+tr.row-priority>td:first-child::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:3px;border-radius:999px;background:var(--priority-rail);box-shadow:0 0 0 1px color-mix(in srgb,var(--priority-rail) 28%,transparent);pointer-events:none;z-index:-1}
+tr.row-priority>td{background:color-mix(in srgb,var(--als-blue) 6%,var(--paper))}
+.dark tr.row-priority>td{background:color-mix(in srgb,var(--als-blue) 10%,var(--zebra))}
+
+/* match column widths in cells via colgroup (your JS adds <colgroup>) */
+.col-id{width:var(--col-id)} .col-title{width:var(--col-title)} .col-status{width:var(--col-status)}
+.col-priority{width:var(--col-priority)} .col-createdby{width:var(--col-assigned)} .col-createdon{width:var(--col-created)}
+.col-updated{width:var(--col-updated)} .col-completedon{width:var(--col-completed)} .col-location{width:var(--col-location)}
+.col-asset{width:var(--col-asset)} .col-categories{width:auto!important}
+
+.id{font-weight:700}
+.title-cell b{display:block;font-weight:800}
+
+/* chips */
+.chip-cat{display:inline-flex;align-items:center;border-radius:999px;padding:4px 10px;border:1px solid currentColor;background:transparent;margin:2px 6px 2px 0;font-weight:600;font-size:12px;line-height:1;white-space:nowrap}
+.table-scroll td[data-col="Categories"]{white-space:normal;min-width:140px;width:1%}
+.table-scroll td[data-col="Categories"] .chip-stack{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}
+.table-scroll td[data-col="Categories"] .chip-cat{margin:0;white-space:nowrap;font-size:11px;padding:3px 8px}
+
+/* status + age chips (unchanged visuals) */
+.status-chip{--ring:color-mix(in srgb,currentColor 40%,transparent);--bg:color-mix(in srgb,currentColor 18%,transparent);display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-weight:700;font-size:12px;line-height:1;border:1px solid var(--ring);background:var(--bg);color:currentColor}
+.status-chip::before{content:"";width:14px;height:14px;display:inline-block;background:currentColor;mask:var(--icon) no-repeat center/14px 14px;-webkit-mask:var(--icon) no-repeat center/14px 14px}
+.status-chip.open{--icon:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='5.5' fill='none' stroke='black' stroke-width='2'/></svg>");color:var(--open-tx);border-color:color-mix(in srgb,var(--open-tx) 55%,transparent);background:color-mix(in srgb,var(--open-tx) 12%,var(--paper));box-shadow:none;padding:4px 12px}
+.status-chip.open::before{background:var(--open-tx)}
+.status-chip.in-progress{color:var(--open-tx);--icon:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='black' fill-rule='evenodd' d='M8 1a7 7 0 1 1 0 14A7 7 0 0 1 8 1zm0 2a5 5 0 1 0 0 10A5 5 0 0 0 8 3z'/><rect x='7.25' y='3' width='1.5' height='5' rx='0.75' fill='black'/><rect x='7.25' y='8' width='4.5' height='1.5' rx='0.75' fill='black'/></svg>")}
+.status-chip.on-hold{color:var(--hold-tx);--icon:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='3' y='2' width='4' height='12' rx='1' fill='black'/><rect x='9' y='2' width='4' height='12' rx='1' fill='black'/></svg>")}
+.status-chip.done{color:var(--done-tx);--icon:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='black' d='M6.6 12.2 2.9 8.5l1.4-1.4 2.3 2.3 4.9-4.9 1.4 1.4-6.3 6.3z'/></svg>");--bg:color-mix(in srgb,var(--done-tx) 18%,transparent);--ring:color-mix(in srgb,var(--done-tx) 40%,transparent)}
+@supports not(mask:url("")){.status-chip::before{mask:none;-webkit-mask:none;background:none;width:auto;margin-right:2px;content:var(--glyph,"•")}.status-chip.open{--glyph:"○"}.status-chip.in-progress{--glyph:"⏳"}.status-chip.on-hold{--glyph:"⏸"}.status-chip.done{--glyph:"✓"}}
+
+.age-chip{--ring:color-mix(in srgb,currentColor 50%,transparent);--bg:color-mix(in srgb,currentColor 26%,transparent);display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;font-weight:800;font-size:12.5px;line-height:1;border:1px solid var(--ring);background:var(--bg);font-variant-numeric:tabular-nums}
+.age-chip.frozen{position:relative;padding-right:22px;border-style:dashed;background:var(--bg);cursor:help}
+.age-chip.frozen::after{content:"❄";font-size:12px;line-height:1;position:absolute;right:6px;top:50%;transform:translateY(-50%);opacity:.9}
+.age-chip.age-fresh{color:#10b981}
+.age-chip.age-stale{color:#b45309}
+.age-chip.age-old{color:#dc2626;--bg:color-mix(in srgb,currentColor 32%,transparent)}
+.age-chip.age-ancient{color:#991b1b;--bg:color-mix(in srgb,currentColor 38%,transparent)}
+.dark .age-chip{text-shadow:0 1px 0 rgba(0,0,0,.35);box-shadow:0 0 0 1px color-mix(in srgb,currentColor 30%,transparent)}
+.age-chip:focus-visible{outline:2px solid color-mix(in srgb,currentColor 55%,transparent);outline-offset:2px}
+
+/* mobile cards */
+.mobile-cards{display:none}
+.mobile-card{border:1px solid var(--grid);border-radius:14px;padding:12px;background:var(--paper);display:grid;grid-template-columns:1fr auto;gap:8px 12px}
+.mobile-card+.mobile-card{margin-top:10px}
+.mobile-card__title{font-weight:800;line-height:1.3}
+.mobile-card__id{font-weight:900;opacity:.7}
+.mobile-card__meta{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--muted)}
+.mobile-card__row{grid-column:1/-1;display:flex;gap:8px;align-items:center}
+.mobile-card .status-chip{font-size:12px}
+.mobile-card .chip-cat{padding:3px 8px;font-size:11px;margin:2px 4px 0 0}
+@media(max-width:700px){
+  .dash-table{display:none}
+  .mobile-cards{display:block}
+  .page{--page-pad-inline:16px}
+  .columns-bar{display:none} /* hide static bar on small screens */
+}
+
+/* misc */
+.legend-popover{position:relative}
+.legend-popover__panel{position:absolute;right:0;top:calc(100% + 8px);width:min(320px,86vw);max-height:70vh;overflow:auto;background:var(--paper);color:var(--ink);border:1px solid var(--grid);border-radius:12px;padding:10px;box-shadow:0 12px 30px rgba(0,0,0,.18);opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity .15s ease,transform .15s ease;z-index:500}
+.legend-popover__panel::before{content:"";position:absolute;top:-6px;right:24px;width:12px;height:12px;transform:rotate(45deg);background:var(--paper);border-left:1px solid var(--grid);border-top:1px solid var(--grid)}
+.legend-popover:hover .legend-popover__panel,.legend-popover:focus-within .legend-popover__panel,.legend-popover.is-open .legend-popover__panel{opacity:1;transform:none;pointer-events:auto}
+
+.legend{border:1px solid var(--grid);border-radius:12px;background:var(--paper);padding:12px;margin:8px 0 12px}
+.legend__title{margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
+.legend__list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:auto 1fr;gap:8px 10px}
+.legend__sample{display:contents}
+.legend__list>.legend__sample>:first-child{display:inline-flex;align-items:center;gap:6px;min-height:22px}
+.legend__rail{width:6px;height:16px;border-radius:999px;background:var(--priority-rail);box-shadow:0 0 0 1px color-mix(in srgb,var(--priority-rail) 28%,transparent)}
+.legend__kpi{display:inline-block;padding:4px 8px;border:1px solid var(--grid);border-radius:10px;font-weight:800;font-size:12px;background:color-mix(in srgb,var(--als-blue) 8%,var(--paper));color:var(--ink)}
+.legend--full{display:none}
+@media print{.legend--full{display:block}}
+
 .dash{display:none}
 .dash[data-active="true"]{display:block}
 .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* responsive layout tweaks */
 @media(min-width:960px){table{table-layout:auto}}
 @media(max-width:960px){.page{--page-pad-top:16px;--page-pad-inline:32px;--page-pad-bottom:44px}}
-@media(max-width:680px){.page{--page-pad-top:16px;--page-pad-inline:18px;--page-pad-bottom:32px}.page-head{flex-direction:column;align-items:flex-start;gap:12px}.title{font-size:24px;margin-bottom:4px}.logo{height:42px}.controls{gap:10px}.controls textarea{width:100%;min-width:0}.controls .search-input{flex-basis:100%;max-width:none}}
-@media print{@page{size:A4 landscape;margin:10mm}body{font-size:11.5px}thead{display:table-header-group}table{width:100%!important;table-layout:fixed;border-collapse:collapse}th,td{box-sizing:border-box;overflow-wrap:anywhere;word-break:break-word;hyphens:auto}thead th{position:static}.title-cell,.col-categories{break-inside:avoid}html{-webkit-print-color-adjust:exact}.controls{display:none!important}.active-filter-chips{display:none!important}.thead-plate{display:none!important}}
+@media(max-width:680px){
+  .page{--page-pad-top:16px;--page-pad-inline:18px;--page-pad-bottom:32px}
+  .page-head{flex-direction:column;align-items:flex-start;gap:12px}
+  .title{font-size:24px;margin-bottom:4px}
+  .logo{height:42px}
+  .controls{gap:10px}
+  .controls textarea{width:100%;min-width:0}
+  .controls .search-input{flex-basis:100%;max-width:none}
+}
+
+@media print{
+  @page{size:A4 landscape;margin:10mm}
+  body{font-size:11.5px}
+  thead{display:table-header-group}
+  table{width:100%!important;table-layout:fixed;border-collapse:collapse}
+  th,td{box-sizing:border-box;overflow-wrap:anywhere;word-break:break-word;hyphens:auto}
+  thead th{position:static}
+  .title-cell,.col-categories{break-inside:avoid}
+  html{-webkit-print-color-adjust:exact}
+  .controls,.columns-bar{display:none!important}
+  .active-filter-chips{display:none!important}
+}
+
 .week-badge{display:inline-block;margin-left:12px;font-size:12px;font-weight:700;padding:4px 10px;border:1px solid var(--grid);border-radius:999px;background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));vertical-align:middle}
-.sticky-top{position:sticky;top:0;z-index:300;background:var(--paper);padding:12px 0;margin:0 0 8px;border-bottom:1px solid var(--grid)}
-.sticky-top__bar{display:none}
-.sticky-top::after{content:none!important}
-.page-head{position:relative;z-index:350}
-.top-rule{position:relative;z-index:320}
-.legend-popover__panel{z-index:500}
-.thead-plate::before{content:"";position:absolute;left:-12px;top:-1px;bottom:-1px;width:16px;background:inherit;border-left:1px solid color-mix(in srgb,var(--thead) 35%,#000);border-top-left-radius:0;border-bottom-left-radius:0}
-.table-scroll thead th+th{box-shadow:-1px 0 0 color-mix(in srgb,var(--thead-text) 10%,transparent) inset}
-.table-scroll thead th::after{content:"";position:absolute;inset:0;background:color-mix(in srgb,#fff 10%,transparent);opacity:0;transition:opacity .12s ease;border-radius:10px;pointer-events:none}
-.table-scroll thead th:hover::after,.table-scroll thead th:focus-visible::after{opacity:.07}
-.table-scroll thead th[data-sort]::after{opacity:.12}
-thead th .sort-arrow{opacity:.65}
-thead th[data-sort] .sort-arrow{opacity:1}
-.table-scroll thead th{position:sticky;top:var(--ui-offset,var(--sticky-controls-offset,0px))!important;z-index:220;background:transparent;color:var(--thead-text);font-weight:800;letter-spacing:.2px;padding:10px}
-.thead-plate{position:sticky;top:var(--ui-offset,var(--sticky-controls-offset,0px))!important;height:var(--thead-height,40px);margin-bottom:calc(-1 * var(--thead-height,40px));z-index:210;background:var(--thead);box-shadow:0 1px 0 rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.05)}
+/* One source of truth for heights */
+:root{
+  --columns-bar-h: 44px;     /* height of the blue columns bar */
+  --kpi-h: 0px;              /* JS will measure the KPI strip */
+}
+
+/* Sticky columns bar sits RIGHT UNDER the sticky KPI panels */
+.columns-bar{
+  position: sticky;
+  top: calc(var(--ui-offset, 0px) + var(--kpi-h, 0px));
+  z-index: 240;                        /* below KPI (260), above table rows */
+  height: var(--columns-bar-h);
+
+  /* Grid: we’ll set grid-template-columns from JS to match the table */
+  display: grid;
+  align-items: center;
+  gap: 0;
+  padding: 0 10px;
+  overflow: hidden;
+
+  background: var(--thead);
+  color: var(--thead-text);
+  font-weight: 800;
+  letter-spacing: .2px;
+  border-top: 1px solid color-mix(in srgb,#000 25%,transparent);
+  border-bottom: 1px solid color-mix(in srgb,#000 25%,transparent);
+  box-shadow: 0 1px 0 rgba(0,0,0,.25);
+}
+.columns-bar > span{ padding: 2px 6px; white-space: nowrap; }
+
+/* Keep the first row clear of the sticky bar */
+.columns-bar + .dash-table .table-scroll::before{
+  content:"";
+  display:block;
+  height: var(--columns-bar-h);
+}
+
+/* We are no longer using the real thead */
+.table-scroll thead{ display:none; }
 </style>
+</head>
+<body class="light">
+  <div class="page">
+    <header class="page-head">
+      <div class="page-head__title">
+        <h1 class="title">Work Orders Dashboard</h1>
+        <span class="week-badge" id="week-badge" aria-live="polite">Loading…</span>
+      </div>
+      <img src="LOGOlesswhitespace.png" alt="Aberdeen Laundry Services logo" class="logo" />
+    </header>
+
+    <div class="top-rule" aria-hidden="true"></div>
+
+    <main>
+      <div class="legend-popover">
+        <button id="legendBtn" class="btn btn--pill" type="button" aria-haspopup="dialog" aria-expanded="false">Legend</button>
+        <div class="legend-popover__panel" role="dialog" aria-modal="false" aria-label="Legend">
+          <div class="legend legend--compact">
+            <p class="legend__title">How to read this dashboard</p>
+            <ul class="legend__list">
+              <li class="legend__sample">
+                <span><span class="legend__rail"></span> Priority</span>
+                <span>Rows with the Priority tag are highlighted.</span>
+              </li>
+              <li class="legend__sample">
+                <span><span class="status-chip open">Open</span></span>
+                <span>Status chips show the live state of a work order.</span>
+              </li>
+              <li class="legend__sample">
+                <span><span class="age-chip age-old">14d</span></span>
+                <span>Age chips measure how long the order has been active.</span>
+              </li>
+              <li class="legend__sample">
+                <span><span class="chip-cat">Category</span></span>
+                <span>Category chips map directly to the sheet.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="legend legend--full">
+        <p class="legend__title">Legend</p>
+        <ul class="legend__list">
+          <li class="legend__sample">
+            <span><span class="legend__rail"></span> Priority</span>
+            <span>Rows with the Priority tag are highlighted.</span>
+          </li>
+          <li class="legend__sample">
+            <span><span class="status-chip open">Open</span></span>
+            <span>Status chips show the live state of a work order.</span>
+          </li>
+          <li class="legend__sample">
+            <span><span class="age-chip age-old">14d</span></span>
+            <span>Age chips measure how long the order has been active.</span>
+          </li>
+          <li class="legend__sample">
+            <span><span class="chip-cat">Category</span></span>
+            <span>Category chips map directly to the sheet.</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="sticky-top" data-collapsed="false">
+        <div class="sticky-top__bar">
+          <button id="collapseBtn" class="btn btn--pill" type="button" aria-expanded="true">Hide controls</button>
+        </div>
+        <div class="sticky-content">
+          <div class="controls">
+            <input id="globalSearch" class="search-input" type="search" placeholder="Search work orders…" aria-label="Search work orders" />
+
+            <div class="filter-group week-picker">
+              <button id="weekPrev" class="btn btn--pill" type="button" data-week-nav="prev" aria-label="View previous week">‹ Prev</button>
+              <div id="weekPicker" aria-live="polite"></div>
+              <button id="weekNext" class="btn btn--pill" type="button" data-week-nav="next" aria-label="View next week">Next ›</button>
+            </div>
+
+            <div class="filter-group">
+              <label for="statusFilter">Status</label>
+              <select id="statusFilter">
+                <option value="">All statuses</option>
+                <option value="Open">Open</option>
+                <option value="In Progress">In Progress</option>
+                <option value="On Hold">On Hold</option>
+                <option value="Done">Done</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label for="priorityFilter">Priority</label>
+              <select id="priorityFilter">
+                <option value="">All priorities</option>
+                <option value="Critical">Critical</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+
+            <label class="btn" for="file">Import CSV/JSON</label>
+            <input id="file" class="visually-hidden" type="file" accept=".csv,.tsv,.json,text/csv,text/tab-separated-values" />
+
+            <button id="refreshBtn" class="btn" type="button">Refresh data</button>
+            <button id="exportCsvBtn" class="btn" type="button" disabled>Export CSV</button>
+            <button id="themeBtn" class="btn btn--pill" type="button" aria-pressed="false">Dark mode</button>
+          </div>
+
+          <div id="activeFilterChips" class="active-filter-chips" hidden></div>
+
+          <nav class="nav" role="tablist" aria-label="Dashboard views">
+            <button class="tab" type="button" role="tab" aria-selected="true" aria-controls="dash-all">All sites</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="dash-ek">East Kilbride</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="dash-mm">Mugiemoss</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="dash-keith">Keith</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="dash-by">Byron</button>
+          </nav>
+        </div>
+      </div>
+
+      <div class="kpi-panels">
+        <section class="dash-kpis" data-site="all"></section>
+        <section class="dash-kpis" data-site="ek" hidden></section>
+        <section class="dash-kpis" data-site="mm" hidden></section>
+        <section class="dash-kpis" data-site="keith" hidden></section>
+        <section class="dash-kpis" data-site="by" hidden></section>
+      </div>
+
+ <section class="dashboards">
+
+  <div class="columns-bar" data-site="all">
+    <span>ID</span><span>Title</span><span>Status</span><span>Priority</span>
+    <span>Assigned to</span><span>Created on</span><span>Last updated</span>
+    <span>Completed on</span><span>Age</span><span>Location</span>
+    <span>Asset</span><span>Categories</span>
+  </div>
+  <section id="dash-all" class="dash dash-table" data-site="all" data-active="true"></section>
+
+  <div class="columns-bar" data-site="ek">
+    <span>ID</span><span>Title</span><span>Status</span><span>Priority</span>
+    <span>Assigned to</span><span>Created on</span><span>Last updated</span>
+    <span>Completed on</span><span>Age</span><span>Location</span>
+    <span>Asset</span><span>Categories</span>
+  </div>
+  <section id="dash-ek" class="dash dash-table" data-site="ek" hidden></section>
+
+  <div class="columns-bar" data-site="mm">
+    <span>ID</span><span>Title</span><span>Status</span><span>Priority</span>
+    <span>Assigned to</span><span>Created on</span><span>Last updated</span>
+    <span>Completed on</span><span>Age</span><span>Location</span>
+    <span>Asset</span><span>Categories</span>
+  </div>
+  <section id="dash-mm" class="dash dash-table" data-site="mm" hidden></section>
+
+  <div class="columns-bar" data-site="keith">
+    <span>ID</span><span>Title</span><span>Status</span><span>Priority</span>
+    <span>Assigned to</span><span>Created on</span><span>Last updated</span>
+    <span>Completed on</span><span>Age</span><span>Location</span>
+    <span>Asset</span><span>Categories</span>
+  </div>
+  <section id="dash-keith" class="dash dash-table" data-site="keith" hidden></section>
+
+  <div class="columns-bar" data-site="by">
+    <span>ID</span><span>Title</span><span>Status</span><span>Priority</span>
+    <span>Assigned to</span><span>Created on</span><span>Last updated</span>
+    <span>Completed on</span><span>Age</span><span>Location</span>
+    <span>Asset</span><span>Categories</span>
+  </div>
+  <section id="dash-by" class="dash dash-table" data-site="by" hidden></section>
+
+</section>
+    </main>
+  </div>
+  <div id="loadingOverlay" style=" position:fixed; inset:0; display:none; place-items:center; background:color-mix(in srgb, var(--paper) 70%, transparent); z-index:9999;">
+    <div style="padding:10px 14px;border:1px solid var(--grid);border-radius:10px;background:var(--paper);font-weight:800">
+      Loading…
+    </div>
+  </div>
 <script>
 
   let __loadController = null;
@@ -350,6 +623,43 @@ function updateUiOffset(){
 
   const offset = Math.round(headAndRuleInView + stickyBlock);
   document.documentElement.style.setProperty('--ui-offset', `${offset}px`);
+    /* --- NEW: measure current visible KPI strip --- */
+  const kpi = document.querySelector('.dash-kpis:not([hidden])');
+  const kpiH = kpi ? kpi.getBoundingClientRect().height : 0;
+  document.documentElement.style.setProperty('--kpi-h', `${kpiH}px`);
+}
+  /* Build or update the columns bar that sits before a site's .dash-table */
+function ensureColumnsBar(container){
+  const site = container.dataset.site || container.id.replace(/^dash-/, '');
+  let bar = document.querySelector(`.columns-bar[data-site="${site}"]`);
+  if(!bar){
+    bar = document.createElement('div');
+    bar.className = 'columns-bar';
+    bar.dataset.site = site;
+    // insert the bar immediately before this dashboard section
+    container.parentNode.insertBefore(bar, container);
+  }
+
+  // 1) Labels in the exact order the table is using
+  const headers = container.__headers || [];
+  bar.innerHTML = headers.map(h => `<span>${esc(h)}</span>`).join('');
+
+  // 2) Grid columns that exactly match the table’s <colgroup>
+  const cols = container.querySelectorAll('colgroup col');
+  if(cols.length){
+    const widths = Array.from(cols).map(col => (col.style.width && col.style.width.trim())
+      ? col.style.width.trim() : 'auto');
+    // fallback for any 'auto' so layout stays sane
+    const template = widths.map(w => w === 'auto' ? 'minmax(96px, 1fr)' : w).join(' ');
+    bar.style.gridTemplateColumns = template;
+  }
+}
+
+/* When switching tabs, show only the matching columns bar */
+function syncColumnsBarVisibility(activeSite){
+  document.querySelectorAll('.columns-bar').forEach(bar => {
+    bar.hidden = (bar.dataset.site !== activeSite);
+  });
 }
 
 // keep both helpers in sync (either keep your old one or just call this)
@@ -369,18 +679,6 @@ function wireUiOffsetObservers(){
   }
 }
 wireUiOffsetObservers();
-
-function syncTheadPlateWidth(wrapper){
-  if (!wrapper) return;
-  const table = wrapper.querySelector('table');
-  const plate = wrapper.querySelector('.thead-plate');
-  if (!table || !plate) return;
-  plate.style.width = table.scrollWidth + 'px';
-}
-function syncAllTheadPlates(){
-  document.querySelectorAll('.table-scroll').forEach(syncTheadPlateWidth);
-}
-window.addEventListener('resize', syncAllTheadPlates);
 
   const MS = { min:6e4, hour:36e5, day:864e5 };
   const MIN_AGE_MINUTES = 30;
@@ -709,7 +1007,6 @@ const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
     container?.__mobileSortWrap && (container.__mobileSortWrap.hidden = !mobile || !hasRows);
     container?.__mobileCards && (container.__mobileCards.hidden = true);
     container?.__emptyState && (container.__emptyState.hidden = hasRows);
-    syncTheadPlateWidth(container?.__tableWrap);
     updateTheadHeight();
     return;
   }
@@ -723,7 +1020,6 @@ const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
     container.__mobileCards.hidden = !hasRows;
     container.__emptyState && (container.__emptyState.hidden = hasRows);
   }
-  syncTheadPlateWidth(container?.__tableWrap);
 }
 
 function renderRowsScopedChunked(tbodyEl, headers, rows, container){
@@ -774,7 +1070,6 @@ function renderRowsScopedChunked(tbodyEl, headers, rows, container){
       while (tmp.firstChild){
         tbodyEl.appendChild(tmp.firstChild);
       }
-      syncTheadPlateWidth(container?.__tableWrap);
     }
 
     if (i < safe.length){
@@ -785,7 +1080,6 @@ function renderRowsScopedChunked(tbodyEl, headers, rows, container){
       container?.__mobileSortWrap && (container.__mobileSortWrap.hidden = !isMobileView() || !hasRows);
       container?.__mobileCards && (container.__mobileCards.hidden = true);
       container?.__emptyState && (container.__emptyState.hidden = hasRows);
-      syncTheadPlateWidth(container?.__tableWrap);
       updateTheadHeight();
     }
   }
@@ -1747,11 +2041,6 @@ kpiWrap.appendChild(prioCard);
 const tableWrap = document.createElement('div');
 tableWrap.className = 'table-scroll';
 
-// NEW: solid header plate sitting under sticky <th>s (prevents peeking)
-const plate = document.createElement('div');
-plate.className = 'thead-plate';
-plate.setAttribute('aria-hidden', 'true');
-
 const table  = document.createElement('table');
 const thead  = document.createElement('thead');
 const tbody  = document.createElement('tbody');
@@ -1759,9 +2048,7 @@ const tbody  = document.createElement('tbody');
 applyColumnWidths(table, headers);
 table.append(thead, tbody);
 
-// insert the plate FIRST so it sits underneath the sticky header cells
-tableWrap.append(plate, table);
-syncTheadPlateWidth(tableWrap);
+tableWrap.append(table);
 
 const mobileSortWrap = document.createElement('div');
 mobileSortWrap.className = 'mobile-sort';
@@ -1850,11 +2137,15 @@ if (container.__focusOldest) {
   container.__rows = working.slice();
   setSortState(container, prevSort?.column || null, prevDir);
 
-  // draw once for current viewport, then measure sticky
 renderRowsSmart(tbody, headers, working, container);
-  updateOldestOnlyChip(container);   // <-- add this
-  updatePriorityOnlyChip(container);
-  updateTheadHeight();
+updateOldestOnlyChip(container);
+updatePriorityOnlyChip(container);
+updateTheadHeight();
+
+/* NEW: build/align the sticky columns bar for this dashboard
+   and refresh stickiness offsets (accounts for KPI height). */
+ensureColumnsBar(container);
+updateUiOffset();
 }
 
 function sortScoped(th, container){
@@ -2026,23 +2317,41 @@ function setActiveDash(id){
     sec.hidden = !isMatch;
   });
 
+  document.querySelectorAll('.dash-kpis').forEach(panel => {
+    const isMatch = panel.dataset.site === site;
+    panel.hidden = !isMatch;
+  });
+  /* NEW: show only the matching columns bar for this site */
+syncColumnsBarVisibility(site);
+
+  // Keep the matching columns bar in sync with the active site
+document.querySelectorAll('.columns-bar').forEach(bar => {
+  const isMatch = (bar.dataset.site || '') === site;
+  bar.hidden = !isMatch;
+});
+
   // sync tabs safely
   document.querySelectorAll('.nav .tab').forEach(t => {
     const controls = t.getAttribute('aria-controls');
     t.setAttribute('aria-selected', String(controls === id));
   });
 
-  if (active.__needsRender && window.__ALS_HEADERS && window.__ALS_GROUPS){
-    const map = window.__ALS_GROUP_MAP || {};
-    const key = map[id] || site;
-    const rows = window.__ALS_GROUPS[key] || [];
-    renderDashboard(active, window.__ALS_HEADERS, rows);
-    active.__needsRender = false;
-  }
-
-  updateStickyControlsOffset();
-  updateTheadHeight();
+if (active.__needsRender && window.__ALS_HEADERS && window.__ALS_GROUPS){
+  const map = window.__ALS_GROUP_MAP || {};
+  const key = map[id] || site;
+  const rows = window.__ALS_GROUPS[key] || [];
+  renderDashboard(active, window.__ALS_HEADERS, rows);
+  active.__needsRender = false;
 }
+
+/* NEW: make sure the bar exists/aligned even if this tab was
+   already rendered earlier */
+ensureColumnsBar(active);
+
+updateStickyControlsOffset();
+updateTheadHeight();
+updateUiOffset();   // NEW: stick exactly under current KPI height
+
 
   // --- collapsible sticky header ---
 const $sticky = document.querySelector('.sticky-top');
@@ -2202,6 +2511,10 @@ window.addEventListener('resize', ()=>{
   if (now !== __wasMobile){
     __wasMobile = now;
     if (LAST_HEADERS && ALL_ROWS) ingestToDashboards(LAST_HEADERS, ALL_ROWS);
+      // NEW: keep the columns bar widths & offset fresh on any resize
+  const active = document.querySelector('.dash-table[data-active="true"]:not([hidden])');
+  if (active) ensureColumnsBar(active);
+  updateUiOffset();
   }
 });
 
@@ -2257,13 +2570,6 @@ document.fonts?.ready?.then(() => {
     updateStickyControlsOffset();
   } catch {}
 });
-</script> <!-- ← keep this closing tag -->
-  <div id="loadingOverlay" style="
- position:fixed; inset:0; display:none; place-items:center;
- background:color-mix(in srgb, var(--paper) 70%, transparent); z-index:9999;">
-  <div style="padding:10px 14px;border:1px solid var(--grid);border-radius:10px;background:var(--paper);font-weight:800">
-    Loading…
-  </div>
-</div>
+</script>
 </body>
 </html>
