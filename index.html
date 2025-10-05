@@ -365,6 +365,46 @@ tbody td{padding:8px 6px;box-sizing:border-box}
   transform: none;
   pointer-events: auto;
 }
+/* Inline legend button + hover panel (no JS required) */
+.legend-inline{ position:relative; display:inline-block; margin-right:8px; }
+.legend-inline__btn{ font-weight:800; }
+.legend-inline__panel{
+  position:absolute;
+  left:0;                          /* shows under the button at the left */
+  top:calc(100% + 8px);
+  width:min(420px, 92vw);
+  max-height:70vh;
+  overflow:auto;
+  background:var(--paper);
+  color:var(--ink);
+  border:1px solid var(--grid);
+  border-radius:12px;
+  padding:10px;
+  box-shadow:0 12px 30px rgba(0,0,0,.18);
+  opacity:0;
+  transform:translateY(-4px);
+  pointer-events:none;
+  transition:opacity .15s ease, transform .15s ease;
+  z-index:600;                     /* above sticky bars */
+}
+.legend-inline__panel::before{
+  content:"";
+  position:absolute;
+  top:-6px; left:16px;
+  width:12px; height:12px;
+  transform:rotate(45deg);
+  background:var(--paper);
+  border-left:1px solid var(--grid);
+  border-top:1px solid var(--grid);
+}
+.legend-inline:hover .legend-inline__panel,
+.legend-inline:focus-within .legend-inline__panel{
+  opacity:1; transform:none; pointer-events:auto;
+}
+
+/* Keep the print legend visible on hardcopy only (optional) */
+.legend--full{ display:none; }
+@media print{ .legend--full{ display:block; } }
 
 </style>
 </head>
@@ -388,6 +428,32 @@ tbody td{padding:8px 6px;box-sizing:border-box}
         </div>
         <div class="sticky-content">
           <div class="controls">
+            <div class="legend-inline">
+  <button type="button" class="btn btn--pill legend-inline__btn">Legend</button>
+  <div class="legend-inline__panel" role="dialog" aria-modal="false" aria-label="Legend">
+    <div class="legend">
+      <p class="legend__title">How to read this dashboard</p>
+      <ul class="legend__list">
+        <li class="legend__sample">
+          <span><span class="legend__rail"></span> Priority</span>
+          <span>Rows with the “Priority” category show a pink rail and a tinted background.</span>
+        </li>
+        <li class="legend__sample">
+          <span><span class="status-chip open">Open</span></span>
+          <span>Status chips show the live state of a work order.</span>
+        </li>
+        <li class="legend__sample">
+          <span><span class="age-chip age-old">14d</span></span>
+          <span>Age is how long the order has been active (days/hours).</span>
+        </li>
+        <li class="legend__sample">
+          <span><span class="chip-cat">Category</span></span>
+          <span>Category chips map directly to the sheet values.</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
             <input id="globalSearch" class="search-input" type="search" placeholder="Search work orders…" aria-label="Search work orders" />
 
             <div class="filter-group week-picker">
@@ -425,37 +491,6 @@ tbody td{padding:8px 6px;box-sizing:border-box}
             <button id="exportCsvBtn" class="btn" type="button" disabled>Export CSV</button>
             <button id="themeBtn" class="btn btn--pill" type="button" aria-pressed="false">Dark mode</button>
           </div>
-
-          <div class="legend-popover">
-    <button id="legendBtn" class="btn btn--pill" type="button"
-            aria-haspopup="dialog" aria-expanded="false">
-      Legend
-    </button>
-    <div class="legend-popover__panel" role="dialog"
-         aria-modal="false" aria-label="Legend">
-      <div class="legend legend--compact">
-        <p class="legend__title">How to read this dashboard</p>
-        <ul class="legend__list">
-          <li class="legend__sample">
-            <span><span class="legend__rail"></span> Priority</span>
-            <span>Rows with the Priority tag are highlighted.</span>
-          </li>
-          <li class="legend__sample">
-            <span><span class="status-chip open">Open</span></span>
-            <span>Status chips show the live state of a work order.</span>
-          </li>
-          <li class="legend__sample">
-            <span><span class="age-chip age-old">14d</span></span>
-            <span>Age chips measure how long the order has been active.</span>
-          </li>
-          <li class="legend__sample">
-            <span><span class="chip-cat">Category</span></span>
-            <span>Category chips map directly to the sheet.</span>
-          </li>
-        </ul>
-      </div>
-    </div>
-  </div>
 
           <div id="activeFilterChips" class="active-filter-chips" hidden></div>
 
@@ -2588,13 +2623,6 @@ $priorityFilter?.addEventListener('change', handleFilterChange);
 $searchInput?.addEventListener('input', debounce(handleFilterChange, 300));
 $searchInput?.addEventListener('change', handleFilterChange);
 
-/* Legend popover JS */
-const legendWrap = document.querySelector('.legend-popover');
-const legendBtn  = document.getElementById('legendBtn');
-legendBtn?.addEventListener('click', (e)=>{
-  const open = legendWrap.classList.toggle('is-open');
-  legendBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-});
 document.addEventListener('click', (e)=>{
   if (legendWrap && !legendWrap.contains(e.target)){
     legendWrap.classList.remove('is-open');
