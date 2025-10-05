@@ -31,7 +31,6 @@
 html, body{
   height:100%;
   overflow:hidden;
-  overscroll-behavior: none;
 }
 /* column width vars for both the bar and table */
 :root{
@@ -113,9 +112,9 @@ table{
 
 .table-scroll{
   position: relative;
-  overflow-y: auto;
-  overflow-x: auto;
-  max-height: calc(100vh - var(--ui-offset, 0px));
+  overflow-x: auto;   /* keep horizontal scrolling if needed */
+  overflow-y: visible;
+  max-height: none;   /* allow the table to grow; page will scroll */
 }
 
 .table-scroll thead{
