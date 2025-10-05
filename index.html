@@ -572,9 +572,11 @@ function wireUiOffsetObservers(){
     const sticky = document.querySelector('.sticky-top');
     const head   = document.querySelector('.page-head');
     const rule   = document.querySelector('.top-rule');
+    const kpis   = document.querySelector('.kpi-panels');
     sticky && ro.observe(sticky);
     head   && ro.observe(head);
     rule   && ro.observe(rule);
+    kpis   && ro.observe(kpis);
   }
 }
 wireUiOffsetObservers();
