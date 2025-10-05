@@ -141,7 +141,16 @@ table{
   padding-left: 14px;
 }
 tbody td{background:var(--zebra);border-bottom:1px solid var(--grid);padding:8px 6px;vertical-align:top;overflow-wrap:anywhere;word-break:break-word;hyphens:auto;line-height:1.35}
-
+/* ADD: tidy up the ID column + gutter for the rail */
+.table-scroll thead th[data-col="ID"],
+.table-scroll td[data-col="ID"]{
+  text-align:right;                 /* numbers line up neatly */
+  font-weight:900;
+  font-variant-numeric:tabular-nums;/* equal-width digits */
+  white-space:nowrap;
+  padding-right:12px;               /* space to the header divider */
+  padding-left:18px;                /* gutter for the red rail */
+}
 /* row priority rail */
 tr.row-priority>td:first-child{position:relative;z-index:0}
 tr.row-priority>td:first-child::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:3px;border-radius:999px;background:var(--priority-rail);box-shadow:0 0 0 1px color-mix(in srgb,var(--priority-rail) 28%,transparent);pointer-events:none;z-index:-1}
