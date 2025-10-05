@@ -6,8 +6,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Work Orders List – Aberdeen Laundry Services (Engineering)</title>
 <style>
-:root{--ink:#0b0f1a;--muted:#6b7280;--als-blue:#0b67c2;--als-blue-strong:#0a5cb0;--thead:#0b67c2;--thead-text:#fff;--grid:#e6e9ef;--zebra:#fff;--done-tx:#059669;--open-tx:#0b67c2;--hold-tx:#b45309;--done-bg:#0596691a;--open-bg:#0b67c21a;--hold-bg:#f59e0b1a;--paper:#fff;--priority-rail:#E85A70;--sticky-controls-offset:0px;--ui-offset:0px}
+:root{
+  --ink:#0b0f1a;
+  --muted:#6b7280;
+  --als-blue:#0b67c2;
+  --als-blue-strong:#0a5cb0;
+  --thead:#0b67c2;
+  --thead-text:#fff;
+  --grid:#e6e9ef;
+  --zebra:#fff;
+  --done-tx:#059669;
+  --open-tx:#0b67c2;
+  --hold-tx:#b45309;
+  --done-bg:#0596691a;
+  --open-bg:#0b67c21a;
+  --hold-bg:#f59e0b1a;
+  --paper:#fff;
+  --priority-rail:#E85A70;
+  --sticky-controls-offset:0px;
+  --ui-offset:0px;
+}
 
+/* ADD THIS ↓↓↓ */
+html, body{
+  height:100%;
+  overflow:hidden;
+  overscroll-behavior: none;
+}
 /* column width vars for both the bar and table */
 :root{
   --col-id:66px; --col-title:280px; --col-status:120px; --col-priority:92px;
@@ -88,9 +113,9 @@ table{
 
 .table-scroll{
   position: relative;
-  overflow-x: auto;
-  max-height: calc(100vh - var(--sticky-controls-offset, 0px) - 100px);
   overflow-y: auto;
+  overflow-x: auto;
+  max-height: calc(100vh - var(--ui-offset, 0px));
 }
 
 .table-scroll thead{
@@ -232,6 +257,17 @@ tbody td{padding:8px 6px;box-sizing:border-box}
 }
 
 .week-badge{display:inline-block;margin-left:12px;font-size:12px;font-weight:700;padding:4px 10px;border:1px solid var(--grid);border-radius:999px;background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));vertical-align:middle}
+
+@media print{
+  html, body{ overflow:visible; }
+  .table-scroll{ max-height:none; overflow:visible; }
+}
+
+/* ADD THIS NEW MOBILE OVERRIDE */
+@media (max-width:700px){
+  html, body{ overflow:auto; }
+  .table-scroll{ max-height:none; }
+}
 
 </style>
 </head>
