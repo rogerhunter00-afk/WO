@@ -150,6 +150,47 @@ tbody td{background:var(--zebra);border-bottom:1px solid var(--grid);padding:8px
   padding-right:12px;               /* space to the header divider */
   padding-left:18px;                /* gutter for the red rail */
 }
+/* --- Clear, obvious sort state on column headers --- */
+
+/* Base arrow (hidden until sorted) */
+.table-scroll thead th .sort-arrow{
+  display:inline-block;
+  width:0; height:0;
+  margin-left:8px;
+  opacity:0;
+  transition:opacity .15s ease, transform .15s ease;
+  /* triangle pointing up; we rotate for desc */
+  border-left:5px solid transparent;
+  border-right:5px solid transparent;
+  border-top:7px solid currentColor;
+}
+
+/* When a column is sorted, darken the header and show the arrow */
+.table-scroll thead th[data-sort]{
+  /* Slightly darker than --thead */
+  background: color-mix(in srgb, var(--thead) 88%, #000);
+  /* Subtle underline highlight for the active column */
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--thead-text) 40%, transparent);
+  transition: background .15s ease, box-shadow .15s ease;
+}
+
+/* Ascending: arrow points up (default triangle) */
+.table-scroll thead th[data-sort="asc"] .sort-arrow{
+  opacity:1;
+  transform: translateY(-1px);
+}
+
+/* Descending: rotate the triangle */
+.table-scroll thead th[data-sort="desc"] .sort-arrow{
+  opacity:1;
+  transform: rotate(180deg) translateY(-1px);
+}
+
+/* Optional: hover/focus hint even before sorting */
+.table-scroll thead th:hover,
+.table-scroll thead th:focus{
+  background: color-mix(in srgb, var(--thead) 92%, #000);
+}
 /* row priority rail */
 tr.row-priority>td:first-child{position:relative;z-index:0}
 tr.row-priority>td:first-child::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:3px;border-radius:999px;background:var(--priority-rail);box-shadow:0 0 0 1px color-mix(in srgb,var(--priority-rail) 28%,transparent);pointer-events:none;z-index:-1}
