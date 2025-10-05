@@ -316,6 +316,51 @@ tbody td{padding:8px 6px;box-sizing:border-box}
   html, body{ overflow:auto; }
   .table-scroll{ max-height:none; }
 }
+/* -- Legend popover fix: ensure it shows above sticky bars and remove hover gap -- */
+.legend-popover{
+  position: relative;
+  z-index: 1001;        /* sits above sticky headers/KPIs */
+  padding-bottom: 10px; /* creates a hover bridge to the panel */
+}
+.legend-popover__panel{
+  position: absolute;
+  right: 0;
+  top: 100%;            /* no gap that breaks hover */
+  margin-top: 6px;
+  width: min(360px, 86vw);
+  max-height: 70vh;
+  overflow: auto;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--grid);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.18);
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity .15s ease, transform .15s ease;
+  z-index: 1002;        /* panel above its trigger */
+}
+.legend-popover__panel::before{
+  content: "";
+  position: absolute;
+  top: -6px;
+  right: 24px;
+  width: 12px; height: 12px;
+  transform: rotate(45deg);
+  background: var(--paper);
+  border-left: 1px solid var(--grid);
+  border-top: 1px solid var(--grid);
+}
+/* show on hover, focus, or when JS toggles .is-open */
+.legend-popover:hover .legend-popover__panel,
+.legend-popover:focus-within .legend-popover__panel,
+.legend-popover.is-open .legend-popover__panel{
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
 
 </style>
 </head>
