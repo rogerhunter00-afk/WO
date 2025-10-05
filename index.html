@@ -580,6 +580,7 @@ function wireUiOffsetObservers(){
   window.addEventListener('scroll', updateUiOffset, { passive: true });
   window.addEventListener('resize', updateUiOffset);
   window.addEventListener('load', updateUiOffset);
+  
   if ('ResizeObserver' in window){
     const ro = new ResizeObserver(updateUiOffset);
     const sticky = document.querySelector('.sticky-top');
@@ -590,14 +591,21 @@ function wireUiOffsetObservers(){
     head   && ro.observe(head);
     rule   && ro.observe(rule);
     kpis   && ro.observe(kpis);
+    
+    // Also observe for thead offset
+    const ro2 = new ResizeObserver(updateTheadOffset);
+    sticky && ro2.observe(sticky);
+    kpis && ro2.observe(kpis);
   }
+    
+  // Initial thead offset calculation
+  updateTheadOffset();
+  window.addEventListener('scroll', updateTheadOffset, { passive: true });
+  window.addEventListener('resize', updateTheadOffset);
+  window.addEventListener('load', updateTheadOffset);
 }
+  
 wireUiOffsetObservers();
-
-updateTheadOffset();
-window.addEventListener('scroll', updateTheadOffset, { passive: true });
-window.addEventListener('resize', updateTheadOffset);
-window.addEventListener('load', updateTheadOffset);
 
   const MS = { min:6e4, hour:36e5, day:864e5 };
   const MIN_AGE_MINUTES = 30;
