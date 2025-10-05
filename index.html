@@ -82,7 +82,7 @@ table{width:100%;min-width:1100px;border-collapse:separate;border-spacing:0;tabl
 .table-scroll{position:relative;overflow-x:auto;overflow-y:visible}
 .table-scroll thead{
   position: sticky;
-  top: 0;
+  top: var(--sticky-controls-offset, 0px);
   z-index: 250;
   background: var(--thead);
 }
