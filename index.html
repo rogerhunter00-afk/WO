@@ -77,26 +77,27 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
 .kpi-clickable:hover{box-shadow:0 0 0 2px color-mix(in srgb,var(--als-blue) 25%,transparent);border-color:var(--als-blue)}
 .kpi-clickable[aria-pressed="true"]{background:color-mix(in srgb,var(--als-blue) 12%,var(--paper));border-color:var(--als-blue);box-shadow:0 0 0 2px color-mix(in srgb,var(--als-blue) 25%,transparent)}
 
-/* ===== TABLE WITH STICKY HEADER ===== */
-table{width:100%;min-width:1100px;border-collapse:separate;border-spacing:0;table-layout:fixed}
+/* ===== TABLE WITH WORKING STICKY HEADER ===== */
+table{
+  width:100%;
+  min-width:1100px;
+  border-collapse:separate;
+  border-spacing:0;
+  table-layout:fixed;
+}
 
 .table-scroll{
   position: relative;
   overflow-x: auto;
-  overflow-y: visible;
-  margin-top: 42px; /* space for the thead */
+  max-height: calc(100vh - var(--sticky-controls-offset, 0px) - 100px);
+  overflow-y: auto;
 }
 
 .table-scroll thead{
-  position: fixed;
-  top: var(--sticky-controls-offset, 0px);
-  left: 0;
-  right: 0;
-  z-index: 250;
+  position: sticky;
+  top: 0;
+  z-index: 2;
   background: var(--thead);
-  display: table;
-  width: 100%;
-  table-layout: fixed;
 }
 
 .table-scroll thead th{
@@ -109,7 +110,6 @@ table{width:100%;min-width:1100px;border-collapse:separate;border-spacing:0;tabl
   border-bottom: 1px solid color-mix(in srgb, #000 25%, transparent);
   text-align: left;
   white-space: nowrap;
-  box-sizing: border-box;
 }
 
 .table-scroll thead th:first-child{
