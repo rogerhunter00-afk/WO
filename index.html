@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -213,45 +214,28 @@ tr.row-priority>td{background:color-mix(in srgb,var(--als-blue) 6%,var(--paper))
 }
 
 .week-badge{display:inline-block;margin-left:12px;font-size:12px;font-weight:700;padding:4px 10px;border:1px solid var(--grid);border-radius:999px;background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));vertical-align:middle}
-/* One source of truth for heights */
-:root{
-  --columns-bar-h: 44px;     /* height of the blue columns bar */
-  --kpi-h: 0px;              /* JS will measure the KPI strip */
-}
+  /* === Columns bar height (one source of truth) === */
+:root{ --columns-bar-h: 44px; }
 
-/* Sticky columns bar sits RIGHT UNDER the sticky KPI panels */
+/* Ensure the columns bar has a fixed height and doesn’t scroll its own content */
 .columns-bar{
-  position: sticky;
-  top: calc(var(--ui-offset, 0px) + var(--kpi-h, 0px));
-  z-index: 240;                        /* below KPI (260), above table rows */
   height: var(--columns-bar-h);
-
-  /* Grid: we’ll set grid-template-columns from JS to match the table */
-  display: grid;
-  align-items: center;
-  gap: 0;
   padding: 0 10px;
   overflow: hidden;
-
-  background: var(--thead);
-  color: var(--thead-text);
-  font-weight: 800;
-  letter-spacing: .2px;
-  border-top: 1px solid color-mix(in srgb,#000 25%,transparent);
-  border-bottom: 1px solid color-mix(in srgb,#000 25%,transparent);
-  box-shadow: 0 1px 0 rgba(0,0,0,.25);
 }
-.columns-bar > span{ padding: 2px 6px; white-space: nowrap; }
 
-/* Keep the first row clear of the sticky bar */
+/* Reserve vertical space so the first data row never sits under the bar.
+   IMPORTANT: the .columns-bar element must be the immediate previous sibling of the .dash section. */
+.columns-bar + .dash .table-scroll::before,
 .columns-bar + .dash-table .table-scroll::before{
   content:"";
   display:block;
   height: var(--columns-bar-h);
 }
 
-/* We are no longer using the real thead */
+/* We are not using the real thead any more */
 .table-scroll thead{ display:none; }
+
 </style>
 </head>
 <body class="light">
@@ -623,43 +607,6 @@ function updateUiOffset(){
 
   const offset = Math.round(headAndRuleInView + stickyBlock);
   document.documentElement.style.setProperty('--ui-offset', `${offset}px`);
-    /* --- NEW: measure current visible KPI strip --- */
-  const kpi = document.querySelector('.dash-kpis:not([hidden])');
-  const kpiH = kpi ? kpi.getBoundingClientRect().height : 0;
-  document.documentElement.style.setProperty('--kpi-h', `${kpiH}px`);
-}
-  /* Build or update the columns bar that sits before a site's .dash-table */
-function ensureColumnsBar(container){
-  const site = container.dataset.site || container.id.replace(/^dash-/, '');
-  let bar = document.querySelector(`.columns-bar[data-site="${site}"]`);
-  if(!bar){
-    bar = document.createElement('div');
-    bar.className = 'columns-bar';
-    bar.dataset.site = site;
-    // insert the bar immediately before this dashboard section
-    container.parentNode.insertBefore(bar, container);
-  }
-
-  // 1) Labels in the exact order the table is using
-  const headers = container.__headers || [];
-  bar.innerHTML = headers.map(h => `<span>${esc(h)}</span>`).join('');
-
-  // 2) Grid columns that exactly match the table’s <colgroup>
-  const cols = container.querySelectorAll('colgroup col');
-  if(cols.length){
-    const widths = Array.from(cols).map(col => (col.style.width && col.style.width.trim())
-      ? col.style.width.trim() : 'auto');
-    // fallback for any 'auto' so layout stays sane
-    const template = widths.map(w => w === 'auto' ? 'minmax(96px, 1fr)' : w).join(' ');
-    bar.style.gridTemplateColumns = template;
-  }
-}
-
-/* When switching tabs, show only the matching columns bar */
-function syncColumnsBarVisibility(activeSite){
-  document.querySelectorAll('.columns-bar').forEach(bar => {
-    bar.hidden = (bar.dataset.site !== activeSite);
-  });
 }
 
 // keep both helpers in sync (either keep your old one or just call this)
@@ -2137,15 +2084,11 @@ if (container.__focusOldest) {
   container.__rows = working.slice();
   setSortState(container, prevSort?.column || null, prevDir);
 
+  // draw once for current viewport, then measure sticky
 renderRowsSmart(tbody, headers, working, container);
-updateOldestOnlyChip(container);
-updatePriorityOnlyChip(container);
-updateTheadHeight();
-
-/* NEW: build/align the sticky columns bar for this dashboard
-   and refresh stickiness offsets (accounts for KPI height). */
-ensureColumnsBar(container);
-updateUiOffset();
+  updateOldestOnlyChip(container);   // <-- add this
+  updatePriorityOnlyChip(container);
+  updateTheadHeight();
 }
 
 function sortScoped(th, container){
@@ -2321,9 +2264,6 @@ function setActiveDash(id){
     const isMatch = panel.dataset.site === site;
     panel.hidden = !isMatch;
   });
-  /* NEW: show only the matching columns bar for this site */
-syncColumnsBarVisibility(site);
-
   // Keep the matching columns bar in sync with the active site
 document.querySelectorAll('.columns-bar').forEach(bar => {
   const isMatch = (bar.dataset.site || '') === site;
@@ -2336,22 +2276,17 @@ document.querySelectorAll('.columns-bar').forEach(bar => {
     t.setAttribute('aria-selected', String(controls === id));
   });
 
-if (active.__needsRender && window.__ALS_HEADERS && window.__ALS_GROUPS){
-  const map = window.__ALS_GROUP_MAP || {};
-  const key = map[id] || site;
-  const rows = window.__ALS_GROUPS[key] || [];
-  renderDashboard(active, window.__ALS_HEADERS, rows);
-  active.__needsRender = false;
+  if (active.__needsRender && window.__ALS_HEADERS && window.__ALS_GROUPS){
+    const map = window.__ALS_GROUP_MAP || {};
+    const key = map[id] || site;
+    const rows = window.__ALS_GROUPS[key] || [];
+    renderDashboard(active, window.__ALS_HEADERS, rows);
+    active.__needsRender = false;
+  }
+
+  updateStickyControlsOffset();
+  updateTheadHeight();
 }
-
-/* NEW: make sure the bar exists/aligned even if this tab was
-   already rendered earlier */
-ensureColumnsBar(active);
-
-updateStickyControlsOffset();
-updateTheadHeight();
-updateUiOffset();   // NEW: stick exactly under current KPI height
-
 
   // --- collapsible sticky header ---
 const $sticky = document.querySelector('.sticky-top');
@@ -2511,10 +2446,6 @@ window.addEventListener('resize', ()=>{
   if (now !== __wasMobile){
     __wasMobile = now;
     if (LAST_HEADERS && ALL_ROWS) ingestToDashboards(LAST_HEADERS, ALL_ROWS);
-      // NEW: keep the columns bar widths & offset fresh on any resize
-  const active = document.querySelector('.dash-table[data-active="true"]:not([hidden])');
-  if (active) ensureColumnsBar(active);
-  updateUiOffset();
   }
 });
 
