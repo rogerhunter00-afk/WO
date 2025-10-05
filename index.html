@@ -113,14 +113,14 @@ table{
 
 .table-scroll{
   position: relative;
-  overflow-y: auto;                          /* back to inner vertical scroll */
-  overflow-x: auto;                          /* keep horizontal if needed */
-  max-height: calc(100vh - var(--ui-offset, 0px)); /* fill below sticky UI */
+  overflow-y: visible;   /* page scrolls */
+  overflow-x: auto;      /* keep horizontal scroll if needed */
+  max-height: none;      /* let it grow with the page */
 }
 
 .table-scroll thead{
   position: sticky;
-  top: 0;                 /* important: zero for inner scroller */
+  top: var(--ui-offset, 0px); /* sits just under header/controls/KPIs */
   z-index: 2;
   background: var(--thead);
 }
