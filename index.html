@@ -606,9 +606,6 @@ function wireUiOffsetObservers(){
   window.addEventListener('scroll', updateUiOffset, { passive: true });
   window.addEventListener('resize', updateUiOffset);
   window.addEventListener('load', updateUiOffset);
-  updateFixedTheadPosition();
-window.addEventListener('scroll', updateFixedTheadPosition, { passive: true });
-window.addEventListener('resize', updateFixedTheadPosition);
   
   if ('ResizeObserver' in window){
     const ro = new ResizeObserver(updateUiOffset);
