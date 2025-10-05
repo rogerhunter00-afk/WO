@@ -104,7 +104,7 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
 .columns-bar > span{padding:2px 6px;white-space:nowrap}
 
 /* ===== TABLE (no sticky header) ===== */
-table{width:100%;min-width:1100px;border-collapse:separate;border-spacing:0;table-layout:auto}
+table{width:100%;min-width:1100px;border-collapse:separate;border-spacing:0;table-layout:fixed}
 .table-scroll{position:relative;overflow-x:auto;overflow-y:visible}
 .table-scroll thead{display:none}              /* hide real thead */
 .table-scroll tbody td:first-child{padding-left:14px}
@@ -117,10 +117,20 @@ tr.row-priority>td{background:color-mix(in srgb,var(--als-blue) 6%,var(--paper))
 .dark tr.row-priority>td{background:color-mix(in srgb,var(--als-blue) 10%,var(--zebra))}
 
 /* match column widths in cells via colgroup (your JS adds <colgroup>) */
-.col-id{width:var(--col-id)} .col-title{width:var(--col-title)} .col-status{width:var(--col-status)}
-.col-priority{width:var(--col-priority)} .col-createdby{width:var(--col-assigned)} .col-createdon{width:var(--col-created)}
-.col-updated{width:var(--col-updated)} .col-completedon{width:var(--col-completed)} .col-location{width:var(--col-location)}
-.col-asset{width:var(--col-asset)} .col-categories{width:auto!important}
+.col-id{width:var(--col-id);min-width:var(--col-id);max-width:var(--col-id)} 
+.col-title{width:var(--col-title);min-width:var(--col-title);max-width:var(--col-title)} 
+.col-status{width:var(--col-status);min-width:var(--col-status);max-width:var(--col-status)}
+.col-priority{width:var(--col-priority);min-width:var(--col-priority);max-width:var(--col-priority)} 
+.col-createdby{width:var(--col-assigned);min-width:var(--col-assigned);max-width:var(--col-assigned)} 
+.col-createdon{width:var(--col-created);min-width:var(--col-created);max-width:var(--col-created)}
+.col-updated{width:var(--col-updated);min-width:var(--col-updated);max-width:var(--col-updated)} 
+.col-completedon{width:var(--col-completed);min-width:var(--col-completed);max-width:var(--col-completed)} 
+.col-location{width:var(--col-location);min-width:var(--col-location);max-width:var(--col-location)}
+.col-asset{width:var(--col-asset);min-width:var(--col-asset);max-width:var(--col-asset)} 
+.col-categories{width:auto!important}
+
+/* Force table cells to match exactly */
+tbody td{padding:8px 6px;box-sizing:border-box}
 
 .id{font-weight:700}
 .title-cell b{display:block;font-weight:800}
