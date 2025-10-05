@@ -1268,6 +1268,7 @@ function makeStatusKpi(label, statusValue, count, container){
   el.setAttribute('title', `Toggle status filter: ${label}`);
   el.setAttribute('aria-label', `Toggle status filter: ${label}`);
 
+  // reflect current pressed state
   const f = getFilters();
   const pressed = f.status === statusClass(statusValue) && !f.excludeStatus;
   el.setAttribute('aria-pressed', pressed ? 'true' : 'false');
@@ -1276,29 +1277,21 @@ function makeStatusKpi(label, statusValue, count, container){
     const curr = getFilters();
     const isOn = curr.status === statusClass(statusValue) && !curr.excludeStatus;
 
-    // clear "Oldest only" focus when switching status
-    if (container) {
-      container.__focusOldest = false;
-      updateOldestOnlyChip(container);
+    // set/clear the status filter
+    if ($statusFilter) {
+      $statusFilter.value = isOn ? '' : statusValue;
     }
 
-    if ($statusFilter) {
-      // set/clear the real select so all chips/UI stay consistent
-      $statusFilter.value = isOn ? '' : statusValue;
-      // fire both events + call directly for robustness
-      $statusFilter.dispatchEvent(new Event('change', { bubbles:true }));
-      handleFilterChange?.();
-    } else {
-      // ultra-defensive fallback: re-ingest this container only
-      const base = container.__rawRows || [];
-      container.__rows = base.slice();
-      renderRowsSmart(container.__tbody, container.__headers, container.__rows, container);
-    }
+    // 🔑 immediately re-run the filter and re-render THIS container
+    handleFilterChange();
   };
 
   el.addEventListener('click', toggle);
   el.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggle();
+    }
   });
 
   return el;
