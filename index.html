@@ -46,8 +46,6 @@ html, body{
 .dark{--ink:#f3f4f6;--muted:#9ca3af;--als-blue:#3b82f6;--als-blue-strong:#2563eb;--thead:#1e3a8a;--grid:#374151;--zebra:#1f2937;--done-tx:#10b981;--open-tx:#3b82f6;--hold-tx:#fbbf24;--done-bg:#10b98133;--open-bg:#3b82f633;--hold-bg:#f59e0b33;--paper:#111827;color-scheme:dark}
 .light{--ink:#0b0f1a;--muted:#6b7280;--als-blue:#0b67c2;--als-blue-strong:#0a5cb0;--thead:#0b67c2;--grid:#e6e9ef;--zebra:#fff;--done-tx:#059669;--open-tx:#0b67c2;--hold-tx:#b45309;--done-bg:#0596691a;--open-bg:#0b67c21a;--hold-bg:#f59e0b1a;--paper:#fff;color-scheme:light}
 
-html,body{height:100%}
-html{overflow-y:scroll}
 body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";color:var(--ink);background:var(--paper);margin:0;font-size:13px;line-height:1.32;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 
 /* paint under sticky elements to avoid blue gap as things pin */
@@ -592,32 +590,6 @@ if('ResizeObserver' in window && $stickyTop){
   const observer = new ResizeObserver(updateStickyControlsOffset);
   observer.observe($stickyTop);
 }
-  function updateTheadOffset(){
-  const sticky = document.querySelector('.sticky-top');
-  const kpis = document.querySelector('.kpi-panels');
-  
-  const rectH = el => (el ? el.getBoundingClientRect().height : 0);
-  const mb = el => (el ? parseFloat(getComputedStyle(el).marginBottom) || 0 : 0);
-  
-  const stickyHeight = rectH(sticky) + mb(sticky);
-  const kpiHeight = rectH(kpis) + mb(kpis);
-  
-  const offset = Math.round(stickyHeight + kpiHeight);
-  document.documentElement.style.setProperty('--thead-offset', `${offset}px`);
-}
-  function updateFixedTheadPosition(){
-  const sticky = document.querySelector('.sticky-top');
-  const kpis = document.querySelector('.kpi-panels');
-  const thead = document.querySelector('.table-scroll thead');
-  
-  if(!sticky || !kpis || !thead) return;
-  
-  const stickyHeight = sticky.getBoundingClientRect().height;
-  const kpiHeight = kpis.getBoundingClientRect().height;
-  const totalOffset = stickyHeight + kpiHeight;
-  
-  thead.style.top = `${totalOffset}px`;
-}
 
   // Measure everything that sits above the tables and keep a dynamic offset.
 // It shrinks as the title/logo scroll out of view, so the table header
@@ -645,19 +617,16 @@ function updateUiOffset(){
   const offset = Math.round(headAndRuleInView + stickyBlock + kpiBlock);
   document.documentElement.style.setProperty('--ui-offset', `${offset}px`);
 }
-  function updateTableMaxHeight(){
-  const scroller = document.querySelector('.table-scroll');
+function updateTableMaxHeight(){
+  const scroller =
+    document.querySelector('.dash-table[data-active="true"] .table-scroll') ||
+    document.querySelector('.table-scroll');
   if (!scroller) return;
 
-  // distance from the top of the viewport to the top of the scroller
   const top = scroller.getBoundingClientRect().top;
-
-  // viewport height minus that offset = available space for the table
   const available = Math.max(200, window.innerHeight - Math.max(0, Math.round(top)));
-
   scroller.style.maxHeight = available + 'px';
 }
-
 
 // keep both helpers in sync (either keep your old one or just call this)
 function wireUiOffsetObservers(){
@@ -676,18 +645,7 @@ function wireUiOffsetObservers(){
     head   && ro.observe(head);
     rule   && ro.observe(rule);
     kpis   && ro.observe(kpis);
-    
-    // Also observe for thead offset
-    const ro2 = new ResizeObserver(updateTheadOffset);
-    sticky && ro2.observe(sticky);
-    kpis && ro2.observe(kpis);
   }
-    
-  // Initial thead offset calculation
-  updateTheadOffset();
-  window.addEventListener('scroll', updateTheadOffset, { passive: true });
-  window.addEventListener('resize', updateTheadOffset);
-  window.addEventListener('load', updateTheadOffset);
 }
   
 wireUiOffsetObservers();
