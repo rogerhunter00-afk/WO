@@ -68,7 +68,27 @@ body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Hel
 .top-rule{height:2px;background:var(--als-blue);border-bottom:1px solid var(--als-blue-strong);margin:0 0 12px}
 
 table{width:100%;min-width:1100px;border-collapse:separate;border-spacing:0;table-layout:auto}
+.pinned-row{margin-bottom:18px;padding:16px;border-radius:18px;border:1px solid color-mix(in srgb,var(--als-blue) 24%,var(--grid));background:color-mix(in srgb,var(--als-blue) 12%,var(--paper));box-shadow:0 18px 36px color-mix(in srgb,var(--als-blue) 18%,transparent)}
+.pinned-row[hidden]{display:none}
+.pinned-row__summary{display:grid;gap:6px 12px;margin-bottom:10px}
+.pinned-row__eyebrow{margin:0;font-size:11px;font-weight:700;letter-spacing:.45px;text-transform:uppercase;color:var(--muted)}
+.pinned-row__title{margin:0;font-size:18px;font-weight:800;color:var(--ink);line-height:1.3}
+.pinned-row__meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pinned-row__id{display:inline-flex;align-items:center;padding:4px 11px;border-radius:999px;background:color-mix(in srgb,var(--paper) 88%,var(--als-blue) 12%);border:1px solid color-mix(in srgb,var(--als-blue) 36%,var(--grid));font-weight:800;font-size:12px;letter-spacing:.2px;color:var(--ink);box-shadow:0 3px 8px color-mix(in srgb,var(--als-blue) 22%,transparent)}
+.pinned-row__details{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--muted)}
+.pinned-row__details strong{color:var(--ink)}
+.pinned-row__divider{opacity:.45}
+.pinned-row__categories{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:4px}
+.pinned-row__categories .chip-cat{margin:0}
+.pinned-row__scroll{overflow-x:auto;border-radius:12px;background:color-mix(in srgb,var(--paper) 94%,var(--als-blue) 6%);border:1px solid color-mix(in srgb,var(--als-blue) 20%,var(--grid));box-shadow:0 10px 24px color-mix(in srgb,var(--als-blue) 16%,transparent)}
+.pinned-row__scroll table{width:100%;min-width:1100px;border-collapse:separate;border-spacing:0}
+.pinned-row__scroll tbody td{background:transparent;border-bottom:none;padding:10px 8px;font-weight:600}
+.pinned-row__scroll tbody td:first-child{padding-left:14px}
+.pinned-row__scroll tr.row-priority>td{background:transparent}
 .table-scroll tbody td:first-child{padding-left:14px}
+.dark .pinned-row{background:color-mix(in srgb,var(--als-blue) 24%,var(--paper));border-color:color-mix(in srgb,var(--als-blue) 42%,var(--grid));box-shadow:0 18px 36px rgba(0,0,0,.45)}
+.dark .pinned-row__id{background:color-mix(in srgb,var(--paper) 80%,var(--als-blue) 20%);border-color:color-mix(in srgb,var(--als-blue) 40%,var(--grid));box-shadow:0 3px 8px rgba(0,0,0,.35)}
+.dark .pinned-row__scroll{background:color-mix(in srgb,var(--als-blue) 18%,var(--paper));border-color:color-mix(in srgb,var(--als-blue) 42%,var(--grid));box-shadow:0 10px 24px rgba(0,0,0,.4)}
 tr.row-priority>td:first-child{position:relative;z-index:0}
 tr.row-priority>td:first-child::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:3px;border-radius:999px;background:var(--priority-rail);box-shadow:0 0 0 1px color-mix(in srgb,var(--priority-rail) 28%,transparent);pointer-events:none;z-index:-1}
 table th,table td{overflow-wrap:anywhere;word-break:break-word;hyphens:auto}
@@ -86,6 +106,7 @@ tr.row-priority>td{background:color-mix(in srgb,var(--als-blue) 6%,var(--paper))
 .id{font-weight:700}
 .title-cell b{display:block;font-weight:800}
 
+.chip-stack{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}
 .chip-cat{display:inline-flex;align-items:center;border-radius:999px;padding:4px 10px;border:1px solid currentColor;background:transparent;margin:2px 6px 2px 0;font-weight:600;font-size:12px;line-height:1;white-space:nowrap}
 .table-scroll td[data-col="Categories"]{white-space:normal;min-width:140px;width:1%}
 .table-scroll td[data-col="Categories"] .chip-stack{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}
@@ -863,11 +884,146 @@ function setSelectedWeek(weekObj){
   prefetchAdjacent(__WEEKS, weekObj);
 }
   
-function renderRowsSmart(tbodyEl, headers, rows, container){
-  if (isMobileView() || (rows?.length ?? 0) < 600) {
-    return renderRowsScoped(tbodyEl, headers, rows, container);
+function ageChipHTML(row, extraClass){
+  if(!row) return '';
+  const ms = row.__ageMs;
+  const bucket = row.__ageBucket || ageBucket(ms);
+  const label = esc(getAgeLabel(row));
+  const baseT = ms != null ? `${(ms/86400000).toFixed(1)} days` : 'Unknown';
+  const frozen = isWinterPlanned(row);
+  const pwp = categoryColors['planned-winter-project'] || { background:'#E7F3FE', foreground:'#1887FC' };
+  const extra = extraClass ? ` ${extraClass}` : '';
+  const cls = `age-chip age-${bucket}` + (frozen ? ' frozen' : '') + extra;
+  const title = frozen ? `Planned for Winter • ${baseT}` : baseT;
+  const aria = frozen ? ' aria-label="Planned for Winter"' : '';
+  const style = frozen ? ` style="--bg:${pwp.background}; --ring: color-mix(in srgb, ${pwp.foreground} 50%, transparent);color:${pwp.foreground}"` : '';
+  return `<span class="${cls}"${style} title="${esc(title)}"${aria}>${label}</span>`;
+}
+
+function pinnedSummaryHTML(row, headers){
+  if(!row) return '';
+  const findCol = regex => headers.find(h => regex.test(String(h || '')));
+
+  const idKey = findCol(/(work\s*order|wo\s*#|work\s*order\s*id|\bwo\b|\bid\b)/i);
+  const titleKey = findCol(/title/i);
+  const statusKey = findCol(/status/i);
+  const ageKey = findCol(/age/i);
+  const locationKey = findCol(/location|site/i);
+  const assetKey = findCol(/asset|equipment/i);
+  const categoriesKey = findCol(/categor/i);
+
+  const idVal = idKey ? row?.[idKey] : '';
+  const titleVal = titleKey ? row?.[titleKey] : '';
+  const statusVal = statusKey ? row?.[statusKey] : '';
+  const locationVal = locationKey ? row?.[locationKey] : '';
+  const assetVal = assetKey ? row?.[assetKey] : '';
+
+  const eyebrow = `<p class="pinned-row__eyebrow">Pinned first work order</p>`;
+
+  const title = titleVal || idVal;
+  const titleHtml = title ? `<h3 class="pinned-row__title">${esc(title)}</h3>` : '';
+
+  const metaBits = [];
+  if (idVal && titleVal) metaBits.push(`<span class="pinned-row__id">${esc(idVal)}</span>`);
+  if (statusVal) metaBits.push(`<span class="status-chip ${statusClass(statusVal)}">${esc(statusVal)}</span>`);
+  if (ageKey){
+    const age = ageChipHTML(row, 'pinned-row__age');
+    if (age) metaBits.push(age);
   }
-  return renderRowsScopedChunked(tbodyEl, headers, rows, container);
+  const metaHtml = metaBits.length ? `<div class="pinned-row__meta">${metaBits.join('')}</div>` : '';
+
+  const detailsParts = [];
+  if (locationVal) detailsParts.push(`<span><strong>Location</strong> ${esc(locationVal)}</span>`);
+  if (assetVal) detailsParts.push(`<span><strong>Asset</strong> ${esc(assetVal)}</span>`);
+  const detailsHtml = detailsParts.length
+    ? `<div class="pinned-row__details">${detailsParts.join('<span class="pinned-row__divider" aria-hidden="true">•</span>')}</div>`
+    : '';
+
+  let categoriesHtml = '';
+  if (categoriesKey){
+    const chips = buildCategoryChips(row[categoriesKey]);
+    if (chips) categoriesHtml = `<div class="pinned-row__categories chip-stack">${chips}</div>`;
+  }
+
+  return [eyebrow, titleHtml, metaHtml, detailsHtml, categoriesHtml].filter(Boolean).join('');
+}
+
+function tableRowHTML(row, headers){
+  const rowCls = hasPriorityCategory(row) ? 'row-priority' : '';
+  const cells = headers.map(h => {
+    const key = String(h || '').trim().toLowerCase();
+    const v = row[h];
+
+    if (key === 'categories'){
+      return `<td data-col="Categories"><div class="chip-stack">${buildCategoryChips(v)}</div></td>`;
+    }
+    if (key === 'status'){
+      return `<td data-col="Status"><span class="status-chip ${statusClass(v)}">${esc(v)}</span></td>`;
+    }
+    if (key === 'age'){
+      return `<td data-col="Age">${ageChipHTML(row)}</td>`;
+    }
+    return `<td data-col="${esc(h)}">${esc(v)}</td>`;
+  }).join('');
+
+  return `<tr class="${rowCls}">${cells}</tr>`;
+}
+
+function updatePinnedRow(container, headers, rows, mobile){
+  if(!container) return rows;
+
+  const wrap = container.__pinnedRowWrap;
+  const body = container.__pinnedRowBody;
+  const summary = container.__pinnedRowSummary;
+  const scroll = container.__pinnedRowScroll;
+  if(!wrap || !body){
+    if (summary) summary.innerHTML = '';
+    container.__pinnedRowData = null;
+    return rows;
+  }
+
+  if(mobile){
+    wrap.hidden = true;
+    body.innerHTML = '';
+    if (summary) summary.innerHTML = '';
+    container.__pinnedRowData = null;
+    return rows;
+  }
+
+  const safe = Array.isArray(rows) ? rows : [];
+  if(!safe.length){
+    wrap.hidden = true;
+    body.innerHTML = '';
+    if (summary) summary.innerHTML = '';
+    container.__pinnedRowData = null;
+    return safe;
+  }
+
+  const first = safe[0];
+  body.innerHTML = tableRowHTML(first, headers);
+  if (summary) summary.innerHTML = pinnedSummaryHTML(first, headers);
+  wrap.hidden = false;
+  if (container.__tableWrap && scroll) {
+    scroll.scrollLeft = container.__tableWrap.scrollLeft;
+  }
+  container.__pinnedRowData = first;
+  return safe.slice(1);
+}
+
+function renderRowsSmart(tbodyEl, headers, rows, container){
+  const safe = Array.isArray(rows) ? rows.slice() : [];
+  const mobile = isMobileView();
+  const remaining = updatePinnedRow(container, headers, safe, mobile);
+  const dataRows = Array.isArray(remaining) ? remaining : [];
+
+  if(container){
+    container.__hasPinnedRow = !mobile && safe.length > 0;
+  }
+
+  if (mobile || dataRows.length < 600) {
+    return renderRowsScoped(tbodyEl, headers, dataRows, container);
+  }
+  return renderRowsScopedChunked(tbodyEl, headers, dataRows, container);
 }
 
 function renderRowsScoped(tbodyEl, headers, rows, container){
@@ -876,40 +1032,15 @@ function renderRowsScoped(tbodyEl, headers, rows, container){
   if (!tbodyEl) return;
 
   if (!mobile){
-    tbodyEl.innerHTML = safeRows.map(row => {
-      const rowCls = hasPriorityCategory(row) ? 'row-priority' : '';
-      return `<tr class="${rowCls}">` + headers.map(h => {
-        const key = String(h||'').trim().toLowerCase();
-        const v = row[h];
+    tbodyEl.innerHTML = safeRows.map(row => tableRowHTML(row, headers)).join('\n');
 
-        if (key === 'categories'){
-          return `<td data-col="Categories"><div class="chip-stack">${buildCategoryChips(v)}</div></td>`;
-        }
-        if (key === 'status'){
-          return `<td data-col="Status"><span class="status-chip ${statusClass(v)}">${esc(v)}</span></td>`;
-        }
-        if (key === 'age'){
-          const ms      = row.__ageMs;
-          const bucket  = row.__ageBucket || ageBucket(ms);
-          const label   = esc(getAgeLabel(row));
-          const baseT   = ms != null ? `${(ms/86400000).toFixed(1)} days` : 'Unknown';
-          const frozen  = isWinterPlanned(row);
-          const pwp     = categoryColors['planned-winter-project'] || { background:'#E7F3FE', foreground:'#1887FC' };
-          const style   = frozen ? ` style="--bg:${pwp.background}; --ring: color-mix(in srgb, ${pwp.foreground} 50%, transparent); color:${pwp.foreground}"` : '';
-          const cls     = `age-chip age-${bucket}` + (frozen ? ' frozen' : '');
-const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
-          const aria    = frozen ? ' aria-label="Planned for Winter"' : '';
-          return `<td data-col="Age"><span class="${cls}"${style} title="${esc(title)}"${aria}>${label}</span></td>`;
-        }
-        return `<td data-col="${esc(h)}">${esc(v)}</td>`;
-      }).join('') + `</tr>`;
-    }).join('\n');
-
+    const pinnedActive = !!container?.__hasPinnedRow;
     const hasRows = safeRows.length > 0;
-    container?.__tableWrap && (container.__tableWrap.hidden = mobile || !hasRows);
-    container?.__mobileSortWrap && (container.__mobileSortWrap.hidden = !mobile || !hasRows);
+    const hasAnyRows = hasRows || pinnedActive;
+    container?.__tableWrap && (container.__tableWrap.hidden = !hasAnyRows);
+    container?.__mobileSortWrap && (container.__mobileSortWrap.hidden = true);
     container?.__mobileCards && (container.__mobileCards.hidden = true);
-    container?.__emptyState && (container.__emptyState.hidden = hasRows);
+    container?.__emptyState && (container.__emptyState.hidden = hasAnyRows);
     updateTheadHeight();
     return;
   }
@@ -939,32 +1070,7 @@ function renderRowsScopedChunked(tbodyEl, headers, rows, container){
     let html = '';
     for (let c = 0; c < CHUNK && i < safe.length; c++, i++){
       const row = safe[i];
-      const rowCls = hasPriorityCategory(row) ? 'row-priority' : '';
-      html += `<tr class="${rowCls}">` + headers.map(h => {
-        const key = String(h||'').trim().toLowerCase();
-        const v = row[h];
-
-        if (key === 'categories'){
-          return `<td data-col="Categories"><div class="chip-stack">${buildCategoryChips(v)}</div></td>`;
-        }
-        if (key === 'status'){
-          return `<td data-col="Status"><span class="status-chip ${statusClass(v)}">${esc(v)}</span></td>`;
-        }
-        if (key === 'age'){
-          const ms      = row.__ageMs;
-          const bucket  = row.__ageBucket || ageBucket(ms);
-          const label   = esc(getAgeLabel(row));
-          const baseT   = ms != null ? `${(ms/86400000).toFixed(1)} days` : 'Unknown';
-          const frozen  = isWinterPlanned(row);
-          const pwp     = categoryColors['planned-winter-project'] || { background:'#E7F3FE', foreground:'#1887FC' };
-          const style   = frozen ? ` style="--bg:${pwp.background}; --ring: color-mix(in srgb, ${pwp.foreground} 50%, transparent); color:${pwp.foreground}"` : '';
-          const cls     = `age-chip age-${bucket}` + (frozen ? ' frozen' : '');
-          const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
-          const aria    = frozen ? ' aria-label="Planned for Winter"' : '';
-          return `<td data-col="Age"><span class="${cls}"${style} title="${esc(title)}"${aria}>${label}</span></td>`;
-        }
-        return `<td data-col="${esc(h)}">${esc(v)}</td>`;
-      }).join('') + `</tr>`;
+      html += tableRowHTML(row, headers);
     }
 
     if (html){
@@ -978,11 +1084,13 @@ function renderRowsScopedChunked(tbodyEl, headers, rows, container){
     if (i < safe.length){
       requestAnimationFrame(paintChunk);
     } else {
+      const pinnedActive = !!container?.__hasPinnedRow;
       const hasRows = safe.length > 0;
-      container?.__tableWrap && (container.__tableWrap.hidden = isMobileView() || !hasRows);
-      container?.__mobileSortWrap && (container.__mobileSortWrap.hidden = !isMobileView() || !hasRows);
+      const hasAnyRows = hasRows || pinnedActive;
+      container?.__tableWrap && (container.__tableWrap.hidden = !hasAnyRows);
+      container?.__mobileSortWrap && (container.__mobileSortWrap.hidden = true);
       container?.__mobileCards && (container.__mobileCards.hidden = true);
-      container?.__emptyState && (container.__emptyState.hidden = hasRows);
+      container?.__emptyState && (container.__emptyState.hidden = hasAnyRows);
       updateTheadHeight();
     }
   }
@@ -1487,7 +1595,7 @@ function setSortState(container, column, direction){
   if(!column){
     container.__rows = base.slice();
     setSortState(container, null, 'desc');
-    renderRowsScoped(tbodyEl, headers, base, container);
+    renderRowsSmart(tbodyEl, headers, base, container);
     return;
   }
 
@@ -1495,7 +1603,7 @@ function setSortState(container, column, direction){
   const sorted = applySort(base, column, dir);
   container.__rows = sorted.slice();
   setSortState(container, column, dir);
-  renderRowsScoped(tbodyEl, headers, sorted, container);
+  renderRowsSmart(tbodyEl, headers, sorted, container);
 }
 
 function toggleMobileSortDirection(container){
@@ -1513,7 +1621,7 @@ function toggleMobileSortDirection(container){
   const sorted = applySort(base, select.value, next);
   container.__rows = sorted.slice();
   setSortState(container, select.value, next);
-  renderRowsScoped(tbodyEl, headers, sorted, container);
+  renderRowsSmart(tbodyEl, headers, sorted, container);
 }
 
 // small helper so we can reuse category chip markup
@@ -1941,8 +2049,41 @@ kpiWrap.appendChild(prioCard);
   if(kpiContainer){ kpiContainer.innerHTML=''; kpiContainer.appendChild(kpiWrap); }
 
 // --- shell: table + mobile containers (both exist; CSS decides visibility) ---
+const pinnedWrap = document.createElement('div');
+pinnedWrap.className = 'pinned-row';
+pinnedWrap.hidden = true;
+pinnedWrap.setAttribute('role','region');
+pinnedWrap.setAttribute('aria-live','polite');
+pinnedWrap.setAttribute('aria-label','Pinned first work order');
+
+const pinnedSummary = document.createElement('div');
+pinnedSummary.className = 'pinned-row__summary';
+
+const pinnedScroll = document.createElement('div');
+pinnedScroll.className = 'pinned-row__scroll';
+
+const pinnedTable = document.createElement('table');
+const pinnedBody = document.createElement('tbody');
+applyColumnWidths(pinnedTable, headers);
+pinnedTable.appendChild(pinnedBody);
+pinnedScroll.appendChild(pinnedTable);
+pinnedWrap.append(pinnedSummary, pinnedScroll);
+
 const tableWrap = document.createElement('div');
 tableWrap.className = 'table-scroll';
+
+let syncingPinned = false;
+let syncingTable = false;
+pinnedScroll.addEventListener('scroll', () => {
+  if (syncingPinned) { syncingPinned = false; return; }
+  syncingTable = true;
+  tableWrap.scrollLeft = pinnedScroll.scrollLeft;
+});
+tableWrap.addEventListener('scroll', () => {
+  if (syncingTable) { syncingTable = false; return; }
+  syncingPinned = true;
+  pinnedScroll.scrollLeft = tableWrap.scrollLeft;
+});
 
 const table  = document.createElement('table');
 const thead  = document.createElement('thead');
@@ -1989,10 +2130,16 @@ emptyState.className = 'dash-empty';
 emptyState.textContent = 'No work orders match the current filters.';
 emptyState.hidden = true;
 
-container.append(tableWrap, mobileSortWrap, mobileCards, emptyState);
+container.append(pinnedWrap, tableWrap, mobileSortWrap, mobileCards, emptyState);
 
 // cache refs on the dashboard section element
 container.__headers = headers.slice();
+container.__pinnedRowWrap = pinnedWrap;
+container.__pinnedRowBody = pinnedBody;
+container.__pinnedRowData = null;
+container.__pinnedRowSummary = pinnedSummary;
+container.__pinnedRowScroll = pinnedScroll;
+container.__hasPinnedRow = false;
 container.__tableWrap = tableWrap;
 container.__thead = thead;
 container.__tbody = tbody;
@@ -2071,7 +2218,7 @@ function sortScoped(th, container){
   container.__rows = sorted.slice();
 
   setSortState(container, col, nextDir);               // updates desktop + mobile UI
-  renderRowsScoped(tbodyEl, headers, sorted, container);
+  renderRowsSmart(tbodyEl, headers, sorted, container);
 }
   
 function updateTheadHeight(){
