@@ -82,7 +82,7 @@ table{width:100%;min-width:1100px;border-collapse:separate;border-spacing:0;tabl
 .table-scroll{position:relative;overflow-x:auto;overflow-y:visible}
 .table-scroll thead{
   position: sticky;
-  top: var(--sticky-controls-offset, 0px);
+  top: var(--thead-offset, 0px);
   z-index: 250;
   background: var(--thead);
 }
@@ -533,6 +533,19 @@ if('ResizeObserver' in window && $stickyTop){
   const observer = new ResizeObserver(updateStickyControlsOffset);
   observer.observe($stickyTop);
 }
+  function updateTheadOffset(){
+  const sticky = document.querySelector('.sticky-top');
+  const kpis = document.querySelector('.kpi-panels');
+  
+  const rectH = el => (el ? el.getBoundingClientRect().height : 0);
+  const mb = el => (el ? parseFloat(getComputedStyle(el).marginBottom) || 0 : 0);
+  
+  const stickyHeight = rectH(sticky) + mb(sticky);
+  const kpiHeight = rectH(kpis) + mb(kpis);
+  
+  const offset = Math.round(stickyHeight + kpiHeight);
+  document.documentElement.style.setProperty('--thead-offset', `${offset}px`);
+}
 
   // Measure everything that sits above the tables and keep a dynamic offset.
 // It shrinks as the title/logo scroll out of view, so the table header
@@ -579,7 +592,12 @@ function wireUiOffsetObservers(){
     kpis   && ro.observe(kpis);
   }
 }
-wireUiOffsetObservers();
+wireUiOffsetObservers
+  updateTheadOffset();
+  window.addEventListener('scroll', updateTheadOffset, { passive: true });
+  window.addEventListener('resize', updateTheadOffset);
+  window.addEventListener('load', updateTheadOffset);
+  ();
 
   const MS = { min:6e4, hour:36e5, day:864e5 };
   const MIN_AGE_MINUTES = 30;
