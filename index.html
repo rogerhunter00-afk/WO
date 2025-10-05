@@ -220,17 +220,6 @@ tbody td{padding:8px 6px;box-sizing:border-box}
 
 .week-badge{display:inline-block;margin-left:12px;font-size:12px;font-weight:700;padding:4px 10px;border:1px solid var(--grid);border-radius:999px;background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));vertical-align:middle}
 
-/* Reserve vertical space so the first data row never sits under the bar.
-   IMPORTANT: the .columns-bar element must be the immediate previous sibling of the .dash section. */
-.columns-bar + .dash .table-scroll::before,
-.columns-bar + .dash-table .table-scroll::before{
-  content:"";
-  display:none;
-}
-
-/* We are not using the real thead any more */
-.table-scroll thead{ display:none; }
-
 </style>
 </head>
 <body class="light">
