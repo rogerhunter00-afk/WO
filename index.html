@@ -1260,6 +1260,7 @@ function dedupeRows(rows){
   return [...map.values()];
 }
 
+// REPLACE your entire makeStatusKpi(...) with this:
 function makeStatusKpi(label, statusValue, count, container){
   const el = kpiCard(label, count);
   el.classList.add('kpi-clickable');
@@ -1268,7 +1269,7 @@ function makeStatusKpi(label, statusValue, count, container){
   el.setAttribute('title', `Toggle status filter: ${label}`);
   el.setAttribute('aria-label', `Toggle status filter: ${label}`);
 
-  // reflect current pressed state
+  // pressed state mirrors current filters
   const f = getFilters();
   const pressed = f.status === statusClass(statusValue) && !f.excludeStatus;
   el.setAttribute('aria-pressed', pressed ? 'true' : 'false');
@@ -1277,21 +1278,20 @@ function makeStatusKpi(label, statusValue, count, container){
     const curr = getFilters();
     const isOn = curr.status === statusClass(statusValue) && !curr.excludeStatus;
 
-    // set/clear the status filter
+    // IMPORTANT: set the <select> to the *label* values that actually exist in the options
     if ($statusFilter) {
-      $statusFilter.value = isOn ? '' : statusValue;
+      $statusFilter.value = isOn ? '' : label;   // "" clears; "Open" / "In Progress" / "On Hold" / "Done" applies
+      // fire change so chips/ARIA stay in sync
+      $statusFilter.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
-    // 🔑 immediately re-run the filter and re-render THIS container
+    // re-run filter + re-render current view
     handleFilterChange();
   };
 
   el.addEventListener('click', toggle);
   el.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      toggle();
-    }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
   });
 
   return el;
