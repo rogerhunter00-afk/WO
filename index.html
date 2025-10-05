@@ -111,16 +111,17 @@ table{
   table-layout:fixed;
 }
 
+/* JS will set max-height precisely; start with a conservative fallback */
 .table-scroll{
   position: relative;
-  overflow-y: visible;   /* page scrolls */
-  overflow-x: auto;      /* keep horizontal scroll if needed */
-  max-height: none;      /* let it grow with the page */
+  overflow-y: auto;
+  overflow-x: auto;
+  max-height: 60vh; /* fallback only; overwritten by JS below */
 }
 
 .table-scroll thead{
   position: sticky;
-  top: var(--ui-offset, 0px); /* sits just under header/controls/KPIs */
+  top: 0;             /* important in windowed-table mode */
   z-index: 2;
   background: var(--thead);
 }
@@ -644,6 +645,19 @@ function updateUiOffset(){
   const offset = Math.round(headAndRuleInView + stickyBlock + kpiBlock);
   document.documentElement.style.setProperty('--ui-offset', `${offset}px`);
 }
+  function updateTableMaxHeight(){
+  const scroller = document.querySelector('.table-scroll');
+  if (!scroller) return;
+
+  // distance from the top of the viewport to the top of the scroller
+  const top = scroller.getBoundingClientRect().top;
+
+  // viewport height minus that offset = available space for the table
+  const available = Math.max(200, window.innerHeight - Math.max(0, Math.round(top)));
+
+  scroller.style.maxHeight = available + 'px';
+}
+
 
 // keep both helpers in sync (either keep your old one or just call this)
 function wireUiOffsetObservers(){
@@ -2332,7 +2346,14 @@ function setActiveDash(id){
 
   updateStickyControlsOffset();
   updateTheadHeight();
+  updateTableMaxHeight();   // 👈 ensures the new table scroller fits perfectly
 }
+  // run at startup
+window.addEventListener('load', updateTableMaxHeight);
+
+// keep it correct on resize and when fonts settle
+window.addEventListener('resize', updateTableMaxHeight);
+document.fonts?.ready?.then(()=>{ try { updateTableMaxHeight(); } catch{} });
 
   // --- collapsible sticky header ---
 const $sticky = document.querySelector('.sticky-top');
@@ -2347,6 +2368,7 @@ function setCollapsed(isCollapsed){
   // keep layout/overlays correct
   updateStickyControlsOffset();
   updateTheadHeight();
+  updateTableMaxHeight();   // 👈 add this line
 }
 
 // restore saved state (default: expanded)
