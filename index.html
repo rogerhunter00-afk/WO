@@ -80,8 +80,8 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
 /* ===== STATIC COLUMNS BAR (new) ===== */
 .columns-bar{
   position:sticky;
-  top:calc(var(--ui-offset,0px) + 0px); /* sits right under KPIs */
-  z-index:240;                           /* under KPI (260), over table rows */
+  top:var(--ui-offset,0px);
+  z-index:240;
   display:grid;
   grid-template-columns:
     var(--col-id) var(--col-title) var(--col-status) var(--col-priority)
@@ -97,7 +97,9 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
   font-weight:800;letter-spacing:.2px;
   box-shadow:0 1px 0 rgba(0,0,0,.25);
   padding:8px 10px;
-  overflow:auto; /* allows horizontal scroll alongside table */
+  overflow:auto;
+  height:44px;
+  margin:0;
 }
 .columns-bar > span{padding:2px 6px;white-space:nowrap}
 
