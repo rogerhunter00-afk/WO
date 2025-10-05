@@ -119,7 +119,7 @@ table{
 
 .table-scroll thead{
   position: sticky;
-  top: 0;
+  top: var(--ui-offset, 0px); /* sits below title + controls + KPIs */
   z-index: 2;
   background: var(--thead);
 }
