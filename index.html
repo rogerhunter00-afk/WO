@@ -316,16 +316,19 @@ tbody td{padding:8px 6px;box-sizing:border-box}
   html, body{ overflow:auto; }
   .table-scroll{ max-height:none; }
 }
-/* -- Legend popover fix: ensure it shows above sticky bars and remove hover gap -- */
+/* Legend button lives in the right-hand controls row */
+.controls { align-items: center; }
+
+/* Popover: always render above sticky elements and align to button’s right */
 .legend-popover{
   position: relative;
-  z-index: 1001;        /* sits above sticky headers/KPIs */
-  padding-bottom: 10px; /* creates a hover bridge to the panel */
+  z-index: 1100;          /* above sticky bars */
+  padding-bottom: 8px;    /* hover bridge to the panel */
 }
 .legend-popover__panel{
   position: absolute;
-  right: 0;
-  top: 100%;            /* no gap that breaks hover */
+  right: 0;               /* align panel’s right edge with the button */
+  top: 100%;              /* sit just below the button */
   margin-top: 6px;
   width: min(360px, 86vw);
   max-height: 70vh;
@@ -340,7 +343,7 @@ tbody td{padding:8px 6px;box-sizing:border-box}
   transform: translateY(-4px);
   pointer-events: none;
   transition: opacity .15s ease, transform .15s ease;
-  z-index: 1002;        /* panel above its trigger */
+  z-index: 1101;
 }
 .legend-popover__panel::before{
   content: "";
@@ -353,7 +356,8 @@ tbody td{padding:8px 6px;box-sizing:border-box}
   border-left: 1px solid var(--grid);
   border-top: 1px solid var(--grid);
 }
-/* show on hover, focus, or when JS toggles .is-open */
+
+/* show on hover, keyboard focus, or when JS toggles .is-open */
 .legend-popover:hover .legend-popover__panel,
 .legend-popover:focus-within .legend-popover__panel,
 .legend-popover.is-open .legend-popover__panel{
@@ -377,54 +381,6 @@ tbody td{padding:8px 6px;box-sizing:border-box}
     <div class="top-rule" aria-hidden="true"></div>
 
     <main>
-      <div class="legend-popover">
-        <button id="legendBtn" class="btn btn--pill" type="button" aria-haspopup="dialog" aria-expanded="false">Legend</button>
-        <div class="legend-popover__panel" role="dialog" aria-modal="false" aria-label="Legend">
-          <div class="legend legend--compact">
-            <p class="legend__title">How to read this dashboard</p>
-            <ul class="legend__list">
-              <li class="legend__sample">
-                <span><span class="legend__rail"></span> Priority</span>
-                <span>Rows with the Priority tag are highlighted.</span>
-              </li>
-              <li class="legend__sample">
-                <span><span class="status-chip open">Open</span></span>
-                <span>Status chips show the live state of a work order.</span>
-              </li>
-              <li class="legend__sample">
-                <span><span class="age-chip age-old">14d</span></span>
-                <span>Age chips measure how long the order has been active.</span>
-              </li>
-              <li class="legend__sample">
-                <span><span class="chip-cat">Category</span></span>
-                <span>Category chips map directly to the sheet.</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <div class="legend legend--full">
-        <p class="legend__title">Legend</p>
-        <ul class="legend__list">
-          <li class="legend__sample">
-            <span><span class="legend__rail"></span> Priority</span>
-            <span>Rows with the Priority tag are highlighted.</span>
-          </li>
-          <li class="legend__sample">
-            <span><span class="status-chip open">Open</span></span>
-            <span>Status chips show the live state of a work order.</span>
-          </li>
-          <li class="legend__sample">
-            <span><span class="age-chip age-old">14d</span></span>
-            <span>Age chips measure how long the order has been active.</span>
-          </li>
-          <li class="legend__sample">
-            <span><span class="chip-cat">Category</span></span>
-            <span>Category chips map directly to the sheet.</span>
-          </li>
-        </ul>
-      </div>
 
       <div class="sticky-top" data-collapsed="false">
         <div class="sticky-top__bar">
@@ -469,6 +425,37 @@ tbody td{padding:8px 6px;box-sizing:border-box}
             <button id="exportCsvBtn" class="btn" type="button" disabled>Export CSV</button>
             <button id="themeBtn" class="btn btn--pill" type="button" aria-pressed="false">Dark mode</button>
           </div>
+
+          <div class="legend-popover">
+    <button id="legendBtn" class="btn btn--pill" type="button"
+            aria-haspopup="dialog" aria-expanded="false">
+      Legend
+    </button>
+    <div class="legend-popover__panel" role="dialog"
+         aria-modal="false" aria-label="Legend">
+      <div class="legend legend--compact">
+        <p class="legend__title">How to read this dashboard</p>
+        <ul class="legend__list">
+          <li class="legend__sample">
+            <span><span class="legend__rail"></span> Priority</span>
+            <span>Rows with the Priority tag are highlighted.</span>
+          </li>
+          <li class="legend__sample">
+            <span><span class="status-chip open">Open</span></span>
+            <span>Status chips show the live state of a work order.</span>
+          </li>
+          <li class="legend__sample">
+            <span><span class="age-chip age-old">14d</span></span>
+            <span>Age chips measure how long the order has been active.</span>
+          </li>
+          <li class="legend__sample">
+            <span><span class="chip-cat">Category</span></span>
+            <span>Category chips map directly to the sheet.</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
 
           <div id="activeFilterChips" class="active-filter-chips" hidden></div>
 
@@ -2626,6 +2613,28 @@ document.fonts?.ready?.then(() => {
     updateTheadHeight();
     updateStickyControlsOffset();
   } catch {}
+});
+  const legendWrap = document.querySelector('.legend-popover');
+const legendBtn  = document.getElementById('legendBtn');
+
+legendBtn?.addEventListener('click', () => {
+  const open = legendWrap.classList.toggle('is-open');
+  legendBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+});
+
+document.addEventListener('click', (e)=>{
+  if (legendWrap && !legendWrap.contains(e.target)){
+    legendWrap.classList.remove('is-open');
+    legendBtn?.setAttribute('aria-expanded','false');
+  }
+});
+
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape' && legendWrap?.classList.contains('is-open')){
+    legendWrap.classList.remove('is-open');
+    legendBtn?.setAttribute('aria-expanded','false');
+    legendBtn?.focus();
+  }
 });
 </script>
 </body>
