@@ -100,6 +100,16 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
 .sticky-top[data-collapsed="true"] .sticky-content{display:none!important;opacity:0}
 
 .controls{display:flex;gap:12px;align-items:center;font-size:12px;flex-wrap:wrap}
+.controls--primary{gap:8px;flex:1 1 auto}
+.controls--primary>*{flex:0 0 auto}
+.controls--primary .search-input{margin-right:auto}
+.controls--secondary{margin-top:8px}
+.sticky-top__bar>#collapseBtn{margin-left:auto}
+.controls--primary .filter-group{margin:0}
+.controls--primary .btn,.controls--primary select{font-size:12px}
+.controls--primary .filter-group select{min-width:0}
+.controls--primary .legend-inline{margin-right:0}
+.week-picker{gap:4px}
 .controls input[type="file"],.controls textarea{font:inherit}
 .search-input{flex:1 1 280px;min-width:220px;max-width:460px;order:-1;padding:9px 16px;border-radius:999px;border:2px solid color-mix(in srgb,var(--surface-border) 65%,var(--als-blue));background:color-mix(in srgb,var(--surface-glass-strong) 85%,transparent);color:var(--ink);font:inherit;font-weight:600;box-shadow:0 6px 18px color-mix(in srgb,var(--als-blue) 20%,transparent);transition:border-color .18s ease,box-shadow .18s ease,background-color .18s ease;appearance:none}
 .search-input::placeholder{color:color-mix(in srgb,var(--ink) 45%,transparent);font-weight:500}
@@ -433,7 +443,6 @@ tbody td{padding:8px 6px;box-sizing:border-box}
   .logo{height:40px}
   .controls{gap:10px}
   .controls textarea{width:100%;min-width:0}
-  .controls .search-input{flex-basis:100%;max-width:none}
 }
 
 @media print{
@@ -574,56 +583,49 @@ tbody td{padding:8px 6px;box-sizing:border-box}
 
       <div class="sticky-top" data-collapsed="false">
         <div class="sticky-top__bar">
-          <button id="refreshBtn" class="btn" type="button">Refresh data</button>
-          <button id="exportCsvBtn" class="btn" type="button" disabled>Export CSV</button>
-          <button id="themeBtn" class="btn btn--pill" type="button" aria-pressed="false">Dark mode</button>
-          <button id="collapseBtn" class="btn btn--pill" type="button" aria-expanded="true">Hide controls</button>
-        </div>
-        <div class="sticky-content">
-          <div class="controls">
-            <div class="legend-inline">
-  <button type="button" class="btn btn--pill legend-inline__btn">Legend</button>
-  <div class="legend-inline__panel" role="dialog" aria-modal="false" aria-label="Legend">
-    <div class="legend">
-      <p class="legend__title">How to read this dashboard</p>
-<ul class="legend__list">
-  <li class="legend__sample">
-    <span><span class="legend__rail"></span> Priority</span>
-    <span>Rows with the “Priority” category show a red rail and a subtle background tint.</span>
-  </li>
-
-  <li class="legend__sample">
-    <span><span class="status-chip done">Done</span></span>
-    <span>Completed work orders are lightly tinted green to stand out.</span>
-  </li>
-
-  <li class="legend__sample">
-    <span>
-      <span class="legend__rail"></span>
-      <span class="status-chip done" style="margin-left:6px">Done</span>
-    </span>
-    <span><strong>Done + Priority</strong>: keeps the red rail (Priority) and adds the green DONE tint.</span>
-  </li>
-
-  <li class="legend__sample">
-    <span><span class="chip-cat">Category</span></span>
-    <span>Category chips map directly to the sheet values.</span>
-  </li>
-
-  <li class="legend__sample">
-    <span><span class="age-chip age-old">14d</span></span>
-    <span>Age shows how long the order has been active. Snowflake indicates a frozen winter task.</span>
-  </li>
-</ul>
-    </div>
-  </div>
-</div>
+          <div class="controls controls--primary" role="group" aria-label="Dashboard controls">
             <input id="globalSearch" class="search-input" type="search" placeholder="Search work orders…" aria-label="Search work orders" />
+            <div class="legend-inline">
+              <button type="button" class="btn btn--pill legend-inline__btn">Legend</button>
+              <div class="legend-inline__panel" role="dialog" aria-modal="false" aria-label="Legend">
+                <div class="legend">
+                  <p class="legend__title">How to read this dashboard</p>
+                  <ul class="legend__list">
+                    <li class="legend__sample">
+                      <span><span class="legend__rail"></span> Priority</span>
+                      <span>Rows with the “Priority” category show a red rail and a subtle background tint.</span>
+                    </li>
 
+                    <li class="legend__sample">
+                      <span><span class="status-chip done">Done</span></span>
+                      <span>Completed work orders are lightly tinted green to stand out.</span>
+                    </li>
+
+                    <li class="legend__sample">
+                      <span>
+                        <span class="legend__rail"></span>
+                        <span class="status-chip done" style="margin-left:6px">Done</span>
+                      </span>
+                      <span><strong>Done + Priority</strong>: keeps the red rail (Priority) and adds the green DONE tint.</span>
+                    </li>
+
+                    <li class="legend__sample">
+                      <span><span class="chip-cat">Category</span></span>
+                      <span>Category chips map directly to the sheet values.</span>
+                    </li>
+
+                    <li class="legend__sample">
+                      <span><span class="age-chip age-old">14d</span></span>
+                      <span>Age shows how long the order has been active. Snowflake indicates a frozen winter task.</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
             <div class="filter-group week-picker">
-              <button id="weekPrev" class="btn btn--pill" type="button" data-week-nav="prev" aria-label="View previous week">‹ Prev</button>
+              <button id="weekPrev" class="btn btn--pill" type="button" data-week-nav="prev" aria-label="View previous dates">‹ Prev</button>
               <div id="weekPicker" aria-live="polite"></div>
-              <button id="weekNext" class="btn btn--pill" type="button" data-week-nav="next" aria-label="View next week">Next ›</button>
+              <button id="weekNext" class="btn btn--pill" type="button" data-week-nav="next" aria-label="View next dates">Next ›</button>
             </div>
 
             <div class="filter-group">
@@ -638,19 +640,13 @@ tbody td{padding:8px 6px;box-sizing:border-box}
               </select>
             </div>
 
-            <div class="filter-group">
-              <label for="priorityFilter">Priority</label>
-              <select id="priorityFilter">
-                <option value="">All priorities</option>
-                <option value="Critical">Critical</option>
-                <option value="High">High</option>
-                <option value="Medium">Medium</option>
-                <option value="Low">Low</option>
-              </select>
-            </div>
-
+            <button id="refreshBtn" class="btn" type="button">Refresh data</button>
+            <button id="exportCsvBtn" class="btn" type="button" disabled>Export CSV</button>
+            <button id="themeBtn" class="btn btn--pill" type="button" aria-pressed="false">Dark</button>
           </div>
-
+          <button id="collapseBtn" class="btn btn--pill" type="button" aria-expanded="true">Hide controls</button>
+        </div>
+        <div class="sticky-content">
           <div id="activeFilterChips" class="active-filter-chips" hidden></div>
 
           <nav class="nav" role="tablist" aria-label="Dashboard views">
@@ -1738,10 +1734,8 @@ function renderWeekControls(weeks, chosen){
   if(!wrap) return;
   wrap.innerHTML = '';
 
-  const label = document.createElement('span');
-  label.textContent = 'Week';
-
   const sel = document.createElement('select');
+  sel.setAttribute('aria-label', 'Select dates');
 
   sel.innerHTML = weeks.map((w, i) => {
     const isSelected = (w.weekEnd === chosen.weekEnd);
@@ -1759,7 +1753,7 @@ function renderWeekControls(weeks, chosen){
     }
   });
 
-  wrap.append(label, sel);
+  wrap.append(sel);
   refreshWeekArrowDisabled();
 }
 
@@ -3397,13 +3391,13 @@ const ThemeController=(()=>{
       const activeLights=winterLights && !prefersReducedMotion();
       const offTitle='Enable light mode to turn on the Christmas lights.';
       const onTitle='Light mode is on. Click to turn off the Christmas lights.';
-      themeBtn.textContent='Light mode';
+      themeBtn.textContent='Light';
       const title=activeLights?onTitle:offTitle;
       themeBtn.title=title;
       themeBtn.setAttribute('aria-label', title);
       themeBtn.setAttribute('aria-pressed', activeLights?'true':'false');
     }else{
-      themeBtn.textContent=preferDark?'Switch to light mode':'Switch to dark mode';
+      themeBtn.textContent=preferDark?'Light':'Dark';
       const title=preferDark?'Currently dark. Click to switch to light mode.':'Currently light. Click to switch to dark mode.';
       themeBtn.title=title;
       themeBtn.setAttribute('aria-label', title);
