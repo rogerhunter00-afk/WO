@@ -28,7 +28,9 @@
   --sticky-controls-offset:0px;
   --ui-offset:0px;
   --winter-night-start:#020b1f;
+  --winter-night-mid:color-mix(in srgb,#020b1f 55%,#08163a 45%);
   --winter-night-end:#08163a;
+  --winter-night-far:color-mix(in srgb,#020b1f 20%,#08163a 80%);
   --winter-moon:#fff4d2;
   --winter-star:#ffffff;
 }
@@ -53,14 +55,22 @@ html, body{
 .light{--ink:#0b0f1a;--muted:#6b7280;--als-blue:#0b67c2;--als-blue-strong:#0a5cb0;--thead:#0b67c2;--grid:#e6e9ef;--zebra:#fff;--done-tx:#059669;--open-tx:#0b67c2;--hold-tx:#b45309;--done-bg:#0596691a;--open-bg:#0b67c21a;--hold-bg:#f59e0b1a;--paper:#fff;color-scheme:light}
 
 body.dark{
-  background:linear-gradient(180deg,var(--winter-night-start),var(--winter-night-end));
+  background:linear-gradient(180deg,
+    var(--winter-night-start) 0%,
+    var(--winter-night-mid) 58%,
+    var(--winter-night-far) 100%
+  );
   background-attachment:fixed;
-  background-color:#040b1d;
+  background-color:var(--winter-night-far);
 }
 
 body.dark::before{
-  background:linear-gradient(180deg,var(--winter-night-start),var(--winter-night-end));
-  background-color:#040b1d;
+  background:linear-gradient(180deg,
+    var(--winter-night-start) 0%,
+    var(--winter-night-mid) 58%,
+    var(--winter-night-far) 100%
+  );
+  background-color:var(--winter-night-far);
 }
 
 body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";color:var(--ink);background:var(--paper);margin:0;font-size:13px;line-height:1.32;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -933,12 +943,14 @@ tbody td{padding:8px 6px;box-sizing:border-box}
 
       const styles=getComputedStyle(rootEl);
       const skyTop=withAlpha(readVar(styles,'--winter-night-start','#020b1f'),0.35);
-      const skyBottom=withAlpha(readVar(styles,'--winter-night-end','#08163a'),0.55);
+      const skyMid=withAlpha(readVar(styles,'--winter-night-mid','#041330'),0.48);
+      const skyBottom=withAlpha(readVar(styles,'--winter-night-far','#08163a'),0.62);
       const moonInner=withAlpha(readVar(styles,'--winter-moon','#fff4d2'),0.18);
       const starBase=toRgb(readVar(styles,'--winter-star','#ffffff'));
 
       const sky=ctx.createLinearGradient(0,0,0,h);
       sky.addColorStop(0,skyTop);
+      sky.addColorStop(0.6,skyMid);
       sky.addColorStop(1,skyBottom);
       ctx.fillStyle=sky;
       ctx.fillRect(0,0,w,h);
