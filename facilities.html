@@ -55,9 +55,12 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
 
 .page{--page-pad-top:12px;--page-pad-inline:48px;--page-pad-bottom:56px;padding:var(--page-pad-top) var(--page-pad-inline) var(--page-pad-bottom);box-sizing:border-box;max-width:clamp(960px,96vw,1680px);margin-inline:auto}
 
-.page-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;margin-bottom:0;position:relative;z-index:350}
+.page-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;margin-bottom:0;position:relative;z-index:350;gap:16px}
+.page-head__title{display:flex;align-items:center;gap:12px;flex:1 1 auto;min-width:0;flex-wrap:wrap}
+.page-head__title .title{margin:0;flex:1 1 auto;min-width:0}
+.page-head__title .week-badge{margin-left:0}
 .title{font-size:28px;font-weight:800;margin:0;color:var(--ink)}
-.logo{height:50px;margin-left:auto;display:block}
+.logo{height:50px;margin-left:auto;display:block;flex-shrink:0}
 .top-rule{height:2px;background:var(--als-blue);border-bottom:1px solid var(--als-blue-strong);margin:0;position:relative;z-index:320}
 /* sticky controls block */
 .sticky-top{position:sticky;top:0;z-index:300;background:var(--paper);padding:12px 0;margin:0;border-bottom:1px solid var(--grid)}
