@@ -629,6 +629,8 @@
       return 'string';
     }
 
+    const stringCollator = new Intl.Collator(undefined, { sensitivity:'base', numeric:false });
+
     function applySort(rows, column, direction){
       const list = Array.isArray(rows) ? rows.slice() : [];
       if(!column) return list;
@@ -674,7 +676,9 @@
         if(type === 'number'){
           return factor * (((parseFloat(va) || 0) - (parseFloat(vb) || 0)));
         }
-        return factor * String(va ?? '').localeCompare(String(vb ?? ''), undefined, { numeric:true, sensitivity:'base' });
+        const normalizedA = String(va ?? '').trim();
+        const normalizedB = String(vb ?? '').trim();
+        return factor * stringCollator.compare(normalizedA, normalizedB);
       });
     }
 
