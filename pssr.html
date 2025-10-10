@@ -233,6 +233,11 @@
       cursor:pointer;
     }
 
+    .table-scroll thead th[data-col="Last Inspection Date"],
+    .table-scroll thead th[data-col="Next Inspection Date"] {
+      white-space:normal;
+    }
+
     .table-scroll thead th:first-child {
       border-top-left-radius:14px;
     }
@@ -286,8 +291,25 @@
       color:color-mix(in srgb,#1f2937 15%,var(--ink));
     }
 
+    .table-scroll thead th[data-col="Last Inspection Date"],
+    .table-scroll tbody td[data-col="Last Inspection Date"],
+    .table-scroll thead th[data-col="Next Inspection Date"],
+    .table-scroll tbody td[data-col="Next Inspection Date"] {
+      width:132px;
+    }
+
+    .table-scroll thead th[data-col="Location"],
+    .table-scroll tbody td[data-col="Location"] {
+      width:200px;
+    }
+
+    .table-scroll thead th[data-col="Comments"],
+    .table-scroll tbody td[data-col="Comments"] {
+      width:360px;
+    }
+
     tbody td[data-col="Comments"] {
-      max-width:320px;
+      max-width:420px;
     }
 
     tbody td[data-col] > span {
