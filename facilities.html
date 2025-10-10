@@ -39,7 +39,7 @@ html, body{
   --col-id:66px; --col-title:280px; --col-status:120px; --col-priority:92px;
   --col-assigned:160px; --col-created:110px; --col-updated:120px;
   --col-completed:110px; --col-age:96px; --col-location:180px;
-  --col-asset:220px; --col-categories:160px;
+  --col-asset:220px; --col-comments:320px; --col-categories:160px;
 }
 
 @media(prefers-color-scheme:dark){:root{color-scheme:dark;--ink:#f3f4f6;--muted:#9ca3af;--als-blue:#3b82f6;--als-blue-strong:#2563eb;--thead:#1e3a8a;--grid:#374151;--zebra:#1f2937;--done-tx:#10b981;--open-tx:#3b82f6;--hold-tx:#fbbf24;--done-bg:#10b98133;--open-bg:#3b82f633;--hold-bg:#f59e0b33;--paper:#111827}}
@@ -51,12 +51,16 @@ body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Hel
 
 /* paint under sticky elements to avoid blue gap as things pin */
 body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offset, var(--sticky-controls-offset,0px));background:var(--paper);pointer-events:none;z-index:180}
+@media (max-width: 680px){body::before{height:0}}
 
 .page{--page-pad-top:12px;--page-pad-inline:48px;--page-pad-bottom:56px;padding:var(--page-pad-top) var(--page-pad-inline) var(--page-pad-bottom);box-sizing:border-box;max-width:clamp(960px,96vw,1680px);margin-inline:auto}
 
-.page-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;margin-bottom:0;position:relative;z-index:350}
+.page-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;margin-bottom:0;position:relative;z-index:350;gap:16px}
+.page-head__title{display:flex;align-items:center;gap:12px;flex:1 1 auto;min-width:0;flex-wrap:wrap}
+.page-head__title .title{margin:0;flex:1 1 auto;min-width:0}
+.page-head__title .week-badge{margin-left:0}
 .title{font-size:28px;font-weight:800;margin:0;color:var(--ink)}
-.logo{height:50px;margin-left:auto;display:block}
+.logo{height:50px;margin-left:auto;display:block;flex-shrink:0}
 .top-rule{height:2px;background:var(--als-blue);border-bottom:1px solid var(--als-blue-strong);margin:0;position:relative;z-index:320}
 /* sticky controls block */
 .sticky-top{position:sticky;top:0;z-index:300;background:var(--paper);padding:12px 0;margin:0;border-bottom:1px solid var(--grid)}
@@ -254,8 +258,20 @@ tr.row-priority>td{background:color-mix(in srgb,var(--als-blue) 6%,var(--paper))
 .col-updated{width:var(--col-updated);min-width:var(--col-updated);max-width:var(--col-updated)} 
 .col-completedon{width:var(--col-completed);min-width:var(--col-completed);max-width:var(--col-completed)} 
 .col-location{width:var(--col-location);min-width:var(--col-location);max-width:var(--col-location)}
-.col-asset{width:var(--col-asset);min-width:var(--col-asset);max-width:var(--col-asset)} 
+.col-asset{width:var(--col-asset);min-width:var(--col-asset);max-width:var(--col-asset)}
+.col-comments{width:var(--col-comments);min-width:var(--col-comments);max-width:var(--col-comments)}
 .col-categories{width:auto!important}
+
+.table-scroll thead th[data-col="Comments"],
+.table-scroll thead th[data-col="Comment"],
+.table-scroll thead th[data-col="Notes"],
+.table-scroll thead th[data-col="Remarks"],
+.table-scroll td[data-col="Comments"],
+.table-scroll td[data-col="Comment"],
+.table-scroll td[data-col="Notes"],
+.table-scroll td[data-col="Remarks"]{
+  min-width:var(--col-comments);
+}
 
 /* Force table cells to match exactly */
 tbody td{padding:8px 6px;box-sizing:border-box}
@@ -517,6 +533,9 @@ tbody td{padding:8px 6px;box-sizing:border-box}
 
       <div class="sticky-top" data-collapsed="false">
         <div class="sticky-top__bar">
+          <button id="refreshBtn" class="btn" type="button">Refresh data</button>
+          <button id="exportCsvBtn" class="btn" type="button" disabled>Export CSV</button>
+          <button id="themeBtn" class="btn btn--pill" type="button" aria-pressed="false">Dark mode</button>
           <button id="collapseBtn" class="btn btn--pill" type="button" aria-expanded="true">Hide controls</button>
         </div>
         <div class="sticky-content">
@@ -588,12 +607,6 @@ tbody td{padding:8px 6px;box-sizing:border-box}
               </select>
             </div>
 
-            <label class="btn" for="file">Import CSV/JSON</label>
-            <input id="file" class="visually-hidden" type="file" accept=".csv,.tsv,.json,text/csv,text/tab-separated-values" />
-
-            <button id="refreshBtn" class="btn" type="button">Refresh data</button>
-            <button id="exportCsvBtn" class="btn" type="button" disabled>Export CSV</button>
-            <button id="themeBtn" class="btn btn--pill" type="button" aria-pressed="false">Dark mode</button>
           </div>
 
           <div id="activeFilterChips" class="active-filter-chips" hidden></div>
@@ -682,7 +695,7 @@ const url  = bust ? withBust(base) : base;
 
     LAST_HEADERS = headers;
     ALL_ROWS     = rows;
-    setWeekBadge(meta.label || meta.weekEnd);
+    applyWeekBadge(meta);
 
     try {
       ingestToDashboards(LAST_HEADERS, ALL_ROWS);
@@ -769,7 +782,7 @@ async function refreshInBG(meta){
 
     LAST_HEADERS = nextHeaders;
     ALL_ROWS = nextRows;
-    setWeekBadge(meta.label || meta.weekEnd);
+    applyWeekBadge(meta);
     ingestToDashboards(LAST_HEADERS, ALL_ROWS);
 
     return cached;
@@ -783,6 +796,65 @@ async function refreshInBG(meta){
 // Published CSV of the Facilities team's sheet (replace with the live link once available)
 const SHEET_INDEX_CSV_URL =
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vR7b4yClEl3wFC_OP5XWQ4i6sdR4CjdM8p6oIaP7TtSqde80-2Jk_KaeOPBRISjbXTwGA7NAjjAMJTe/pub?output=csv';
+
+const SINGLE_SHEET_WEEK_END = '__single__';
+const SINGLE_SHEET_GID = '__single__';
+const SINGLE_SHEET_LABEL = 'Current sheet';
+
+function isIndexStructureError(err){
+  const msg = String(err?.message || '').toLowerCase();
+  return (
+    msg.includes('missing a "gid"') ||
+    msg.includes('no rows with a gid') ||
+    msg.includes('missing a valid gid') ||
+    msg.includes('index is empty')
+  );
+}
+
+async function loadSingleSheetData({ bust=false } = {}){
+  const baseUrl = SHEET_INDEX_CSV_URL;
+  const url = bust ? withBust(baseUrl) : baseUrl;
+
+  console.warn('[facilities] Falling back to single-sheet mode with URL:', baseUrl);
+
+  const res = await fetch(url);
+  if(!res.ok){
+    throw new Error('Sheet load failed: ' + res.status);
+  }
+
+  const text = await res.text();
+  if(!text || !text.trim()){
+    throw new Error('Fetched CSV is empty');
+  }
+
+  const { headers, rows } = parseDelimited(text);
+  const safeRows = dedupeRows(rows);
+  const safeHeaders = Array.isArray(headers) ? headers.slice() : [];
+
+  const meta = {
+    label: SINGLE_SHEET_LABEL,
+    weekEnd: SINGLE_SHEET_WEEK_END,
+    gid: SINGLE_SHEET_GID,
+    url: baseUrl,
+  };
+
+  saveWeekToCache(meta, { headers: safeHeaders, rows: safeRows });
+
+  LAST_HEADERS = safeHeaders.slice();
+  ALL_ROWS = safeRows.slice();
+  applyWeekBadge(meta);
+  ingestToDashboards(LAST_HEADERS, ALL_ROWS);
+
+  __WEEKS = [meta];
+  __WEEK_SELECTED = meta.weekEnd;
+  renderWeekControls(__WEEKS, meta);
+  rememberWeek(meta);
+  wireExternalWeekArrows();
+  refreshWeekArrowDisabled();
+  updateExportButtonsState();
+
+  return meta;
+}
   
 // --- Layout helpers ---
 const $stickyTop = document.querySelector('.sticky-top');
@@ -1072,6 +1144,17 @@ await loadChosenGid(chosen, { bust: forceBust });
     wireExternalWeekArrows();                               // <— bind external arrows
     refreshWeekArrowDisabled();
   }catch(err){
+    if(isIndexStructureError(err)){
+      console.warn('[loadLatestOrChosenWeek] Index load failed, trying single-sheet mode.', err);
+      try{
+        await loadSingleSheetData({ bust: forceBust });
+        return;
+      }catch(singleErr){
+        console.error(singleErr);
+        alert('Could not load the live sheet. ' + (singleErr?.message || ''));
+        return;
+      }
+    }
     console.error(err);
     alert('Could not load the latest dashboard. Check the Index publish URL and columns (label, week_end, gid).');
   }
@@ -1134,7 +1217,7 @@ function setSelectedWeek(weekObj){
   if (cached){
     LAST_HEADERS = cached.headers;
     ALL_ROWS     = cached.rows;
-    setWeekBadge(weekObj.label || weekObj.weekEnd);
+    applyWeekBadge(weekObj);
     ingestToDashboards(LAST_HEADERS, ALL_ROWS);
 
     // 2) revalidate in background (quietly updates if changed)
@@ -1342,7 +1425,7 @@ function applyColumnWidths(table, headers){
   const widthMap = {
     'ID':'66px','Title':'200px','Status':'120px','Priority':'92px','Assigned to':'160px',
     'Created on':'110px','Completed on':'110px','Last updated':'120px','Age':'96px',
-    'Location':'160px','Asset':'150px','Categories':'140px'
+    'Location':'160px','Asset':'150px','Comments':'320px','Comment':'320px','Notes':'320px','Remarks':'320px','Categories':'140px'
   };
   const colgroup = document.createElement('colgroup');
   headers.forEach(h=>{
@@ -1616,8 +1699,8 @@ function chooseInitialWeek(weeks){
   return chosen || weeks[0]; // newest
 }
 
-function setWeekBadge(text){
-  const titleEl = document.querySelector('.title'); 
+function setWeekBadge(text, { prefix='Week' } = {}){
+  const titleEl = document.querySelector('.title');
   if(!titleEl) return;
 
   let badge = document.getElementById('week-badge');
@@ -1633,7 +1716,13 @@ function setWeekBadge(text){
     badge.style.background   = 'color-mix(in srgb, var(--als-blue) 10%, var(--paper))';
     titleEl.appendChild(badge);
   }
-  badge.textContent = `Week: ${text || 'Latest'}`;
+  badge.textContent = `${prefix}: ${text || 'Latest'}`;
+}
+
+function applyWeekBadge(meta){
+  const prefix = meta?.weekEnd === SINGLE_SHEET_WEEK_END ? 'Sheet' : 'Week';
+  const label = meta?.label || meta?.weekEnd;
+  setWeekBadge(label, { prefix });
 }
 
 function normalizePriority(v){ if(v==null) return ''; let slug=slugify(String(v).trim()); if(!slug) return''; if(slug.endsWith('-priority')) slug=slug.replace(/-priority$/,''); if(slug==='med'||slug==='normal') slug='medium'; if(slug==='urgent'||slug==='emergency') slug='critical'; return slug; }
@@ -2566,21 +2655,6 @@ $collapseBtn?.addEventListener('click', ()=>{
   const now = $sticky?.dataset.collapsed === 'true';
   setCollapsed(!now);
   localStorage.setItem('alsStickyCollapsed', !now ? '1' : '0');
-});
-
-// File ingest (unchanged, but now reuses the same ingest/render)
-document.getElementById('file').addEventListener('change', e=>{
-  const f=e.target.files[0]; if(!f) return;
-  const reader=new FileReader();
-  reader.onload=()=>{
-    const text=reader.result; let headers=[], rows=[];
-    try{
-      const result=(/json$/i.test(f.name) || text.trim().startsWith('[') || text.trim().startsWith('{')) ? handleJSON(text) : parseDelimited(text);
-      headers=result.headers; rows=result.rows; rows = dedupeRows(rows);
-    }catch(err){ alert('Could not parse file: '+err.message); }
-    LAST_HEADERS=headers; ALL_ROWS=rows; ingestToDashboards(LAST_HEADERS, ALL_ROWS);
-  };
-  reader.readAsText(f);
 });
 
 // Refresh index + dashboards
