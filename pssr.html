@@ -69,6 +69,23 @@
       gap:16px;
       justify-content:space-between;
       margin-bottom:12px;
+      position:relative;
+      z-index:260;
+    }
+
+    .page-head__title {
+      display:flex;
+      align-items:center;
+      gap:12px;
+      flex:1 1 auto;
+      min-width:0;
+      flex-wrap:wrap;
+    }
+
+    .page-head__title .title {
+      margin:0;
+      flex:1 1 auto;
+      min-width:0;
     }
 
     .title {
@@ -78,15 +95,16 @@
     }
 
     .logo {
-      height:46px;
+      height:50px;
       margin-left:auto;
+      flex-shrink:0;
     }
 
     .nav {
       display:flex;
       gap:8px;
       flex-wrap:wrap;
-      margin:8px 0 0;
+      margin:6px 0 0;
     }
 
     .nav .tab {
@@ -115,7 +133,7 @@
       height:2px;
       background:var(--als-blue);
       border-bottom:1px solid var(--als-blue-strong);
-      margin:12px 0 0;
+      margin:0;
     }
 
     .sticky-top {
@@ -231,6 +249,11 @@
       cursor:pointer;
     }
 
+    .table-scroll thead th[data-col="Last Inspection Date"],
+    .table-scroll thead th[data-col="Next Inspection Date"] {
+      white-space:normal;
+    }
+
     .table-scroll thead th:first-child {
       border-top-left-radius:14px;
     }
@@ -284,8 +307,25 @@
       color:color-mix(in srgb,#1f2937 15%,var(--ink));
     }
 
+    .table-scroll thead th[data-col="Last Inspection Date"],
+    .table-scroll tbody td[data-col="Last Inspection Date"],
+    .table-scroll thead th[data-col="Next Inspection Date"],
+    .table-scroll tbody td[data-col="Next Inspection Date"] {
+      width:132px;
+    }
+
+    .table-scroll thead th[data-col="Location"],
+    .table-scroll tbody td[data-col="Location"] {
+      width:200px;
+    }
+
+    .table-scroll thead th[data-col="Comments"],
+    .table-scroll tbody td[data-col="Comments"] {
+      width:360px;
+    }
+
     tbody td[data-col="Comments"] {
-      max-width:320px;
+      max-width:420px;
     }
 
     tbody td[data-col] > span {
@@ -450,7 +490,7 @@
 <body>
   <div class="page">
     <header class="page-head">
-      <div>
+      <div class="page-head__title">
         <h1 class="title">PSSR Inspection Tracker</h1>
         <nav class="nav" aria-label="Dashboard sections">
           <a class="tab" href="index.html">Work Orders</a>
@@ -509,7 +549,13 @@
   </div>
 
   <script>
-    const PSSR_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhXb-392ExhOiESN5E6IqM5ScrrB4oFpPcLhf8yis6_ZhFqjanoHomQJcqL-feiPi-t-sygaGb85at/pub?output=csv';
+    const DEFAULT_PSSR_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhXb-392ExhOiESN5E6IqM5ScrrB4oFpPcLhf8yis6_ZhFqjanoHomQJcqL-feiPi-t-sygaGb85at/pub?output=csv';
+    const PSSR_SHEET_URL = resolveSheetUrl();
+    if(PSSR_SHEET_URL){
+      window.__PSSR_SHEET_URL = PSSR_SHEET_URL;
+    }else{
+      console.error('PSSR sheet URL could not be resolved. Update DEFAULT_PSSR_SHEET_URL or supply ?sheetUrl=');
+    }
     const SAMPLE_PSSR_ROWS = [
       {
         Asset: 'Steam Boiler 03',
@@ -533,6 +579,48 @@
         Comments: 'PSSR inspection aligned with OEM service schedule.'
       }
     ];
+
+    function sanitizeSheetUrl(value){
+      if(!value) return null;
+      const trimmed = String(value).trim();
+      if(!trimmed) return null;
+      const candidate = trimmed.startsWith('//') ? `https:${trimmed}` : trimmed;
+      try {
+        const url = new URL(candidate, window.location.href);
+        if(url.protocol === 'http:'){
+          url.protocol = 'https:';
+        }
+        if(url.protocol !== 'https:') return null;
+        return url.toString();
+      } catch {
+        return null;
+      }
+    }
+
+    function getSheetOverrideFromQuery(){
+      try {
+        const search = window.location.search;
+        if(!search) return null;
+        const params = new URLSearchParams(search);
+        const candidate = params.get('sheetUrl') || params.get('sheet');
+        return candidate || null;
+      } catch {
+        return null;
+      }
+    }
+
+    function resolveSheetUrl(){
+      const candidates = [
+        getSheetOverrideFromQuery(),
+        document.body?.dataset?.sheetUrl,
+        DEFAULT_PSSR_SHEET_URL
+      ];
+      for(const candidate of candidates){
+        const sanitized = sanitizeSheetUrl(candidate);
+        if(sanitized) return sanitized;
+      }
+      return null;
+    }
 
     function esc(str){
       return String(str ?? '')
@@ -579,6 +667,8 @@
       return 'string';
     }
 
+    const stringCollator = new Intl.Collator(undefined, { sensitivity:'base', numeric:false });
+
     function applySort(rows, column, direction){
       const list = Array.isArray(rows) ? rows.slice() : [];
       if(!column) return list;
@@ -624,7 +714,9 @@
         if(type === 'number'){
           return factor * (((parseFloat(va) || 0) - (parseFloat(vb) || 0)));
         }
-        return factor * String(va ?? '').localeCompare(String(vb ?? ''), undefined, { numeric:true, sensitivity:'base' });
+        const normalizedA = String(va ?? '').trim();
+        const normalizedB = String(vb ?? '').trim();
+        return factor * stringCollator.compare(normalizedA, normalizedB);
       });
     }
 
@@ -749,6 +841,9 @@
     }
 
     async function fetchSheet(){
+      if(!PSSR_SHEET_URL){
+        throw new Error('No PSSR inspection sheet URL is configured.');
+      }
       const response = await fetch(PSSR_SHEET_URL, { cache:'no-store' });
       if(!response.ok) throw new Error('Sheet request failed');
       const text = await response.text();
@@ -759,6 +854,30 @@
         return { headers, rows };
       }
       return parseCsv(text);
+    }
+
+    function looksLikeFacilitiesSheet(headers, rows){
+      const normalize = list => (Array.isArray(list) ? list : []).map(h => String(h ?? '').trim().toLowerCase());
+      const headerSet = new Set(normalize(headers));
+      const facilityCols = ['id','title','status','priority'];
+      const hasFacilityHeader = facilityCols.every(col => headerSet.has(col));
+      if(hasFacilityHeader) return true;
+      if(Array.isArray(rows) && rows.length){
+        const sampleKeys = Object.keys(rows.find(r => r && typeof r === 'object') || {}).map(k => k.toLowerCase());
+        if(sampleKeys.length){
+          const sampleSet = new Set(sampleKeys);
+          if(facilityCols.slice(0,3).every(col => sampleSet.has(col))){
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function ensurePssrSheet(headers, rows){
+      if(looksLikeFacilitiesSheet(headers, rows)){
+        throw new Error('The configured sheet appears to point to the Facilities work orders data. Please double-check the published PSSR sheet link.');
+      }
     }
 
     function buildRowModel(raw){
@@ -917,23 +1036,28 @@
       const refreshButton = document.querySelector('[data-action="refresh"]');
       const loadingBanner = document.querySelector('[data-state="loading"]');
       const errorBanner = document.querySelector('[data-state="error"]');
+      const defaultErrorMessage = errorBanner?.textContent?.trim() || 'We were unable to load the inspection sheet. Please check the network or sheet permissions and try again.';
 
       async function loadData(){
         loadingBanner.hidden = false;
         errorBanner.hidden = true;
+        errorBanner.textContent = defaultErrorMessage;
         container.__scrollRegion?.setAttribute('data-loading','true');
         try {
-          const { rows } = await fetchSheet();
+          const { headers, rows } = await fetchSheet();
+          ensurePssrSheet(headers, rows);
           const mapped = rows.map(buildRowModel);
           container.__rows = mapped;
           setSort(container, container.__currentSort.column, container.__currentSort.direction);
         } catch (error) {
           console.error('Failed to load PSSR sheet', error);
+          const message = (error && typeof error.message === 'string' && error.message.trim()) ? error.message.trim() : defaultErrorMessage;
           if(!container.__rows.length && SAMPLE_PSSR_ROWS.length){
             const fallback = SAMPLE_PSSR_ROWS.map(buildRowModel);
             container.__rows = fallback;
             setSort(container, container.__currentSort.column, container.__currentSort.direction);
           }
+          errorBanner.textContent = message;
           errorBanner.hidden = false;
         } finally {
           loadingBanner.hidden = true;
