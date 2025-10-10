@@ -529,6 +529,9 @@ tbody td{padding:8px 6px;box-sizing:border-box}
 
       <div class="sticky-top" data-collapsed="false">
         <div class="sticky-top__bar">
+          <button id="refreshBtn" class="btn" type="button">Refresh data</button>
+          <button id="exportCsvBtn" class="btn" type="button" disabled>Export CSV</button>
+          <button id="themeBtn" class="btn btn--pill" type="button" aria-pressed="false">Dark mode</button>
           <button id="collapseBtn" class="btn btn--pill" type="button" aria-expanded="true">Hide controls</button>
         </div>
         <div class="sticky-content">
@@ -600,12 +603,6 @@ tbody td{padding:8px 6px;box-sizing:border-box}
               </select>
             </div>
 
-            <label class="btn" for="file">Import CSV/JSON</label>
-            <input id="file" class="visually-hidden" type="file" accept=".csv,.tsv,.json,text/csv,text/tab-separated-values" />
-
-            <button id="refreshBtn" class="btn" type="button">Refresh data</button>
-            <button id="exportCsvBtn" class="btn" type="button" disabled>Export CSV</button>
-            <button id="themeBtn" class="btn btn--pill" type="button" aria-pressed="false">Dark mode</button>
           </div>
 
           <div id="activeFilterChips" class="active-filter-chips" hidden></div>
@@ -2578,21 +2575,6 @@ $collapseBtn?.addEventListener('click', ()=>{
   const now = $sticky?.dataset.collapsed === 'true';
   setCollapsed(!now);
   localStorage.setItem('alsStickyCollapsed', !now ? '1' : '0');
-});
-
-// File ingest (unchanged, but now reuses the same ingest/render)
-document.getElementById('file').addEventListener('change', e=>{
-  const f=e.target.files[0]; if(!f) return;
-  const reader=new FileReader();
-  reader.onload=()=>{
-    const text=reader.result; let headers=[], rows=[];
-    try{
-      const result=(/json$/i.test(f.name) || text.trim().startsWith('[') || text.trim().startsWith('{')) ? handleJSON(text) : parseDelimited(text);
-      headers=result.headers; rows=result.rows; rows = dedupeRows(rows);
-    }catch(err){ alert('Could not parse file: '+err.message); }
-    LAST_HEADERS=headers; ALL_ROWS=rows; ingestToDashboards(LAST_HEADERS, ALL_ROWS);
-  };
-  reader.readAsText(f);
 });
 
 // Refresh index + dashboards
