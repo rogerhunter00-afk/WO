@@ -695,7 +695,7 @@ const url  = bust ? withBust(base) : base;
 
     LAST_HEADERS = headers;
     ALL_ROWS     = rows;
-    setWeekBadge(meta.label || meta.weekEnd);
+    applyWeekBadge(meta);
 
     try {
       ingestToDashboards(LAST_HEADERS, ALL_ROWS);
@@ -782,7 +782,7 @@ async function refreshInBG(meta){
 
     LAST_HEADERS = nextHeaders;
     ALL_ROWS = nextRows;
-    setWeekBadge(meta.label || meta.weekEnd);
+    applyWeekBadge(meta);
     ingestToDashboards(LAST_HEADERS, ALL_ROWS);
 
     return cached;
@@ -796,6 +796,65 @@ async function refreshInBG(meta){
 // Published CSV of the Facilities team's sheet (replace with the live link once available)
 const SHEET_INDEX_CSV_URL =
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vR7b4yClEl3wFC_OP5XWQ4i6sdR4CjdM8p6oIaP7TtSqde80-2Jk_KaeOPBRISjbXTwGA7NAjjAMJTe/pub?output=csv';
+
+const SINGLE_SHEET_WEEK_END = '__single__';
+const SINGLE_SHEET_GID = '__single__';
+const SINGLE_SHEET_LABEL = 'Current sheet';
+
+function isIndexStructureError(err){
+  const msg = String(err?.message || '').toLowerCase();
+  return (
+    msg.includes('missing a "gid"') ||
+    msg.includes('no rows with a gid') ||
+    msg.includes('missing a valid gid') ||
+    msg.includes('index is empty')
+  );
+}
+
+async function loadSingleSheetData({ bust=false } = {}){
+  const baseUrl = SHEET_INDEX_CSV_URL;
+  const url = bust ? withBust(baseUrl) : baseUrl;
+
+  console.warn('[facilities] Falling back to single-sheet mode with URL:', baseUrl);
+
+  const res = await fetch(url);
+  if(!res.ok){
+    throw new Error('Sheet load failed: ' + res.status);
+  }
+
+  const text = await res.text();
+  if(!text || !text.trim()){
+    throw new Error('Fetched CSV is empty');
+  }
+
+  const { headers, rows } = parseDelimited(text);
+  const safeRows = dedupeRows(rows);
+  const safeHeaders = Array.isArray(headers) ? headers.slice() : [];
+
+  const meta = {
+    label: SINGLE_SHEET_LABEL,
+    weekEnd: SINGLE_SHEET_WEEK_END,
+    gid: SINGLE_SHEET_GID,
+    url: baseUrl,
+  };
+
+  saveWeekToCache(meta, { headers: safeHeaders, rows: safeRows });
+
+  LAST_HEADERS = safeHeaders.slice();
+  ALL_ROWS = safeRows.slice();
+  applyWeekBadge(meta);
+  ingestToDashboards(LAST_HEADERS, ALL_ROWS);
+
+  __WEEKS = [meta];
+  __WEEK_SELECTED = meta.weekEnd;
+  renderWeekControls(__WEEKS, meta);
+  rememberWeek(meta);
+  wireExternalWeekArrows();
+  refreshWeekArrowDisabled();
+  updateExportButtonsState();
+
+  return meta;
+}
   
 // --- Layout helpers ---
 const $stickyTop = document.querySelector('.sticky-top');
@@ -1085,6 +1144,17 @@ await loadChosenGid(chosen, { bust: forceBust });
     wireExternalWeekArrows();                               // <— bind external arrows
     refreshWeekArrowDisabled();
   }catch(err){
+    if(isIndexStructureError(err)){
+      console.warn('[loadLatestOrChosenWeek] Index load failed, trying single-sheet mode.', err);
+      try{
+        await loadSingleSheetData({ bust: forceBust });
+        return;
+      }catch(singleErr){
+        console.error(singleErr);
+        alert('Could not load the live sheet. ' + (singleErr?.message || ''));
+        return;
+      }
+    }
     console.error(err);
     alert('Could not load the latest dashboard. Check the Index publish URL and columns (label, week_end, gid).');
   }
@@ -1147,7 +1217,7 @@ function setSelectedWeek(weekObj){
   if (cached){
     LAST_HEADERS = cached.headers;
     ALL_ROWS     = cached.rows;
-    setWeekBadge(weekObj.label || weekObj.weekEnd);
+    applyWeekBadge(weekObj);
     ingestToDashboards(LAST_HEADERS, ALL_ROWS);
 
     // 2) revalidate in background (quietly updates if changed)
@@ -1629,8 +1699,8 @@ function chooseInitialWeek(weeks){
   return chosen || weeks[0]; // newest
 }
 
-function setWeekBadge(text){
-  const titleEl = document.querySelector('.title'); 
+function setWeekBadge(text, { prefix='Week' } = {}){
+  const titleEl = document.querySelector('.title');
   if(!titleEl) return;
 
   let badge = document.getElementById('week-badge');
@@ -1646,7 +1716,13 @@ function setWeekBadge(text){
     badge.style.background   = 'color-mix(in srgb, var(--als-blue) 10%, var(--paper))';
     titleEl.appendChild(badge);
   }
-  badge.textContent = `Week: ${text || 'Latest'}`;
+  badge.textContent = `${prefix}: ${text || 'Latest'}`;
+}
+
+function applyWeekBadge(meta){
+  const prefix = meta?.weekEnd === SINGLE_SHEET_WEEK_END ? 'Sheet' : 'Week';
+  const label = meta?.label || meta?.weekEnd;
+  setWeekBadge(label, { prefix });
 }
 
 function normalizePriority(v){ if(v==null) return ''; let slug=slugify(String(v).trim()); if(!slug) return''; if(slug.endsWith('-priority')) slug=slug.replace(/-priority$/,''); if(slug==='med'||slug==='normal') slug='medium'; if(slug==='urgent'||slug==='emergency') slug='critical'; return slug; }
