@@ -5,6 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light" />
   <title>Work Orders List – Aberdeen Laundry Services (Engineering)</title>
 <style>
 :root{
@@ -26,6 +27,10 @@
   --priority-rail:#E85A70;
   --sticky-controls-offset:0px;
   --ui-offset:0px;
+  --winter-night-start:#020b1f;
+  --winter-night-end:#08163a;
+  --winter-moon:#fff4d2;
+  --winter-star:#ffffff;
 }
 
 /* REVERT to default page scroll */
@@ -46,6 +51,12 @@ html, body{
 
 .dark{--ink:#f3f4f6;--muted:#9ca3af;--als-blue:#3b82f6;--als-blue-strong:#2563eb;--thead:#1e3a8a;--grid:#374151;--zebra:#1f2937;--done-tx:#10b981;--open-tx:#3b82f6;--hold-tx:#fbbf24;--done-bg:#10b98133;--open-bg:#3b82f633;--hold-bg:#f59e0b33;--paper:#111827;color-scheme:dark}
 .light{--ink:#0b0f1a;--muted:#6b7280;--als-blue:#0b67c2;--als-blue-strong:#0a5cb0;--thead:#0b67c2;--grid:#e6e9ef;--zebra:#fff;--done-tx:#059669;--open-tx:#0b67c2;--hold-tx:#b45309;--done-bg:#0596691a;--open-bg:#0b67c21a;--hold-bg:#f59e0b1a;--paper:#fff;color-scheme:light}
+
+body.dark{
+  background:linear-gradient(180deg,var(--winter-night-start),var(--winter-night-end));
+  background-attachment:fixed;
+  background-color:#040b1d;
+}
 
 body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";color:var(--ink);background:var(--paper);margin:0;font-size:13px;line-height:1.32;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 
@@ -620,7 +631,7 @@ tbody td{padding:8px 6px;box-sizing:border-box}
 
             <button id="refreshBtn" class="btn" type="button">Refresh data</button>
             <button id="exportCsvBtn" class="btn" type="button" disabled>Export CSV</button>
-            <button id="themeBtn" class="btn btn--pill" type="button" aria-pressed="false">Dark mode</button>
+            <button id="themeBtn" class="btn btn--pill" type="button" aria-pressed="false">Festive lights</button>
           </div>
 
           <div id="activeFilterChips" class="active-filter-chips" hidden></div>
@@ -631,6 +642,7 @@ tbody td{padding:8px 6px;box-sizing:border-box}
             <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="dash-mm">Mugiemoss</button>
             <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="dash-keith">Keith</button>
             <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="dash-by">Byron</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="dash-winter">Winter Plan</button>
           </nav>
         </div>
       </div>
@@ -641,6 +653,7 @@ tbody td{padding:8px 6px;box-sizing:border-box}
         <section class="dash-kpis" data-site="mm" hidden></section>
         <section class="dash-kpis" data-site="keith" hidden></section>
         <section class="dash-kpis" data-site="by" hidden></section>
+        <section class="dash-kpis" data-site="winter" hidden></section>
       </div>
 
 <section class="dashboards">
@@ -649,6 +662,7 @@ tbody td{padding:8px 6px;box-sizing:border-box}
   <section id="dash-mm" class="dash dash-table" data-site="mm" hidden></section>
   <section id="dash-keith" class="dash dash-table" data-site="keith" hidden></section>
   <section id="dash-by" class="dash dash-table" data-site="by" hidden></section>
+  <section id="dash-winter" class="dash dash-table" data-site="winter" hidden></section>
 </section>
     </main>
   </div>
@@ -657,7 +671,547 @@ tbody td{padding:8px 6px;box-sizing:border-box}
       Loading…
     </div>
   </div>
-<script>
+  <style>
+  /* Integration notes:
+     1) Paste this just before </body>.
+     2) Winter Plan tab → Dark palette + night sky + snow (medium); other tabs use the saved theme.
+     3) On Winter Plan the Light/Dark toggle only records preference (visual stays dark).
+     4) Leaving Winter Plan reapplies the saved theme and toggles overlays automatically.
+     5) APIs: WinterOverlay.{setDensity,refresh,destroy}, ChristmasLights.{enable,disable,refresh}.
+  */
+  #bgfx,
+  #snow{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    pointer-events:none;
+    display:none;
+  }
+  #bgfx{z-index:9998;}
+  #snow{z-index:9999;}
+  #christmasLights{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    display:none;
+    z-index:9997;
+  }
+  #christmasLights .lights-strand{
+    position:absolute;
+    top:0;
+    left:0;
+    right:0;
+    height:120px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    padding:12px 24px 0;
+  }
+  #christmasLights .lights-strand::before{
+    content:"";
+    position:absolute;
+    top:26px;
+    left:1.5%;
+    right:1.5%;
+    height:0;
+    border-top:3px solid rgba(31,41,55,.28);
+    border-radius:70% 70% 0 0;
+  }
+  #christmasLights .light-bulb{
+    position:relative;
+    width:26px;
+    height:46px;
+    flex:0 0 auto;
+    margin-top:var(--bulb-offset,0px);
+    transform-origin:top center;
+    animation:lightSway 2.8s ease-in-out infinite;
+    animation-delay:var(--twinkle-delay,0s);
+  }
+  #christmasLights .light-bulb::before{
+    content:"";
+    display:block;
+    width:18px;
+    height:26px;
+    margin:10px auto 0;
+    background:var(--bulb-color,#f87171);
+    border-radius:50% 50% 55% 55%;
+    box-shadow:0 0 12px color-mix(in srgb,var(--bulb-color,#f87171) 60%,transparent);
+    animation:lightTwinkle 1.9s ease-in-out infinite;
+    animation-delay:var(--twinkle-delay,0s);
+  }
+  #christmasLights .light-bulb::after{
+    content:"";
+    position:absolute;
+    top:4px;
+    left:50%;
+    width:12px;
+    height:10px;
+    background:#1f2937;
+    border-radius:3px;
+    transform:translateX(-50%);
+  }
+  #christmasLights.lights--static .light-bulb,
+  #christmasLights.lights--static .light-bulb::before{
+    animation:none;
+  }
+  @keyframes lightSway{
+    0%{transform:rotate(-4deg);}
+    50%{transform:rotate(4deg);}
+    100%{transform:rotate(-4deg);}
+  }
+  @keyframes lightTwinkle{
+    0%,100%{opacity:.9;box-shadow:0 0 6px color-mix(in srgb,var(--bulb-color,#f87171) 35%,transparent);}
+    50%{opacity:1;box-shadow:0 0 18px color-mix(in srgb,var(--bulb-color,#f87171) 75%,transparent);}
+  }
+  @media (prefers-reduced-motion: reduce){
+    #christmasLights .light-bulb,
+    #christmasLights .light-bulb::before{
+      animation:none;
+    }
+  }
+  </style>
+  <script>
+  (()=>{
+    const DEFAULT_LEVEL='medium';
+    const DENSITY_MAP={off:0,light:70,medium:150,heavy:260};
+    const state={
+      density:DEFAULT_LEVEL,
+      desiredCount:DENSITY_MAP[DEFAULT_LEVEL],
+      bgCanvas:null,
+      snowCanvas:null,
+      bgCtx:null,
+      snowCtx:null,
+      stars:[],
+      flakes:[],
+      width:0,
+      height:0,
+      cssWidth:0,
+      cssHeight:0,
+      dpr:window.devicePixelRatio||1,
+      rafId:null,
+      animating:false,
+      resizeHandler:null,
+      active:false,
+      userDisabled:false,
+      motionQuery:window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):null,
+    };
+
+    const rootEl=document.documentElement;
+    function readVar(styles,name,fallback){
+      const value=styles.getPropertyValue(name);
+      return value && value.trim()?value.trim():fallback;
+    }
+
+    function withAlpha(color,alpha){
+      const trimmed=color.trim();
+      const hexMatch=trimmed.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+      if(!hexMatch) return trimmed;
+      let hex=hexMatch[1];
+      if(hex.length===3){
+        hex=hex.split('').map(ch=>ch+ch).join('');
+      }
+      const r=parseInt(hex.slice(0,2),16);
+      const g=parseInt(hex.slice(2,4),16);
+      const b=parseInt(hex.slice(4,6),16);
+      return `rgba(${r},${g},${b},${alpha})`;
+    }
+
+    function toRgb(color){
+      const trimmed=color.trim();
+      const hexMatch=trimmed.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+      if(hexMatch){
+        let hex=hexMatch[1];
+        if(hex.length===3){
+          hex=hex.split('').map(ch=>ch+ch).join('');
+        }
+        return { r:parseInt(hex.slice(0,2),16), g:parseInt(hex.slice(2,4),16), b:parseInt(hex.slice(4,6),16) };
+      }
+      const rgbMatch=trimmed.match(/rgba?\(([^)]+)\)/i);
+      if(rgbMatch){
+        const parts=rgbMatch[1].split(',').map(part=>Number(part.trim()));
+        return {
+          r:Number.isFinite(parts[0])?parts[0]:255,
+          g:Number.isFinite(parts[1])?parts[1]:255,
+          b:Number.isFinite(parts[2])?parts[2]:255,
+        };
+      }
+      return { r:255,g:255,b:255 };
+    }
+
+    function ensureCanvases(){
+      if(state.bgCanvas && state.snowCanvas) return;
+      const bg=document.createElement('canvas');
+      bg.id='bgfx';
+      const snow=document.createElement('canvas');
+      snow.id='snow';
+      bg.style.display='block';
+      snow.style.display='none';
+      document.body.append(bg,snow);
+      state.bgCanvas=bg;
+      state.snowCanvas=snow;
+      state.bgCtx=bg.getContext('2d');
+      state.snowCtx=snow.getContext('2d');
+    }
+
+    function updateCanvasMetrics(){
+      if(!state.bgCanvas || !state.snowCanvas) return;
+      const cssWidth=window.innerWidth||document.documentElement.clientWidth||0;
+      const cssHeight=window.innerHeight||document.documentElement.clientHeight||0;
+      const dpr=window.devicePixelRatio||1;
+      const scaledDpr=Math.max(1,Math.min(3,dpr));
+      const width=Math.max(1,Math.floor(cssWidth*scaledDpr));
+      const height=Math.max(1,Math.floor(cssHeight*scaledDpr));
+
+      state.cssWidth=cssWidth;
+      state.cssHeight=cssHeight;
+      state.dpr=scaledDpr;
+      state.width=width;
+      state.height=height;
+
+      [state.bgCanvas,state.snowCanvas].forEach(canvas=>{
+        canvas.width=width;
+        canvas.height=height;
+        canvas.style.width=`${cssWidth}px`;
+        canvas.style.height=`${cssHeight}px`;
+      });
+    }
+
+    function buildStars(){
+      const count=Math.min(80,Math.max(18,Math.round((state.cssWidth+state.cssHeight)/36)));
+      const stars=[];
+      for(let i=0;i<count;i++){
+        stars.push({
+          x:Math.random()*state.width,
+          y:Math.random()*state.height,
+          radius:(Math.random()*1.2+0.4)*state.dpr,
+          alpha:Math.random()*0.25+0.05,
+        });
+      }
+      state.stars=stars;
+    }
+
+    function drawBackground(){
+      const ctx=state.bgCtx;
+      if(!ctx) return;
+      const w=state.width;
+      const h=state.height;
+      ctx.clearRect(0,0,w,h);
+
+      const styles=getComputedStyle(rootEl);
+      const skyTop=withAlpha(readVar(styles,'--winter-night-start','#020b1f'),0.35);
+      const skyBottom=withAlpha(readVar(styles,'--winter-night-end','#08163a'),0.55);
+      const moonInner=withAlpha(readVar(styles,'--winter-moon','#fff4d2'),0.18);
+      const starBase=toRgb(readVar(styles,'--winter-star','#ffffff'));
+
+      const sky=ctx.createLinearGradient(0,0,0,h);
+      sky.addColorStop(0,skyTop);
+      sky.addColorStop(1,skyBottom);
+      ctx.fillStyle=sky;
+      ctx.fillRect(0,0,w,h);
+
+      const moonX=w*0.25;
+      const moonY=-h*0.2;
+      const moon=ctx.createRadialGradient(moonX,moonY,w*0.05,moonX,moonY,w*0.6);
+      moon.addColorStop(0,moonInner);
+      moon.addColorStop(1,'rgba(8, 12, 32, 0)');
+      ctx.fillStyle=moon;
+      ctx.fillRect(0,0,w,h);
+
+      state.stars.forEach(star=>{
+        ctx.beginPath();
+        ctx.fillStyle=`rgba(${starBase.r},${starBase.g},${starBase.b},${star.alpha})`;
+        ctx.arc(star.x,star.y,star.radius,0,Math.PI*2);
+        ctx.fill();
+      });
+
+      const vignette=ctx.createRadialGradient(w/2,h/2,Math.min(w,h)*0.45,w/2,h/2,Math.max(w,h));
+      vignette.addColorStop(0,'rgba(0,0,0,0)');
+      vignette.addColorStop(1,'rgba(0,0,0,0.35)');
+      ctx.fillStyle=vignette;
+      ctx.fillRect(0,0,w,h);
+    }
+
+    function createFlakes(count){
+      const flakes=[];
+      for(let i=0;i<count;i++){
+        flakes.push({
+          x:Math.random()*state.width,
+          y:Math.random()*state.height,
+          radius:(Math.random()*2+1)*state.dpr,
+          vy:(Math.random()*0.8+0.4)*state.dpr,
+          vx:(Math.random()*0.8-0.4)*state.dpr,
+        });
+      }
+      return flakes;
+    }
+
+    function stopSnow(){
+      state.animating=false;
+      if(state.rafId){
+        cancelAnimationFrame(state.rafId);
+        state.rafId=null;
+      }
+      if(state.snowCtx){
+        state.snowCtx.clearRect(0,0,state.width,state.height);
+      }
+    }
+
+    function renderSnow(){
+      if(!state.animating || !state.snowCtx){
+        state.animating=false;
+        state.rafId=null;
+        return;
+      }
+      const ctx=state.snowCtx;
+      const w=state.width;
+      const h=state.height;
+      ctx.clearRect(0,0,w,h);
+
+      if(!state.flakes.length){
+        state.animating=false;
+        state.rafId=null;
+        return;
+      }
+
+      ctx.fillStyle='rgba(255,255,255,0.85)';
+      for(const flake of state.flakes){
+        flake.x+=flake.vx;
+        flake.y+=flake.vy;
+
+        if(flake.x<-flake.radius) flake.x=w+flake.radius;
+        if(flake.x>w+flake.radius) flake.x=-flake.radius;
+        if(flake.y>h+flake.radius){
+          flake.y=-flake.radius;
+          flake.x=Math.random()*w;
+        }
+
+        ctx.beginPath();
+        ctx.arc(flake.x,flake.y,flake.radius,0,Math.PI*2);
+        ctx.fill();
+      }
+
+      if(state.animating){
+        state.rafId=requestAnimationFrame(renderSnow);
+      }
+    }
+
+    function startSnow(){
+      if(!state.snowCtx) return;
+      if(!state.flakes.length){
+        stopSnow();
+        return;
+      }
+      if(state.animating) return;
+      state.animating=true;
+      state.rafId=requestAnimationFrame(renderSnow);
+    }
+
+    function ensureActive(){
+      if(state.userDisabled) return false;
+      if(state.motionQuery?.matches) return false;
+      ensureCanvases();
+      updateCanvasMetrics();
+      buildStars();
+      drawBackground();
+      if(state.bgCanvas){
+        state.bgCanvas.style.display='block';
+      }
+      if(!state.resizeHandler){
+        state.resizeHandler=()=>{
+          if(state.motionQuery?.matches) return;
+          handleResize();
+        };
+        window.addEventListener('resize',state.resizeHandler,{ passive:true });
+      }
+      state.active=true;
+      return true;
+    }
+
+    function updateSnow(count){
+      state.desiredCount=count;
+      if(!state.snowCanvas) ensureCanvases();
+      if(count<=0){
+        state.flakes=[];
+        if(state.snowCanvas){
+          state.snowCanvas.style.display='none';
+        }
+        stopSnow();
+        return;
+      }
+      if(!ensureActive()) return;
+      if(state.snowCanvas){
+        state.snowCanvas.style.display='block';
+      }
+      state.flakes=createFlakes(count);
+      startSnow();
+    }
+
+    function handleResize(){
+      if(!state.active) return;
+      updateCanvasMetrics();
+      buildStars();
+      drawBackground();
+      if(state.desiredCount>0){
+        state.flakes=createFlakes(state.desiredCount);
+        if(state.snowCanvas){
+          state.snowCanvas.style.display='block';
+        }
+        startSnow();
+      }
+    }
+
+    function teardown(){
+      stopSnow();
+      if(state.resizeHandler){
+        window.removeEventListener('resize',state.resizeHandler);
+        state.resizeHandler=null;
+      }
+      state.active=false;
+      state.flakes=[];
+      state.stars=[];
+      if(state.bgCanvas){
+        state.bgCanvas.remove();
+        state.bgCanvas=null;
+      }
+      if(state.snowCanvas){
+        state.snowCanvas.remove();
+        state.snowCanvas=null;
+      }
+      state.bgCtx=null;
+      state.snowCtx=null;
+    }
+
+    function handleMotionChange(event){
+      if(event.matches){
+        teardown();
+      }else if(!state.userDisabled){
+        ensureActive();
+        updateSnow(state.desiredCount);
+      }
+    }
+
+    if(state.motionQuery){
+      if(state.motionQuery.addEventListener){
+        state.motionQuery.addEventListener('change',handleMotionChange);
+      }else if(state.motionQuery.addListener){
+        state.motionQuery.addListener(handleMotionChange);
+      }
+    }
+
+    const api={
+      setDensity(level){
+        const normalized=level && Object.prototype.hasOwnProperty.call(DENSITY_MAP,level)?level:DEFAULT_LEVEL;
+        state.density=normalized;
+        state.userDisabled=false;
+        const count=DENSITY_MAP[normalized]??DENSITY_MAP[DEFAULT_LEVEL];
+        if(state.motionQuery?.matches){
+          state.desiredCount=count;
+          return;
+        }
+        ensureActive();
+        updateSnow(count);
+      },
+      destroy(){
+        state.userDisabled=true;
+        teardown();
+      },
+      refresh(){
+        if(state.motionQuery?.matches) return;
+        if(state.userDisabled) return;
+        if(!ensureActive()) return;
+        updateSnow(state.desiredCount);
+      }
+    };
+
+    window.WinterOverlay=api;
+  })();
+  </script>
+  <script>
+  (()=>{
+    const COLORS=['#f97316','#fde047','#34d399','#60a5fa','#f472b6'];
+    const COUNT=26;
+    const motionQuery=window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):null;
+    let container=null;
+    let enabled=false;
+
+    function prefersReducedMotion(){
+      return motionQuery?.matches ?? false;
+    }
+
+    function ensure(){
+      if(container) return;
+      container=document.createElement('div');
+      container.id='christmasLights';
+      container.setAttribute('aria-hidden','true');
+      const strand=document.createElement('div');
+      strand.className='lights-strand';
+      for(let i=0;i<COUNT;i++){
+        const bulb=document.createElement('span');
+        bulb.className='light-bulb';
+        bulb.style.setProperty('--bulb-color', COLORS[i % COLORS.length]);
+        bulb.style.setProperty('--twinkle-delay', `${(i % COLORS.length)*0.18}s`);
+        const wave=COUNT>1?Math.sin((i/(COUNT-1))*Math.PI):0;
+        bulb.style.setProperty('--bulb-offset', `${(wave*18).toFixed(2)}px`);
+        strand.appendChild(bulb);
+      }
+      container.appendChild(strand);
+      document.body.appendChild(container);
+      updateMotionState();
+    }
+
+    function updateMotionState(){
+      if(!container) return;
+      if(prefersReducedMotion()){
+        container.classList.add('lights--static');
+      }else{
+        container.classList.remove('lights--static');
+      }
+    }
+
+    function render(){
+      if(!container){
+        if(!enabled) return;
+        ensure();
+      }
+      updateMotionState();
+      if(!container) return;
+      container.style.display=enabled && !prefersReducedMotion() ? 'block' : 'none';
+    }
+
+    function enable(){
+      enabled=true;
+      ensure();
+      render();
+    }
+
+    function disable(){
+      enabled=false;
+      if(container){
+        container.style.display='none';
+      }
+    }
+
+    if(motionQuery){
+      const handler=()=>{
+        updateMotionState();
+        render();
+      };
+      if(motionQuery.addEventListener){
+        motionQuery.addEventListener('change', handler);
+      }else if(motionQuery.addListener){
+        motionQuery.addListener(handler);
+      }
+    }
+
+    window.ChristmasLights={
+      enable(){ enable(); },
+      disable(){ disable(); },
+      refresh(){ render(); }
+    };
+  })();
+  </script>
+  <script>
 
   let __loadController = null;
 
@@ -1874,11 +2428,22 @@ function toggleMobileSortDirection(container){
 
 // small helper so we can reuse category chip markup
   // === Freeze rule: red age + "Planned Winter Project" category ===
+function hasWinterPlanTag(row){
+  if(!row) return false;
+  const pattern=/\b(planned\s*winter\s*project|winter\s*plan)\b/i;
+  const fields=[
+    row['Categories'],
+    row['Tags'],
+    row['Tag'],
+    row['Title'],
+  ];
+  return fields.some(value=>pattern.test(String(value||'')));
+}
+
 function isWinterPlanned(row){
-  const cats = String(row['Categories'] || '');
-  const hasPWP = /\bplanned\s*winter\s*project\b/i.test(cats);
+  if (!row) return false;
   const bucket = row.__ageBucket || ageBucket(row.__ageMs);
-  return hasPWP && (bucket === 'old' || bucket === 'ancient'); // only “red” ages
+  return hasWinterPlanTag(row) && (bucket === 'old' || bucket === 'ancient'); // only “red” ages
 }
 
 function buildCategoryChips(value){
@@ -2558,6 +3123,7 @@ const displayHeaders = (() => {
     ek   : filtered.filter(r=>toSiteKey(r.Location)==='ek'),
     mm   : filtered.filter(r=>toSiteKey(r.Location)==='mm'),
     keith: filtered.filter(r=>toSiteKey(r.Location)==='keith'),
+    winter: filtered.filter(hasWinterPlanTag),
     by   : filtered.filter(r=>toSiteKey(r.Location)==='by'),
   };
 
@@ -2566,7 +3132,8 @@ const displayHeaders = (() => {
     ['dash-ek','ek'],
     ['dash-mm','mm'],
     ['dash-keith','keith'],
-    ['dash-by','by']
+    ['dash-by','by'],
+    ['dash-winter','winter']
   ];
 
   window.__ALS_GROUPS = groups;
@@ -2608,6 +3175,7 @@ function setActiveDash(id){
   if(!active) return;  // guard
 
   const site = active.dataset.site || active.id.replace(/^dash-/, '');
+  SeasonalTheme.apply(site);
   document.querySelectorAll('.dash').forEach(sec => {
     const isMatch = sec.dataset.site === site;
     sec.setAttribute('data-active', String(isMatch));
@@ -2718,25 +3286,148 @@ refreshBtn?.addEventListener('click', async ()=>{
   refreshWeekArrowDisabled();
 }
 
-// Theme toggle (unchanged)
+// Theme + seasonal overlays
 const themeBtn=document.getElementById('themeBtn');
-function applyTheme(theme){
-  const isDark=theme==='dark';
-  document.body.classList.toggle('dark', isDark);
-  document.body.classList.toggle('light', !isDark);
-  themeBtn.textContent=isDark?'Light mode':'Dark mode';
-  themeBtn.setAttribute('aria-pressed', isDark?'true':'false');
-  themeBtn.setAttribute('aria-label', isDark?'Switch to light mode':'Switch to dark mode');
+const metaColorScheme=document.querySelector('meta[name="color-scheme"]');
+const ThemeController=(()=>{
+  const STORAGE_KEY='alsDesiredTheme';
+  const motionQuery=window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):null;
+  let desiredTheme=(localStorage.getItem(STORAGE_KEY)==='dark')?'dark':'light';
+  let winterLock=false;
+
+  function isWinterPlanActive(){
+    return winterLock;
+  }
+
+  function prefersReducedMotion(){
+    return motionQuery?.matches ?? false;
+  }
+
+  function applyVisualTheme(theme){
+    const normalized=theme==='dark'?'dark':'light';
+    document.body.classList.toggle('dark', normalized==='dark');
+    document.body.classList.toggle('light', normalized!=='dark');
+    metaColorScheme?.setAttribute('content', normalized);
+    if(window.ChristmasLights){
+      if(normalized==='light' && !prefersReducedMotion() && !isWinterPlanActive()){
+        window.ChristmasLights.enable();
+      }else{
+        window.ChristmasLights.disable();
+      }
+      window.ChristmasLights.refresh?.();
+    }
+  }
+
+  function refreshButton(){
+    if(!themeBtn) return;
+    const preferDark=desiredTheme==='dark';
+    if(isWinterPlanActive()){
+      themeBtn.textContent=`Winter Plan pref: ${preferDark?'Dark':'Light'}`;
+      themeBtn.title='Winter Plan stays dark; preference saved for when you leave.';
+      themeBtn.setAttribute('aria-label', themeBtn.title);
+    }else{
+      themeBtn.textContent=preferDark?'Switch to light mode':'Switch to dark mode';
+      const title=preferDark?'Currently dark. Click to switch to light mode.':'Currently light. Click to switch to dark mode.';
+      themeBtn.title=title;
+      themeBtn.setAttribute('aria-label', title);
+    }
+    themeBtn.disabled=false;
+    themeBtn.removeAttribute('aria-disabled');
+    themeBtn.setAttribute('aria-pressed', preferDark?'true':'false');
+  }
+
+  function setTheme(theme,{force=false,skipStore=false}={}){
+    const normalized=theme==='dark'?'dark':'light';
+    if(!skipStore){
+      desiredTheme=normalized;
+      localStorage.setItem(STORAGE_KEY, normalized);
+    }
+    if(isWinterPlanActive() && !force){
+      refreshButton();
+      return;
+    }
+    applyVisualTheme(normalized);
+    refreshButton();
+  }
+
+  function applyStoredTheme({force=false}={}){
+    setTheme(desiredTheme,{force,skipStore:true});
+  }
+
+  function enforceWinterTheme(){
+    setTheme('dark',{force:true,skipStore:true});
+  }
+
+  function toggle(){
+    const next=desiredTheme==='dark'?'light':'dark';
+    setTheme(next);
+  }
+
+  function setWinterLock(active){
+    winterLock=!!active;
+    refreshButton();
+  }
+
+  function init(){
+    applyVisualTheme(desiredTheme);
+    refreshButton();
+    themeBtn?.addEventListener('click', ()=>{ toggle(); });
+    if(motionQuery){
+      const handler=()=>{
+        if(isWinterPlanActive()){
+          applyVisualTheme('dark');
+        }else{
+          applyVisualTheme(desiredTheme);
+        }
+      };
+      if(motionQuery.addEventListener){
+        motionQuery.addEventListener('change', handler);
+      }else if(motionQuery.addListener){
+        motionQuery.addListener(handler);
+      }
+    }
+  }
+
+  return {
+    init,
+    setTheme,
+    toggle,
+    applyStoredTheme,
+    enforceWinterTheme,
+    setWinterLock,
+    isWinterPlanActive,
+    prefersReducedMotion,
+  };
+})();
+
+function isWinterPlanActive(){
+  return ThemeController.isWinterPlanActive();
 }
-const savedTheme=localStorage.getItem('theme');
-const prefersDark=window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-applyTheme(savedTheme || (prefersDark ? 'dark' : 'light'));
-themeBtn.addEventListener('click', ()=>{
-  const newTheme = document.body.classList.contains('dark') ? 'light' : 'dark';
-  applyTheme(newTheme);
-  localStorage.setItem('theme', newTheme);
-  requestAnimationFrame(updateTheadHeight); // recalc sticky header height
-});
+
+const SeasonalTheme=(()=>{
+  function apply(site){
+    const isWinter=site==='winter';
+    ThemeController.setWinterLock(isWinter);
+
+    if(isWinter){
+      ThemeController.enforceWinterTheme();
+      if(window.WinterOverlay){
+        window.WinterOverlay.setDensity('medium');
+        window.WinterOverlay.refresh?.();
+      }
+      window.ChristmasLights?.disable();
+    }else{
+      window.WinterOverlay?.destroy();
+      ThemeController.applyStoredTheme({ force:true });
+      window.ChristmasLights?.refresh?.();
+    }
+  }
+
+  return { apply };
+})();
+
+ThemeController.init();
+SeasonalTheme.apply('all');
 
   // Detect mobile (also allow ?mobile=1 for desktop testing, or <body class="force-mobile">)
 function isMobileView(){
