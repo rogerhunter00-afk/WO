@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PSSR Inspection Tracker – ALS Engineering Dashboard</title>
+  <style>
+    :root {
+      --ink:#0b0f1a;
+      --muted:#6b7280;
+      --als-blue:#0b67c2;
+      --als-blue-strong:#0a5cb0;
+      --thead:#0b67c2;
+      --thead-text:#fff;
+      --grid:#e6e9ef;
+      --zebra:#fff;
+      --paper:#fff;
+      --sticky-controls-offset:0px;
+      color-scheme:light;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme:dark;
+        --ink:#f3f4f6;
+        --muted:#9ca3af;
+        --als-blue:#3b82f6;
+        --als-blue-strong:#2563eb;
+        --thead:#1e3a8a;
+        --grid:#374151;
+        --zebra:#111827;
+        --paper:#0f172a;
+      }
+    }
+
+    body {
+      margin:0;
+      background:var(--paper);
+      color:var(--ink);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      font-size:13px;
+      line-height:1.4;
+      -webkit-font-smoothing:antialiased;
+    }
+
+    body::before {
+      content:"";
+      position:fixed;
+      inset:0 0 auto 0;
+      height:var(--sticky-controls-offset);
+      background:var(--paper);
+      pointer-events:none;
+      z-index:180;
+    }
+
+    .page {
+      --page-pad-top:16px;
+      --page-pad-inline:48px;
+      --page-pad-bottom:48px;
+      padding:var(--page-pad-top) var(--page-pad-inline) var(--page-pad-bottom);
+      max-width:clamp(960px,96vw,1680px);
+      margin-inline:auto;
+      box-sizing:border-box;
+    }
+
+    .page-head {
+      display:flex;
+      align-items:center;
+      gap:16px;
+      justify-content:space-between;
+      margin-bottom:12px;
+    }
+
+    .title {
+      font-size:28px;
+      font-weight:800;
+      margin:0;
+    }
+
+    .logo {
+      height:46px;
+      margin-left:auto;
+    }
+
+    .nav {
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin:8px 0 0;
+    }
+
+    .nav .tab {
+      padding:8px 14px;
+      border-radius:999px;
+      border:1px solid var(--grid);
+      background:transparent;
+      color:var(--ink);
+      font-weight:700;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      transition:box-shadow .15s ease,border-color .15s ease,background .15s ease;
+    }
+
+    .nav .tab[aria-selected="true"],
+    .nav .tab:focus-visible {
+      outline:none;
+      border-color:var(--als-blue);
+      background:color-mix(in srgb,var(--als-blue) 8%,var(--paper));
+      box-shadow:0 0 0 2px color-mix(in srgb,var(--als-blue) 30%,transparent);
+    }
+
+    .top-rule {
+      height:2px;
+      background:var(--als-blue);
+      border-bottom:1px solid var(--als-blue-strong);
+      margin:12px 0 0;
+    }
+
+    .sticky-top {
+      position:sticky;
+      top:0;
+      z-index:300;
+      background:var(--paper);
+      border-bottom:1px solid var(--grid);
+      padding:12px 0;
+    }
+
+    .sticky-top__content {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .sticky-controls {
+      display:flex;
+      gap:12px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .refresh-btn,
+    .mobile-sort__direction {
+      border:1px solid var(--als-blue);
+      border-radius:8px;
+      background:var(--paper);
+      color:var(--als-blue);
+      font-weight:700;
+      padding:6px 12px;
+      cursor:pointer;
+    }
+
+    .refresh-btn:focus-visible,
+    .mobile-sort__direction:focus-visible,
+    select:focus-visible {
+      outline:2px solid color-mix(in srgb,var(--als-blue) 65%,transparent);
+      outline-offset:2px;
+    }
+
+    .mobile-sort {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:12px;
+      color:var(--ink);
+    }
+
+    .mobile-sort select {
+      font:inherit;
+      padding:6px 10px;
+      border-radius:8px;
+      border:1px solid var(--grid);
+      background:var(--paper);
+      color:inherit;
+    }
+
+    .table-wrapper {
+      margin-top:18px;
+    }
+
+    table {
+      width:100%;
+      min-width:860px;
+      border-collapse:separate;
+      border-spacing:0;
+      table-layout:fixed;
+    }
+
+    .visually-hidden {
+      position:absolute !important;
+      width:1px;
+      height:1px;
+      padding:0;
+      margin:-1px;
+      overflow:hidden;
+      clip:rect(0,0,0,0);
+      white-space:nowrap;
+      border:0;
+    }
+
+    .table-scroll {
+      position:relative;
+      overflow:auto;
+      border:1px solid var(--grid);
+      border-radius:14px;
+      background:var(--paper);
+      box-shadow:0 6px 16px rgba(15, 23, 42, 0.08);
+      max-height:calc(100vh - var(--sticky-controls-offset) - 180px);
+    }
+
+    .table-scroll thead {
+      position:sticky;
+      top:0;
+      background:var(--thead);
+      z-index:2;
+    }
+
+    .table-scroll thead th {
+      background:var(--thead);
+      color:var(--thead-text);
+      font-weight:800;
+      letter-spacing:0.2px;
+      padding:11px 8px;
+      border-bottom:1px solid color-mix(in srgb,#000 22%,transparent);
+      text-align:left;
+      white-space:nowrap;
+      position:relative;
+      cursor:pointer;
+    }
+
+    .table-scroll thead th:first-child {
+      border-top-left-radius:14px;
+    }
+
+    .table-scroll thead th:last-child {
+      border-top-right-radius:14px;
+    }
+
+    .table-scroll thead th .sort-arrow {
+      display:inline-block;
+      margin-left:8px;
+      width:0;
+      height:0;
+      border-left:5px solid transparent;
+      border-right:5px solid transparent;
+      border-top:7px solid currentColor;
+      opacity:0.25;
+      transform:translateY(-1px);
+      transition:opacity .15s ease, transform .15s ease;
+    }
+
+    .table-scroll thead th[data-sort="asc"] .sort-arrow {
+      opacity:1;
+      transform:translateY(-1px);
+    }
+
+    .table-scroll thead th[data-sort="desc"] .sort-arrow {
+      opacity:1;
+      transform:rotate(180deg) translateY(-1px);
+    }
+
+    tbody td {
+      padding:10px 8px;
+      border-bottom:1px solid var(--grid);
+      background:var(--zebra);
+      vertical-align:top;
+      word-break:break-word;
+      line-height:1.35;
+    }
+
+    tbody tr:last-child td {
+      border-bottom:none;
+    }
+
+    tbody tr:nth-child(even) td {
+      background:color-mix(in srgb,var(--grid) 12%,var(--zebra));
+    }
+
+    tbody tr.row-overdue td {
+      background:color-mix(in srgb,#dc2626 16%,var(--zebra));
+      color:color-mix(in srgb,#1f2937 15%,var(--ink));
+    }
+
+    tbody td[data-col="Comments"] {
+      max-width:320px;
+    }
+
+    tbody td[data-col] > span {
+      display:block;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    tbody td[data-col="Comments"] > span,
+    tbody td[data-col="Comments"] {
+      white-space:normal;
+      overflow:visible;
+    }
+
+    .countdown-chip {
+      display:inline-flex;
+      align-items:center;
+      font-weight:800;
+      font-size:12.5px;
+      padding:4px 10px;
+      border-radius:999px;
+      border:1px solid currentColor;
+      font-variant-numeric:tabular-nums;
+    }
+
+    .countdown-chip.is-unknown {
+      color:var(--muted);
+      border-style:dashed;
+    }
+
+    .countdown-chip.is-urgent {
+      color:#b91c1c;
+      background:color-mix(in srgb,#b91c1c 20%,transparent);
+      box-shadow:0 0 0 1px color-mix(in srgb,#b91c1c 35%,transparent);
+    }
+
+    .countdown-chip.is-warning {
+      color:#b45309;
+      background:color-mix(in srgb,#b45309 18%,transparent);
+    }
+
+    .countdown-chip.is-healthy {
+      color:#047857;
+      background:color-mix(in srgb,#047857 18%,transparent);
+    }
+
+    .countdown-chip.is-excellent {
+      color:#0f766e;
+      background:color-mix(in srgb,#0f766e 18%,transparent);
+    }
+
+    .empty-state {
+      padding:24px;
+      text-align:center;
+      color:var(--muted);
+    }
+
+    .status-note {
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .table-scroll[data-loading="true"] tbody {
+      opacity:.4;
+    }
+
+    .loading-banner,
+    .error-banner {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:12px 16px;
+      border-radius:12px;
+      font-weight:600;
+      margin-top:18px;
+    }
+
+    .loading-banner {
+      background:color-mix(in srgb,var(--als-blue) 12%,var(--paper));
+      color:var(--als-blue);
+      border:1px solid color-mix(in srgb,var(--als-blue) 35%,transparent);
+    }
+
+    .error-banner {
+      background:color-mix(in srgb,#dc2626 12%,var(--paper));
+      color:#991b1b;
+      border:1px solid color-mix(in srgb,#b91c1c 35%,transparent);
+    }
+
+    .mobile-cards {
+      display:none;
+      margin-top:18px;
+    }
+
+    .mobile-card {
+      border:1px solid var(--grid);
+      border-radius:14px;
+      padding:14px;
+      background:var(--paper);
+      display:grid;
+      grid-template-columns:1fr;
+      gap:10px;
+      box-shadow:0 4px 12px rgba(15,23,42,.08);
+    }
+
+    .mobile-card + .mobile-card {
+      margin-top:12px;
+    }
+
+    .mobile-card__title {
+      font-weight:800;
+      font-size:15px;
+      line-height:1.35;
+    }
+
+    .mobile-card__meta {
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .mobile-card__row {
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      align-items:center;
+      font-size:12px;
+    }
+
+    .mobile-card.row-overdue {
+      border-color:color-mix(in srgb,#dc2626 45%,var(--grid));
+      box-shadow:0 0 0 2px color-mix(in srgb,#dc2626 22%,transparent);
+    }
+
+    @media (max-width:900px) {
+      .page {
+        --page-pad-inline:24px;
+      }
+      table {
+        min-width:720px;
+      }
+    }
+
+    @media (max-width:720px) {
+      .table-wrapper { display:none; }
+      .mobile-cards { display:block; }
+      .sticky-top__content { flex-direction:column; align-items:flex-start; }
+      .mobile-sort { width:100%; justify-content:space-between; }
+    }
+
+    @media print {
+      body::before { display:none; }
+      .sticky-top { position:static; }
+      .table-scroll { max-height:none; box-shadow:none; border-radius:0; }
+      .mobile-cards { display:none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="page-head">
+      <div>
+        <h1 class="title">PSSR Inspection Tracker</h1>
+        <nav class="nav" aria-label="Dashboard sections">
+          <a class="tab" href="index.html">Work Orders</a>
+          <a class="tab" href="facilities.html">Facilities</a>
+          <a class="tab" aria-selected="true" href="pssr.html">PSSR Inspections</a>
+        </nav>
+      </div>
+      <img src="LOGOlesswhitespace.png" alt="ALS Engineering" class="logo" />
+    </header>
+    <div class="top-rule" role="presentation"></div>
+    <section class="sticky-top" data-component="sticky-controls">
+      <div class="sticky-top__content">
+        <div class="status-note">Data refreshes automatically from the published Google Sheet once available.</div>
+        <div class="sticky-controls">
+          <button type="button" class="refresh-btn" data-action="refresh">Refresh data</button>
+          <div class="mobile-sort" data-role="mobile-sort">
+            <label for="mobile-sort-select">Sort by</label>
+            <select id="mobile-sort-select" data-role="mobile-sort-select" aria-label="Select column to sort">
+              <option value="Asset">Asset</option>
+              <option value="Location">Location</option>
+              <option value="Last Inspection Date">Last Inspection Date</option>
+              <option value="Next Inspection Date">Next Inspection Date</option>
+              <option value="Countdown">Countdown</option>
+              <option value="Comments">Comments</option>
+            </select>
+            <button type="button" class="mobile-sort__direction" data-role="mobile-sort-direction" data-direction="asc" aria-label="Toggle sort direction (currently ascending)">Ascending</button>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="table-wrapper" data-component="pssr-table">
+      <div class="table-scroll" data-role="scroll-region" data-loading="true">
+        <table aria-describedby="pssr-table-caption">
+          <caption id="pssr-table-caption" class="visually-hidden">PSSR inspection schedule</caption>
+          <thead>
+            <tr>
+              <th scope="col" data-col="Asset" aria-sort="none">Asset <span class="sort-arrow" aria-hidden="true"></span></th>
+              <th scope="col" data-col="Location" aria-sort="none">Location <span class="sort-arrow" aria-hidden="true"></span></th>
+              <th scope="col" data-col="Last Inspection Date" aria-sort="none">Last Inspection Date <span class="sort-arrow" aria-hidden="true"></span></th>
+              <th scope="col" data-col="Next Inspection Date" aria-sort="none">Next Inspection Date <span class="sort-arrow" aria-hidden="true"></span></th>
+              <th scope="col" data-col="Countdown" aria-sort="none">Countdown <span class="sort-arrow" aria-hidden="true"></span></th>
+              <th scope="col" data-col="Comments" aria-sort="none">Comments <span class="sort-arrow" aria-hidden="true"></span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="6" class="empty-state">Loading inspection data…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="mobile-cards" data-role="mobile-cards" aria-live="polite"></section>
+    <div class="loading-banner" data-state="loading" role="status">Fetching latest inspections…</div>
+    <div class="error-banner" data-state="error" role="alert" hidden>We were unable to load the inspection sheet. Please check the network or sheet permissions and try again.</div>
+  </div>
+
+  <script>
+    const PSSR_SHEET_URL = 'https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/export?format=csv';
+    const SAMPLE_PSSR_ROWS = [
+      {
+        Asset: 'Steam Boiler 03',
+        Location: 'Aberdeen – Plant Room',
+        'Last Inspection Date': '15/02/2024',
+        'Next Inspection Date': '15/08/2024',
+        Comments: 'Six-month statutory inspection window.'
+      },
+      {
+        Asset: 'Air Receiver B',
+        Location: 'ALS Keith',
+        'Last Inspection Date': '04/07/2023',
+        'Next Inspection Date': '04/01/2024',
+        Comments: 'Overhaul required before recommissioning.'
+      },
+      {
+        Asset: 'Tunnel Washer 2',
+        Location: 'Cathkin – Wash Line',
+        'Last Inspection Date': '20/11/2023',
+        'Next Inspection Date': '20/11/2025',
+        Comments: 'PSSR inspection aligned with OEM service schedule.'
+      }
+    ];
+
+    function esc(str){
+      return String(str ?? '')
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&#39;');
+    }
+
+    function parseDateLoose(value){
+      if(value instanceof Date && !isNaN(value)) return value;
+      if(typeof value === 'number'){ const d = new Date(value); return isNaN(d) ? null : d; }
+      if(!value) return null;
+      const str = String(value).trim();
+      if(!str) return null;
+      const ddmmyyyy = str.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})(?:\s+(\d{1,2}):(\d{2}))?$/);
+      if(ddmmyyyy){
+        let [,d,m,y,h='00',min='00'] = ddmmyyyy;
+        if(y.length === 2){ y = `20${y}`; }
+        const iso = `${y.padStart(4,'0')}-${m.padStart(2,'0')}-${d.padStart(2,'0')}T${h.padStart(2,'0')}:${min.padStart(2,'0')}:00`;
+        const parsed = new Date(iso);
+        return isNaN(parsed) ? null : parsed;
+      }
+      const parsed = new Date(str);
+      return isNaN(parsed) ? null : parsed;
+    }
+
+    function formatDisplayDate(date, fallback='—'){
+      if(!(date instanceof Date) || isNaN(date)) return fallback;
+      const d = date.getDate().toString().padStart(2,'0');
+      const m = (date.getMonth()+1).toString().padStart(2,'0');
+      const y = date.getFullYear();
+      return `${d}/${m}/${y}`;
+    }
+
+    function detectType(column, rows){
+      if(!column || !rows.length) return 'string';
+      const sample = rows.slice(0, 10).map(r => r[column]);
+      const allDates = sample.length && sample.every(v => !!parseDateLoose(v));
+      if(allDates) return 'date';
+      const allNumbers = sample.length && sample.every(v => v === '' || v == null || /^\s*[-+]?\d+(\.\d+)?\s*$/.test(String(v)));
+      if(allNumbers) return 'number';
+      return 'string';
+    }
+
+    function applySort(rows, column, direction){
+      const list = Array.isArray(rows) ? rows.slice() : [];
+      if(!column) return list;
+      const dir = direction === 'asc' ? 'asc' : 'desc';
+      const factor = dir === 'asc' ? 1 : -1;
+
+      if(column === 'Next Inspection Date'){
+        const fallback = dir === 'asc' ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+        return list.sort((a,b) => {
+          const aTime = (a.__nextDate instanceof Date && !Number.isNaN(a.__nextDate.getTime())) ? a.__nextDate.getTime() : fallback;
+          const bTime = (b.__nextDate instanceof Date && !Number.isNaN(b.__nextDate.getTime())) ? b.__nextDate.getTime() : fallback;
+          return factor * (aTime - bTime);
+        });
+      }
+
+      if(column === 'Last Inspection Date'){
+        const fallback = dir === 'asc' ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+        return list.sort((a,b) => {
+          const aTime = (a.__lastDate instanceof Date && !Number.isNaN(a.__lastDate.getTime())) ? a.__lastDate.getTime() : fallback;
+          const bTime = (b.__lastDate instanceof Date && !Number.isNaN(b.__lastDate.getTime())) ? b.__lastDate.getTime() : fallback;
+          return factor * (aTime - bTime);
+        });
+      }
+
+      if(column === 'Countdown'){
+        const fallback = dir === 'asc' ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+        return list.sort((a,b) => {
+          const aVal = typeof a.__countdownDays === 'number' ? a.__countdownDays : fallback;
+          const bVal = typeof b.__countdownDays === 'number' ? b.__countdownDays : fallback;
+          return factor * (aVal - bVal);
+        });
+      }
+
+      const type = detectType(column, list);
+      return list.sort((a,b) => {
+        const va = a[column];
+        const vb = b[column];
+        if(type === 'date'){
+          const da = parseDateLoose(va);
+          const db = parseDateLoose(vb);
+          return factor * (((da ? da.getTime() : 0) - (db ? db.getTime() : 0)));
+        }
+        if(type === 'number'){
+          return factor * (((parseFloat(va) || 0) - (parseFloat(vb) || 0)));
+        }
+        return factor * String(va ?? '').localeCompare(String(vb ?? ''), undefined, { numeric:true, sensitivity:'base' });
+      });
+    }
+
+    function syncDesktopSortIndicators(container, column, direction){
+      const thead = container.__thead;
+      if(!thead) return;
+      thead.querySelectorAll('th').forEach(th => {
+        const col = th.getAttribute('data-col');
+        if(col === column){
+          th.setAttribute('data-sort', direction);
+          th.setAttribute('aria-sort', direction === 'asc' ? 'ascending' : 'descending');
+        }else{
+          th.removeAttribute('data-sort');
+          th.setAttribute('aria-sort','none');
+        }
+      });
+    }
+
+    function updateMobileSortControls(container){
+      const select = container.__mobileSortSelect;
+      const dirBtn = container.__mobileSortDirectionBtn;
+      const state = container.__currentSort;
+      if(select && state){
+        select.value = state.column;
+      }
+      if(dirBtn){
+        const dir = state ? state.direction : 'asc';
+        dirBtn.dataset.direction = dir;
+        dirBtn.textContent = dir === 'asc' ? 'Ascending' : 'Descending';
+        dirBtn.setAttribute('aria-label', `Toggle sort direction (currently ${dirBtn.textContent.toLowerCase()})`);
+      }
+    }
+
+    function normalizeCountdown(nextDate){
+      if(!(nextDate instanceof Date) || isNaN(nextDate)){
+        return { label:'Unknown', className:'is-unknown', diffDays:null, overdue:false };
+      }
+      const today = new Date();
+      const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+      const normalized = new Date(nextDate.getFullYear(), nextDate.getMonth(), nextDate.getDate()).getTime();
+      const diffDays = Math.round((normalized - startOfToday) / (1000 * 60 * 60 * 24));
+      if(diffDays < 0){
+        const days = Math.abs(diffDays);
+        return { label: `${days}d overdue`, className:'is-urgent', diffDays, overdue:true };
+      }
+      if(diffDays === 0){
+        return { label:'Due today', className:'is-urgent', diffDays, overdue:false };
+      }
+      const months = diffDays / 30;
+      if(months < 2){
+        return { label:`Due in ${diffDays}d`, className:'is-urgent', diffDays, overdue:false };
+      }
+      if(months < 6){
+        return { label:`Due in ${Math.round(months*10)/10}mo`, className:'is-warning', diffDays, overdue:false };
+      }
+      if(months < 18){
+        return { label:`Due in ${Math.round(months)}mo`, className:'is-healthy', diffDays, overdue:false };
+      }
+      return { label:`Due in ${Math.round(months)}mo`, className:'is-excellent', diffDays, overdue:false };
+    }
+
+    function parseCsv(text){
+      const rows = [];
+      let current = [];
+      let field = '';
+      let inQuotes = false;
+      for(let i=0;i<text.length;i++){
+        const char = text[i];
+        if(inQuotes){
+          if(char === '"'){
+            if(text[i+1] === '"'){
+              field += '"';
+              i++;
+            }else{
+              inQuotes = false;
+            }
+          }else{
+            field += char;
+          }
+        }else{
+          if(char === '"'){
+            inQuotes = true;
+          }else if(char === ','){
+            current.push(field);
+            field='';
+          }else if(char === '\r'){
+            continue;
+          }else if(char === '\n'){
+            current.push(field);
+            rows.push(current);
+            current=[];
+            field='';
+          }else{
+            field += char;
+          }
+        }
+      }
+      if(field.length || current.length){
+        current.push(field);
+        rows.push(current);
+      }
+      if(!rows.length) return { headers: [], rows: [] };
+      const headerRow = rows.shift();
+      const headers = headerRow.map((h,i)=>String(h??'').replace(/^\uFEFF/,'').trim() || `Column ${i+1}`);
+      const data = rows
+        .filter(r => r.some(cell => String(cell ?? '').trim().length))
+        .map(row => headers.reduce((acc, header, idx) => {
+          acc[header] = row[idx] ?? '';
+          return acc;
+        }, {}));
+      return { headers, rows: data };
+    }
+
+    function pickField(row, keys){
+      for(const key of keys){
+        if(key in row && row[key] !== undefined){
+          const value = row[key];
+          if(String(value).trim().length) return value;
+        }
+      }
+      return '';
+    }
+
+    async function fetchSheet(){
+      const response = await fetch(PSSR_SHEET_URL, { cache:'no-store' });
+      if(!response.ok) throw new Error('Sheet request failed');
+      const text = await response.text();
+      if(/^[\[{]/.test(text.trim())){
+        const json = JSON.parse(text);
+        const rows = Array.isArray(json) ? json : (Array.isArray(json.rows) ? json.rows : []);
+        const headers = rows.length ? Object.keys(rows[0]) : [];
+        return { headers, rows };
+      }
+      return parseCsv(text);
+    }
+
+    function buildRowModel(raw){
+      const asset = pickField(raw, ['Asset','Asset ID','Asset Name','Equipment']);
+      const location = pickField(raw, ['Location','Site','Area']);
+      const lastRaw = pickField(raw, ['Last Inspection Date','Last Inspection','Previous Inspection']);
+      const nextRaw = pickField(raw, ['Next Inspection Date','Next Inspection','Inspection Due']);
+      const comments = pickField(raw, ['Comments','Notes','Remarks']);
+      const lastDate = parseDateLoose(lastRaw);
+      const nextDate = parseDateLoose(nextRaw);
+      const countdown = normalizeCountdown(nextDate instanceof Date ? new Date(nextDate) : nextDate);
+      return {
+        Asset: asset || '—',
+        Location: location || '—',
+        'Last Inspection Date': lastDate ? formatDisplayDate(lastDate) : (lastRaw || '—'),
+        'Next Inspection Date': nextDate ? formatDisplayDate(nextDate) : (nextRaw || '—'),
+        Countdown: countdown.label,
+        Comments: comments || '—',
+        __lastDate: lastDate,
+        __nextDate: nextDate,
+        __countdownClass: countdown.className,
+        __countdownDays: countdown.diffDays,
+        __overdue: countdown.overdue,
+        __raw: raw
+      };
+    }
+
+    function renderTable(container, rows){
+      const tbody = container.__tbody;
+      const scrollRegion = container.__scrollRegion;
+      if(!tbody) return;
+      if(!rows.length){
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No inspections are currently scheduled.</td></tr>';
+        scrollRegion?.setAttribute('data-loading','false');
+        return;
+      }
+      const html = rows.map(row => {
+        const overdueClass = row.__overdue ? 'row-overdue' : '';
+        const assetTitle = esc(row.Asset);
+        const locationTitle = esc(row.Location);
+        const lastTitle = esc(row['Last Inspection Date']);
+        const nextTitle = esc(row['Next Inspection Date']);
+        const commentsTitle = esc(row.Comments);
+        return `
+          <tr class="${overdueClass}">
+            <td data-col="Asset" title="${assetTitle}"><span>${assetTitle}</span></td>
+            <td data-col="Location" title="${locationTitle}"><span>${locationTitle}</span></td>
+            <td data-col="Last Inspection Date" title="${lastTitle}"><span>${lastTitle}</span></td>
+            <td data-col="Next Inspection Date" title="${nextTitle}"><span>${nextTitle}</span></td>
+            <td data-col="Countdown" title="${esc(row.Countdown)}"><span><span class="countdown-chip ${row.__countdownClass}">${esc(row.Countdown)}</span></span></td>
+            <td data-col="Comments" title="${commentsTitle}"><span>${commentsTitle}</span></td>
+          </tr>
+        `;
+      }).join('');
+      tbody.innerHTML = html;
+      scrollRegion?.setAttribute('data-loading','false');
+    }
+
+    function renderMobileCards(container, rows){
+      const mobile = container.__mobileCards;
+      if(!mobile) return;
+      if(!rows.length){
+        mobile.innerHTML = '<div class="mobile-card empty-state">No inspections are currently scheduled.</div>';
+        return;
+      }
+      const html = rows.map(row => {
+        const overdueClass = row.__overdue ? 'row-overdue' : '';
+        return `
+          <article class="mobile-card ${overdueClass}" aria-label="Inspection for ${esc(row.Asset)}">
+            <header class="mobile-card__row">
+              <div class="mobile-card__title">${esc(row.Asset)}</div>
+              <span class="countdown-chip ${row.__countdownClass}">${esc(row.Countdown)}</span>
+            </header>
+            <div class="mobile-card__meta">
+              <div><strong>Location:</strong> ${esc(row.Location)}</div>
+              <div><strong>Last inspection:</strong> ${esc(row['Last Inspection Date'])}</div>
+              <div><strong>Next inspection:</strong> ${esc(row['Next Inspection Date'])}</div>
+            </div>
+            <div class="mobile-card__row"><strong>Comments:</strong> ${esc(row.Comments)}</div>
+          </article>
+        `;
+      }).join('');
+      mobile.innerHTML = html;
+    }
+
+    function setSort(container, column, direction){
+      const dir = direction === 'asc' ? 'asc' : 'desc';
+      container.__currentSort = { column, direction: dir };
+      syncDesktopSortIndicators(container, column, dir);
+      updateMobileSortControls(container);
+      const sorted = applySort(container.__rows, column, dir);
+      container.__viewRows = sorted;
+      renderTable(container, sorted);
+      renderMobileCards(container, sorted);
+    }
+
+    function attachSortHandlers(container){
+      const thead = container.__thead;
+      if(!thead) return;
+      thead.querySelectorAll('th').forEach(th => {
+        th.addEventListener('click', () => {
+          const column = th.getAttribute('data-col');
+          const current = container.__currentSort;
+          const nextDirection = current && current.column === column && current.direction === 'asc' ? 'desc' : 'asc';
+          setSort(container, column, nextDirection);
+        });
+      });
+    }
+
+    function handleMobileSort(container){
+      const select = container.__mobileSortSelect;
+      const button = container.__mobileSortDirectionBtn;
+      if(select){
+        select.addEventListener('change', () => {
+          const column = select.value;
+          const current = container.__currentSort;
+          const direction = current && current.column === column ? current.direction : 'asc';
+          setSort(container, column, direction);
+        });
+      }
+      if(button){
+        button.addEventListener('click', () => {
+          const current = container.__currentSort || { column: select?.value || 'Next Inspection Date', direction:'asc' };
+          const direction = current.direction === 'asc' ? 'desc' : 'asc';
+          setSort(container, current.column, direction);
+        });
+      }
+    }
+
+    function updateStickyOffsets(){
+      const sticky = document.querySelector('.sticky-top');
+      if(!sticky) return;
+      const height = sticky.getBoundingClientRect().height;
+      document.documentElement.style.setProperty('--sticky-controls-offset', `${Math.ceil(height)}px`);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      updateStickyOffsets();
+      window.addEventListener('resize', () => window.requestAnimationFrame(updateStickyOffsets));
+
+      const container = document.querySelector('[data-component="pssr-table"]');
+      if(!container) return;
+      container.__thead = container.querySelector('thead');
+      container.__tbody = container.querySelector('tbody');
+      container.__scrollRegion = container.querySelector('[data-role="scroll-region"]');
+      container.__mobileCards = document.querySelector('[data-role="mobile-cards"]');
+      container.__mobileSortSelect = document.querySelector('[data-role="mobile-sort-select"]');
+      container.__mobileSortDirectionBtn = document.querySelector('[data-role="mobile-sort-direction"]');
+      container.__rows = [];
+      container.__viewRows = [];
+      container.__currentSort = { column:'Next Inspection Date', direction:'asc' };
+
+      attachSortHandlers(container);
+      handleMobileSort(container);
+
+      const refreshButton = document.querySelector('[data-action="refresh"]');
+      const loadingBanner = document.querySelector('[data-state="loading"]');
+      const errorBanner = document.querySelector('[data-state="error"]');
+
+      async function loadData(){
+        loadingBanner.hidden = false;
+        errorBanner.hidden = true;
+        container.__scrollRegion?.setAttribute('data-loading','true');
+        try {
+          const { rows } = await fetchSheet();
+          const mapped = rows.map(buildRowModel);
+          container.__rows = mapped;
+          setSort(container, container.__currentSort.column, container.__currentSort.direction);
+        } catch (error) {
+          console.error('Failed to load PSSR sheet', error);
+          if(!container.__rows.length && SAMPLE_PSSR_ROWS.length){
+            const fallback = SAMPLE_PSSR_ROWS.map(buildRowModel);
+            container.__rows = fallback;
+            setSort(container, container.__currentSort.column, container.__currentSort.direction);
+          }
+          errorBanner.hidden = false;
+        } finally {
+          loadingBanner.hidden = true;
+          container.__scrollRegion?.setAttribute('data-loading','false');
+        }
+      }
+
+      refreshButton?.addEventListener('click', () => loadData());
+
+      loadData();
+    });
+  </script>
+</body>
+</html>

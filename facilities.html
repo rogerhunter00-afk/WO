@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Work Orders List – Aberdeen Laundry Services (Engineering)</title>
+  <title>Facilities Work Orders – Aberdeen Laundry Services (Facilities Team)</title>
 <style>
 :root{
   --ink:#0b0f1a;
@@ -500,11 +500,11 @@ tbody td{padding:8px 6px;box-sizing:border-box}
   <div class="page">
     <header class="page-head">
       <div class="page-head__title">
-        <h1 class="title">Work Orders Dashboard</h1>
+        <h1 class="title">Facilities Work Orders Dashboard</h1>
         <span class="week-badge" id="week-badge" aria-live="polite">Loading…</span>
         <nav class="nav" aria-label="Dashboard sections">
-          <a class="tab" aria-selected="true" href="index.html">Work Orders</a>
-          <a class="tab" href="facilities.html">Facilities</a>
+          <a class="tab" href="index.html">Work Orders</a>
+          <a class="tab" aria-selected="true" href="facilities.html">Facilities</a>
           <a class="tab" href="pssr.html">PSSR Inspections</a>
         </nav>
       </div>
@@ -780,9 +780,9 @@ async function refreshInBG(meta){
   }
 }
 
-// Published CSV of the *Index* tab
+// Published CSV of the Facilities team's sheet (replace with the live link once available)
 const SHEET_INDEX_CSV_URL =
-  'https://docs.google.com/spreadsheets/d/e/2PACX-1vRJocigDhxneJtrUmezFU7FcWpzSSah8-Wb6Rce8NA1f7jKcINgYU29iYRqt5QQymWATX5zs5k8_rK0/pub?single=true&output=csv&gid=105348743';
+  'https://docs.google.com/spreadsheets/d/YOUR_FACILITIES_SHEET_ID/export?format=csv';
   
 // --- Layout helpers ---
 const $stickyTop = document.querySelector('.sticky-top');
