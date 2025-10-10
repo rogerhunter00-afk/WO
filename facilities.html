@@ -1720,7 +1720,15 @@ function setWeekBadge(text, { prefix='Week' } = {}){
 }
 
 function applyWeekBadge(meta){
-  const prefix = meta?.weekEnd === SINGLE_SHEET_WEEK_END ? 'Sheet' : 'Week';
+  if(meta?.weekEnd === SINGLE_SHEET_WEEK_END){
+    const badge = document.getElementById('week-badge');
+    if(badge){
+      badge.remove();
+    }
+    return;
+  }
+
+  const prefix = 'Week';
   const label = meta?.label || meta?.weekEnd;
   setWeekBadge(label, { prefix });
 }
