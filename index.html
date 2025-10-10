@@ -54,9 +54,12 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
 
 .page{--page-pad-top:12px;--page-pad-inline:48px;--page-pad-bottom:56px;padding:var(--page-pad-top) var(--page-pad-inline) var(--page-pad-bottom);box-sizing:border-box;max-width:clamp(960px,96vw,1680px);margin-inline:auto}
 
-.page-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;margin-bottom:0;position:relative;z-index:350}
+.page-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;margin-bottom:0;position:relative;z-index:350;gap:16px}
+.page-head__title{display:flex;align-items:center;gap:12px;flex:1 1 auto;min-width:0;flex-wrap:wrap}
+.page-head__title .title{margin:0;flex:1 1 auto;min-width:0}
+.page-head__title .week-badge{margin-left:0}
 .title{font-size:28px;font-weight:800;margin:0;color:var(--ink)}
-.logo{height:50px;margin-left:auto;display:block}
+.logo{height:50px;margin-left:auto;display:block;flex-shrink:0}
 .top-rule{height:2px;background:var(--als-blue);border-bottom:1px solid var(--als-blue-strong);margin:0;position:relative;z-index:320}
 /* sticky controls block */
 .sticky-top{position:sticky;top:0;z-index:300;background:var(--paper);padding:12px 0;margin:0;border-bottom:1px solid var(--grid)}
@@ -296,14 +299,37 @@ tbody td{padding:8px 6px;box-sizing:border-box}
 .mobile-card__title{font-weight:800;line-height:1.3}
 .mobile-card__id{font-weight:900;opacity:.7}
 .mobile-card__meta{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--muted)}
-.mobile-card__row{grid-column:1/-1;display:flex;gap:8px;align-items:center}
+.mobile-card__row{grid-column:1/-1;display:flex;gap:8px;row-gap:4px;flex-wrap:wrap;align-items:flex-start}
+.mobile-sort{display:none}
+.mobile-sort__toggle{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:10px 14px 10px 12px;border-radius:12px;border:1px solid color-mix(in srgb,var(--als-blue) 12%,var(--grid));background:color-mix(in srgb,var(--als-blue) 4%,var(--paper));color:var(--ink);font:inherit;font-weight:700;cursor:pointer;position:relative;transition:border-color .18s ease,box-shadow .18s ease,background-color .18s ease,color .18s ease}
+.mobile-sort__toggle::after{content:"";position:absolute;right:14px;top:50%;transform:translateY(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid currentColor;transition:transform .18s ease}
+.mobile-sort[data-open="true"] .mobile-sort__toggle::after{transform:translateY(-50%) rotate(180deg)}
+.mobile-sort__toggle:focus-visible{outline:2px solid color-mix(in srgb,var(--als-blue) 55%,transparent);outline-offset:3px;box-shadow:0 0 0 4px color-mix(in srgb,var(--als-blue) 14%,transparent)}
+.mobile-sort[data-has-sort="true"] .mobile-sort__toggle{border-color:color-mix(in srgb,var(--als-blue) 40%,var(--grid));background:color-mix(in srgb,var(--als-blue) 16%,var(--paper));box-shadow:0 8px 18px color-mix(in srgb,var(--als-blue) 18%,transparent);color:color-mix(in srgb,var(--als-blue) 75%,var(--ink))}
+.mobile-sort__toggle-label{font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:color-mix(in srgb,var(--muted) 88%,var(--ink));font-weight:700}
+.mobile-sort__summary{font-size:12px;font-weight:600;color:var(--muted)}
+.mobile-sort[data-has-sort="true"] .mobile-sort__summary{color:color-mix(in srgb,var(--als-blue) 65%,var(--ink))}
+.mobile-sort__controls{display:flex;flex-direction:column;gap:10px;width:100%;padding-top:8px;margin-top:4px;border-top:1px solid color-mix(in srgb,var(--als-blue) 14%,var(--grid))}
+.mobile-sort__controls[hidden]{display:none!important}
+.mobile-sort__label{font-size:11px;font-weight:700;letter-spacing:.4px;color:var(--muted);text-transform:uppercase}
+.mobile-sort__select{font:inherit;font-weight:600;padding:8px 12px;border-radius:10px;border:1px solid color-mix(in srgb,var(--als-blue) 18%,var(--grid));background:color-mix(in srgb,var(--als-blue) 8%,var(--paper));color:var(--ink);min-width:0;flex:1 1 220px;cursor:pointer;transition:border-color .18s ease,box-shadow .18s ease,background-color .18s ease}
+.mobile-sort__select:focus-visible{outline:none;border-color:var(--als-blue);box-shadow:0 0 0 2px color-mix(in srgb,var(--als-blue) 35%,transparent)}
+.mobile-sort__direction{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:10px;border:1px solid var(--als-blue);background:color-mix(in srgb,var(--als-blue) 12%,var(--paper));color:var(--als-blue);font-weight:700;cursor:pointer;transition:background-color .18s ease,border-color .18s ease,color .18s ease,box-shadow .18s ease}
+.mobile-sort__direction:hover{background:color-mix(in srgb,var(--als-blue) 20%,var(--paper));box-shadow:0 6px 16px color-mix(in srgb,var(--als-blue) 18%,transparent)}
+.mobile-sort__direction:focus-visible{outline:2px solid color-mix(in srgb,var(--als-blue) 60%,transparent);outline-offset:2px}
+.mobile-sort__direction::after{content:"";width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid currentColor;transition:transform .18s ease}
+.mobile-sort__direction[data-direction="desc"]::after{transform:rotate(180deg)}
+.mobile-sort__direction[disabled]{opacity:.45;cursor:not-allowed;box-shadow:none;background:color-mix(in srgb,var(--als-blue) 4%,var(--paper));color:color-mix(in srgb,var(--als-blue) 55%,var(--muted));border-color:color-mix(in srgb,var(--als-blue) 35%,var(--grid))}
 .mobile-card .status-chip{font-size:12px}
-.mobile-card .chip-cat{padding:3px 8px;font-size:11px;margin:2px 4px 0 0}
+.mobile-card .chip-cat{padding:3px 8px;font-size:11px;margin:2px 4px 4px 0}
 @media(max-width:700px){
   .dash-table{display:none}
   .mobile-cards{display:block}
   .page{--page-pad-inline:16px}
   .columns-bar{display:none} /* hide static bar on small screens */
+  .mobile-sort{display:flex;flex-direction:column;gap:0;margin:12px 0 16px;padding:12px;border:1px solid var(--grid);border-radius:14px;background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));box-shadow:0 10px 24px rgba(11,103,194,.08)}
+  .mobile-sort__controls{flex-direction:row;flex-wrap:wrap;align-items:center;gap:10px;row-gap:8px}
+  .mobile-sort__label{flex:1 1 100%;margin:0}
 }
 
 /* Legend popover – no hover gap, opens on hover or click */
@@ -371,9 +397,10 @@ tbody td{padding:8px 6px;box-sizing:border-box}
 @media(max-width:960px){.page{--page-pad-top:16px;--page-pad-inline:32px;--page-pad-bottom:44px}}
 @media(max-width:680px){
   .page{--page-pad-top:16px;--page-pad-inline:18px;--page-pad-bottom:32px}
-  .page-head{flex-direction:column;align-items:flex-start;gap:12px}
-  .title{font-size:24px;margin-bottom:4px}
-  .logo{height:42px}
+  .page-head{gap:12px}
+  .page-head__title{gap:10px}
+  .title{font-size:24px}
+  .logo{height:40px}
   .controls{gap:10px}
   .controls textarea{width:100%;min-width:0}
   .controls .search-input{flex-basis:100%;max-width:none}
@@ -392,7 +419,7 @@ tbody td{padding:8px 6px;box-sizing:border-box}
   .active-filter-chips{display:none!important}
 }
 
-.week-badge{display:inline-block;margin-left:12px;font-size:12px;font-weight:700;padding:4px 10px;border:1px solid var(--grid);border-radius:999px;background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));vertical-align:middle}
+.week-badge{display:inline-block;margin-left:0;font-size:12px;font-weight:700;padding:4px 10px;border:1px solid var(--grid);border-radius:999px;background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));vertical-align:middle}
 
 @media print{
   html, body{ overflow:visible; }
@@ -1192,7 +1219,7 @@ const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
 
     const hasRows = safeRows.length > 0;
     container?.__tableWrap && (container.__tableWrap.hidden = mobile || !hasRows);
-    container?.__mobileSortWrap && (container.__mobileSortWrap.hidden = !mobile || !hasRows);
+    setMobileSortVisibility(container, mobile && hasRows);
     container?.__mobileCards && (container.__mobileCards.hidden = true);
     container?.__emptyState && (container.__emptyState.hidden = hasRows);
     updateTheadHeight();
@@ -1204,7 +1231,7 @@ const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
     container.__mobileCards.innerHTML = (Array.isArray(rows) ? rows : []).map(cardHTML).join('');
     const hasRows = (rows?.length ?? 0) > 0;
     container.__tableWrap && (container.__tableWrap.hidden = true);
-    container.__mobileSortWrap && (container.__mobileSortWrap.hidden = !hasRows);
+    setMobileSortVisibility(container, hasRows);
     container.__mobileCards.hidden = !hasRows;
     container.__emptyState && (container.__emptyState.hidden = hasRows);
   }
@@ -1265,7 +1292,7 @@ function renderRowsScopedChunked(tbodyEl, headers, rows, container){
     } else {
       const hasRows = safe.length > 0;
       container?.__tableWrap && (container.__tableWrap.hidden = isMobileView() || !hasRows);
-      container?.__mobileSortWrap && (container.__mobileSortWrap.hidden = !isMobileView() || !hasRows);
+      setMobileSortVisibility(container, isMobileView() && hasRows);
       container?.__mobileCards && (container.__mobileCards.hidden = true);
       container?.__emptyState && (container.__emptyState.hidden = hasRows);
       updateTheadHeight();
@@ -1747,6 +1774,44 @@ function updateMobileSortDirectionButton(container){
   btn.textContent = dir==='asc' ? 'Ascending' : 'Descending';
   btn.setAttribute('aria-label', `Toggle sort direction (currently ${btn.textContent.toLowerCase()})`);
 }
+function updateMobileSortSummary(container){
+  const wrap = container?.__mobileSortWrap;
+  const summary = container?.__mobileSortSummary;
+  if(!wrap || !summary) return;
+  const select = container?.__mobileSortSelect;
+  const current = container?.__currentSort;
+  const hasSort = !!(current?.column);
+  wrap.dataset.hasSort = hasSort ? 'true' : 'false';
+
+  if(hasSort && select){
+    const selected = select.options[select.selectedIndex];
+    const label = selected ? selected.textContent.trim() : current.column;
+    const dirLabel = container.__mobileSortDirection === 'asc' ? 'Ascending' : 'Descending';
+    summary.textContent = `${label} · ${dirLabel}`;
+  }else{
+    summary.textContent = 'Default order';
+  }
+}
+function setMobileSortOpen(container, open){
+  const wrap = container?.__mobileSortWrap;
+  const controls = container?.__mobileSortControls;
+  const toggle = container?.__mobileSortToggle;
+  if(!wrap || !controls || !toggle) return;
+  const next = !!open;
+  container.__mobileSortOpen = next;
+  wrap.dataset.open = next ? 'true' : 'false';
+  toggle.setAttribute('aria-expanded', next ? 'true' : 'false');
+  controls.hidden = !next;
+}
+function setMobileSortVisibility(container, show){
+  const wrap = container?.__mobileSortWrap;
+  if(!wrap) return;
+  const visible = !!show;
+  wrap.hidden = !visible;
+  if(!visible){
+    setMobileSortOpen(container, false);
+  }
+}
 function setSortState(container, column, direction){
   if(!container) return;
   const dir = direction==='asc'?'asc':'desc';
@@ -1761,6 +1826,7 @@ function setSortState(container, column, direction){
   else clearDesktopSortIndicators(container);
 
   updateMobileSortDirectionButton(container);
+  updateMobileSortSummary(container);
 }
 
   function handleMobileSort(container){
@@ -2248,6 +2314,29 @@ const mobileSortWrap = document.createElement('div');
 mobileSortWrap.className = 'mobile-sort';
 
 const selectId = `${container.id || siteKey || 'dash'}-mobile-sort`;
+const controlsId = `${selectId}-controls`;
+
+const mobileSortToggle = document.createElement('button');
+mobileSortToggle.type = 'button';
+mobileSortToggle.className = 'mobile-sort__toggle';
+mobileSortToggle.setAttribute('aria-expanded','false');
+
+const toggleLabel = document.createElement('span');
+toggleLabel.className = 'mobile-sort__toggle-label';
+toggleLabel.textContent = 'Sort options';
+
+const toggleSummary = document.createElement('span');
+toggleSummary.className = 'mobile-sort__summary';
+toggleSummary.textContent = 'Default order';
+
+mobileSortToggle.append(toggleLabel, toggleSummary);
+
+const mobileSortControls = document.createElement('div');
+mobileSortControls.className = 'mobile-sort__controls';
+mobileSortControls.id = controlsId;
+mobileSortControls.hidden = true;
+mobileSortToggle.setAttribute('aria-controls', controlsId);
+
 const mobileSortLabel = document.createElement('label');
 mobileSortLabel.className = 'mobile-sort__label';
 mobileSortLabel.setAttribute('for', selectId);
@@ -2270,7 +2359,9 @@ headers.forEach(h => {
 const mobileSortDirBtn = document.createElement('button');
 mobileSortDirBtn.type = 'button';
 mobileSortDirBtn.className = 'mobile-sort__direction';
-mobileSortWrap.append(mobileSortLabel, mobileSortSelect, mobileSortDirBtn);
+
+mobileSortControls.append(mobileSortLabel, mobileSortSelect, mobileSortDirBtn);
+mobileSortWrap.append(mobileSortToggle, mobileSortControls);
 
 const mobileCards = document.createElement('div');
 mobileCards.className = 'mobile-cards';
@@ -2289,9 +2380,16 @@ container.__thead = thead;
 container.__tbody = tbody;
 container.__mobileCards = mobileCards;
 container.__mobileSortWrap = mobileSortWrap;
+container.__mobileSortToggle = mobileSortToggle;
+container.__mobileSortControls = mobileSortControls;
 container.__mobileSortSelect = mobileSortSelect;
 container.__mobileSortDirectionBtn = mobileSortDirBtn;
+container.__mobileSortSummary = toggleSummary;
 container.__emptyState = emptyState;
+
+setMobileSortOpen(container, false);
+updateMobileSortSummary(container);
+updateMobileSortDirectionButton(container);
 
   // table header + sorting (desktop)
   thead.innerHTML = `<tr>${headers.map(h=>`<th scope="col" data-col="${esc(h)}" tabindex="0"><span>${esc(h)}</span><span class="sort-arrow" aria-hidden="true"></span></th>`).join('')}</tr>`;
@@ -2304,6 +2402,13 @@ container.__emptyState = emptyState;
   // mobile sort UI
   mobileSortSelect.addEventListener('change', ()=> handleMobileSort(container));
   mobileSortDirBtn.addEventListener('click', ()=>{ if(!mobileSortDirBtn.disabled) toggleMobileSortDirection(container); });
+  mobileSortToggle.addEventListener('click', ()=>{
+    const next = !container.__mobileSortOpen;
+    setMobileSortOpen(container, next);
+    if(next){
+      queueMicrotask(()=> mobileSortSelect.focus());
+    }
+  });
 
   // initial data & sort
   const baseRows = rows.slice();
