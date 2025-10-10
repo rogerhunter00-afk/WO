@@ -838,6 +838,7 @@ tbody td{padding:8px 6px;box-sizing:border-box}
       active:false,
       userDisabled:false,
       motionQuery:window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):null,
+      lastFrameTime:0,
     };
 
     const rootEl=document.documentElement;
@@ -1000,6 +1001,7 @@ tbody td{padding:8px 6px;box-sizing:border-box}
       if(state.snowCtx){
         state.snowCtx.clearRect(0,0,state.width,state.height);
       }
+      state.lastFrameTime=0;
     }
 
     function renderSnow(){
@@ -1011,6 +1013,13 @@ tbody td{padding:8px 6px;box-sizing:border-box}
       const ctx=state.snowCtx;
       const w=state.width;
       const h=state.height;
+      const now=performance.now();
+      if(!state.lastFrameTime){
+        state.lastFrameTime=now;
+      }
+      const delta=Math.min(now-state.lastFrameTime,160);
+      const step=delta/16.6667;
+      state.lastFrameTime=now;
       ctx.clearRect(0,0,w,h);
 
       if(!state.flakes.length){
@@ -1021,8 +1030,8 @@ tbody td{padding:8px 6px;box-sizing:border-box}
 
       ctx.fillStyle='rgba(255,255,255,0.85)';
       for(const flake of state.flakes){
-        flake.x+=flake.vx;
-        flake.y+=flake.vy;
+        flake.x+=flake.vx*step;
+        flake.y+=flake.vy*step;
 
         if(flake.x<-flake.radius) flake.x=w+flake.radius;
         if(flake.x>w+flake.radius) flake.x=-flake.radius;
@@ -1047,6 +1056,7 @@ tbody td{padding:8px 6px;box-sizing:border-box}
         stopSnow();
         return;
       }
+      state.lastFrameTime=performance.now();
       if(state.animating) return;
       state.animating=true;
       state.rafId=requestAnimationFrame(renderSnow);
@@ -1089,6 +1099,7 @@ tbody td{padding:8px 6px;box-sizing:border-box}
         state.snowCanvas.style.display='block';
       }
       state.flakes=createFlakes(count);
+      state.lastFrameTime=performance.now();
       startSnow();
     }
 
@@ -1102,6 +1113,7 @@ tbody td{padding:8px 6px;box-sizing:border-box}
         if(state.snowCanvas){
           state.snowCanvas.style.display='block';
         }
+        state.lastFrameTime=performance.now();
         startSnow();
       }
     }
