@@ -3275,9 +3275,11 @@ const themeBtn=document.getElementById('themeBtn');
 const metaColorScheme=document.querySelector('meta[name="color-scheme"]');
 const ThemeController=(()=>{
   const STORAGE_KEY='alsDesiredTheme';
+  const WINTER_LIGHTS_KEY='alsWinterLights';
   const motionQuery=window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):null;
   let desiredTheme=(localStorage.getItem(STORAGE_KEY)==='dark')?'dark':'light';
   let winterLock=false;
+  let winterLights=localStorage.getItem(WINTER_LIGHTS_KEY)==='1';
 
   function isWinterPlanActive(){
     return winterLock;
@@ -3292,32 +3294,30 @@ const ThemeController=(()=>{
     document.body.classList.toggle('dark', normalized==='dark');
     document.body.classList.toggle('light', normalized!=='dark');
     metaColorScheme?.setAttribute('content', normalized);
-    if(window.ChristmasLights){
-      if(normalized==='light' && !prefersReducedMotion() && !isWinterPlanActive()){
-        window.ChristmasLights.enable();
-      }else{
-        window.ChristmasLights.disable();
-      }
-      window.ChristmasLights.refresh?.();
-    }
+    applyChristmasLights();
   }
 
   function refreshButton(){
     if(!themeBtn) return;
     const preferDark=desiredTheme==='dark';
     if(isWinterPlanActive()){
-      themeBtn.textContent=`Winter Plan pref: ${preferDark?'Dark':'Light'}`;
-      themeBtn.title='Winter Plan stays dark; preference saved for when you leave.';
-      themeBtn.setAttribute('aria-label', themeBtn.title);
+      const activeLights=winterLights && !prefersReducedMotion();
+      const offTitle='Enable light mode to turn on the Christmas lights.';
+      const onTitle='Light mode is on. Click to turn off the Christmas lights.';
+      themeBtn.textContent='Light mode';
+      const title=activeLights?onTitle:offTitle;
+      themeBtn.title=title;
+      themeBtn.setAttribute('aria-label', title);
+      themeBtn.setAttribute('aria-pressed', activeLights?'true':'false');
     }else{
       themeBtn.textContent=preferDark?'Switch to light mode':'Switch to dark mode';
       const title=preferDark?'Currently dark. Click to switch to light mode.':'Currently light. Click to switch to dark mode.';
       themeBtn.title=title;
       themeBtn.setAttribute('aria-label', title);
+      themeBtn.setAttribute('aria-pressed', preferDark?'true':'false');
     }
     themeBtn.disabled=false;
     themeBtn.removeAttribute('aria-disabled');
-    themeBtn.setAttribute('aria-pressed', preferDark?'true':'false');
   }
 
   function setTheme(theme,{force=false,skipStore=false}={}){
@@ -3334,6 +3334,26 @@ const ThemeController=(()=>{
     refreshButton();
   }
 
+  function applyChristmasLights(){
+    if(!window.ChristmasLights) return;
+    const shouldGlow=winterLights && isWinterPlanActive() && !prefersReducedMotion();
+    if(shouldGlow){
+      window.ChristmasLights.enable();
+    }else{
+      window.ChristmasLights.disable();
+    }
+    window.ChristmasLights.refresh?.();
+  }
+
+  function setWinterLights(on,{skipStore=false}={}){
+    winterLights=!!on;
+    if(!skipStore){
+      localStorage.setItem(WINTER_LIGHTS_KEY, winterLights?'1':'0');
+    }
+    applyChristmasLights();
+    refreshButton();
+  }
+
   function applyStoredTheme({force=false}={}){
     setTheme(desiredTheme,{force,skipStore:true});
   }
@@ -3343,17 +3363,23 @@ const ThemeController=(()=>{
   }
 
   function toggle(){
-    const next=desiredTheme==='dark'?'light':'dark';
-    setTheme(next);
+    if(isWinterPlanActive()){
+      setWinterLights(!winterLights);
+    }else{
+      const next=desiredTheme==='dark'?'light':'dark';
+      setTheme(next);
+    }
   }
 
   function setWinterLock(active){
     winterLock=!!active;
     refreshButton();
+    applyChristmasLights();
   }
 
   function init(){
     applyVisualTheme(desiredTheme);
+    applyChristmasLights();
     refreshButton();
     themeBtn?.addEventListener('click', ()=>{ toggle(); });
     if(motionQuery){
@@ -3381,6 +3407,8 @@ const ThemeController=(()=>{
     setWinterLock,
     isWinterPlanActive,
     prefersReducedMotion,
+    applyChristmasLights,
+    setWinterLights,
   };
 })();
 
@@ -3399,11 +3427,11 @@ const SeasonalTheme=(()=>{
         window.WinterOverlay.setDensity('medium');
         window.WinterOverlay.refresh?.();
       }
-      window.ChristmasLights?.disable();
+      ThemeController.applyChristmasLights();
     }else{
       window.WinterOverlay?.destroy();
       ThemeController.applyStoredTheme({ force:true });
-      window.ChristmasLights?.refresh?.();
+      ThemeController.applyChristmasLights();
     }
   }
 
