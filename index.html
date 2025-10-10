@@ -3532,7 +3532,8 @@ ThemeController.init();
 SeasonalTheme.apply('all');
 
   // Detect mobile (also allow ?mobile=1 for desktop testing, or <body class="force-mobile">)
-const MOBILE_BREAKPOINT = 960;
+// Keep this in sync with the CSS breakpoint that switches to the tile/mobile layout
+const MOBILE_BREAKPOINT = 1248;
 
 function isMobileView(){
   if (document.body.classList.contains('force-mobile')) return true;
