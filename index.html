@@ -695,6 +695,7 @@ tbody td{padding:8px 6px;box-sizing:border-box}
     pointer-events:none;
     display:none;
     z-index:9997;
+    isolation:isolate;
   }
   #christmasLights .lights-strand{
     position:absolute;
@@ -733,9 +734,15 @@ tbody td{padding:8px 6px;box-sizing:border-box}
     width:18px;
     height:26px;
     margin:10px auto 0;
-    background:var(--bulb-color,#f87171);
+    background:radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--bulb-color,#f87171) 92%, #fff) 0%, color-mix(in srgb, var(--bulb-color,#f87171) 88%, transparent) 46%, color-mix(in srgb, var(--bulb-color,#f87171) 48%, transparent) 100%);
     border-radius:50% 50% 55% 55%;
-    box-shadow:0 0 12px color-mix(in srgb,var(--bulb-color,#f87171) 60%,transparent);
+    box-shadow:
+      0 0 18px color-mix(in srgb,var(--bulb-color,#f87171) 70%,transparent),
+      0 0 42px color-mix(in srgb,var(--bulb-color,#f87171) 55%,transparent),
+      0 0 78px color-mix(in srgb,var(--bulb-color,#f87171) 45%,transparent),
+      0 0 120px color-mix(in srgb,var(--bulb-color,#f87171) 38%,transparent);
+    filter:drop-shadow(0 0 12px color-mix(in srgb,var(--bulb-color,#f87171) 78%,transparent)) drop-shadow(0 0 34px color-mix(in srgb,var(--bulb-color,#f87171) 58%,transparent));
+    mix-blend-mode:screen;
     animation:lightTwinkle 1.9s ease-in-out infinite;
     animation-delay:var(--twinkle-delay,0s);
   }
@@ -760,8 +767,24 @@ tbody td{padding:8px 6px;box-sizing:border-box}
     100%{transform:rotate(-4deg);}
   }
   @keyframes lightTwinkle{
-    0%,100%{opacity:.9;box-shadow:0 0 6px color-mix(in srgb,var(--bulb-color,#f87171) 35%,transparent);}
-    50%{opacity:1;box-shadow:0 0 18px color-mix(in srgb,var(--bulb-color,#f87171) 75%,transparent);}
+    0%,100%{
+      opacity:.9;
+      box-shadow:
+        0 0 20px color-mix(in srgb,var(--bulb-color,#f87171) 68%,transparent),
+        0 0 46px color-mix(in srgb,var(--bulb-color,#f87171) 52%,transparent),
+        0 0 86px color-mix(in srgb,var(--bulb-color,#f87171) 42%,transparent),
+        0 0 130px color-mix(in srgb,var(--bulb-color,#f87171) 34%,transparent);
+      filter:drop-shadow(0 0 14px color-mix(in srgb,var(--bulb-color,#f87171) 80%,transparent)) drop-shadow(0 0 38px color-mix(in srgb,var(--bulb-color,#f87171) 60%,transparent));
+    }
+    50%{
+      opacity:1;
+      box-shadow:
+        0 0 28px color-mix(in srgb,var(--bulb-color,#f87171) 82%,transparent),
+        0 0 62px color-mix(in srgb,var(--bulb-color,#f87171) 62%,transparent),
+        0 0 120px color-mix(in srgb,var(--bulb-color,#f87171) 50%,transparent),
+        0 0 170px color-mix(in srgb,var(--bulb-color,#f87171) 42%,transparent);
+      filter:drop-shadow(0 0 18px color-mix(in srgb,var(--bulb-color,#f87171) 86%,transparent)) drop-shadow(0 0 52px color-mix(in srgb,var(--bulb-color,#f87171) 65%,transparent));
+    }
   }
   @media (prefers-reduced-motion: reduce){
     #christmasLights .light-bulb,
@@ -3168,12 +3191,34 @@ if (targetId) setActiveDash(targetId);
 
 // Tabs
 const tabs = Array.from(document.querySelectorAll('.nav .tab'));
-tabs.forEach(btn => btn.addEventListener('click', ()=> setActiveDash(btn.getAttribute('aria-controls'))));
+const WINTER_TAB_ID = 'dash-winter';
+let lastNonWinterDashId = 'dash-all';
+
+function handleTabClick(btn){
+  const targetId = btn?.getAttribute('aria-controls');
+  if(!targetId) return;
+  const activeId = getActiveDashId();
+
+  if(targetId === WINTER_TAB_ID && activeId === WINTER_TAB_ID){
+    const fallbackId = lastNonWinterDashId && lastNonWinterDashId !== WINTER_TAB_ID
+      ? lastNonWinterDashId
+      : 'dash-all';
+    setActiveDash(fallbackId);
+    return;
+  }
+
+  setActiveDash(targetId);
+}
+
+tabs.forEach(btn => btn.addEventListener('click', ()=> handleTabClick(btn)));
 function setActiveDash(id){
   const active = document.getElementById(id);
   if(!active) return;  // guard
 
   const site = active.dataset.site || active.id.replace(/^dash-/, '');
+  if(id !== WINTER_TAB_ID){
+    lastNonWinterDashId = id;
+  }
   SeasonalTheme.apply(site);
   document.querySelectorAll('.dash').forEach(sec => {
     const isMatch = sec.dataset.site === site;
