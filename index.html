@@ -67,7 +67,7 @@ body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Hel
 
 /* paint under sticky elements to avoid blue gap as things pin */
 body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offset, var(--sticky-controls-offset,0px));background:var(--paper);pointer-events:none;z-index:180}
-@media (max-width: 680px){body::before{height:0}}
+@media (max-width: 960px){body::before{height:0}}
 
 .page{--page-pad-top:12px;--page-pad-inline:48px;--page-pad-bottom:56px;padding:var(--page-pad-top) var(--page-pad-inline) var(--page-pad-bottom);box-sizing:border-box;max-width:clamp(960px,96vw,1680px);margin-inline:auto}
 
@@ -339,7 +339,7 @@ tbody td{padding:8px 6px;box-sizing:border-box}
 .mobile-sort__direction[disabled]{opacity:.45;cursor:not-allowed;box-shadow:none;background:color-mix(in srgb,var(--als-blue) 4%,var(--paper));color:color-mix(in srgb,var(--als-blue) 55%,var(--muted));border-color:color-mix(in srgb,var(--als-blue) 35%,var(--grid))}
 .mobile-card .status-chip{font-size:12px}
 .mobile-card .chip-cat{padding:3px 8px;font-size:11px;margin:2px 4px 4px 0}
-@media(max-width:700px){
+@media(max-width:960px){
   .dash-table{display:none}
   .mobile-cards{display:block}
   .page{--page-pad-inline:16px}
@@ -444,7 +444,7 @@ tbody td{padding:8px 6px;box-sizing:border-box}
 }
 
 /* ADD THIS NEW MOBILE OVERRIDE */
-@media (max-width:700px){
+@media (max-width:960px){
   html, body{ overflow:auto; }
   .table-scroll{ max-height:none; }
 }
@@ -3492,10 +3492,12 @@ ThemeController.init();
 SeasonalTheme.apply('all');
 
   // Detect mobile (also allow ?mobile=1 for desktop testing, or <body class="force-mobile">)
+const MOBILE_BREAKPOINT = 960;
+
 function isMobileView(){
   if (document.body.classList.contains('force-mobile')) return true;
   if (new URLSearchParams(location.search).has('mobile')) return true;
-  return window.matchMedia('(max-width: 700px)').matches;
+  return window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches;
 }
 
 function cardHTML(row){
