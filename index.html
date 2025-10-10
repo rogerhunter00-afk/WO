@@ -58,6 +58,11 @@ body.dark{
   background-color:#040b1d;
 }
 
+body.dark::before{
+  background:linear-gradient(180deg,var(--winter-night-start),var(--winter-night-end));
+  background-color:#040b1d;
+}
+
 body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";color:var(--ink);background:var(--paper);margin:0;font-size:13px;line-height:1.32;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 
 /* paint under sticky elements to avoid blue gap as things pin */
