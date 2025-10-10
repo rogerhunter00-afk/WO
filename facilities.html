@@ -39,7 +39,7 @@ html, body{
   --col-id:66px; --col-title:280px; --col-status:120px; --col-priority:92px;
   --col-assigned:160px; --col-created:110px; --col-updated:120px;
   --col-completed:110px; --col-age:96px; --col-location:180px;
-  --col-asset:220px; --col-categories:160px;
+  --col-asset:220px; --col-comments:320px; --col-categories:160px;
 }
 
 @media(prefers-color-scheme:dark){:root{color-scheme:dark;--ink:#f3f4f6;--muted:#9ca3af;--als-blue:#3b82f6;--als-blue-strong:#2563eb;--thead:#1e3a8a;--grid:#374151;--zebra:#1f2937;--done-tx:#10b981;--open-tx:#3b82f6;--hold-tx:#fbbf24;--done-bg:#10b98133;--open-bg:#3b82f633;--hold-bg:#f59e0b33;--paper:#111827}}
@@ -254,8 +254,20 @@ tr.row-priority>td{background:color-mix(in srgb,var(--als-blue) 6%,var(--paper))
 .col-updated{width:var(--col-updated);min-width:var(--col-updated);max-width:var(--col-updated)} 
 .col-completedon{width:var(--col-completed);min-width:var(--col-completed);max-width:var(--col-completed)} 
 .col-location{width:var(--col-location);min-width:var(--col-location);max-width:var(--col-location)}
-.col-asset{width:var(--col-asset);min-width:var(--col-asset);max-width:var(--col-asset)} 
+.col-asset{width:var(--col-asset);min-width:var(--col-asset);max-width:var(--col-asset)}
+.col-comments{width:var(--col-comments);min-width:var(--col-comments);max-width:var(--col-comments)}
 .col-categories{width:auto!important}
+
+.table-scroll thead th[data-col="Comments"],
+.table-scroll thead th[data-col="Comment"],
+.table-scroll thead th[data-col="Notes"],
+.table-scroll thead th[data-col="Remarks"],
+.table-scroll td[data-col="Comments"],
+.table-scroll td[data-col="Comment"],
+.table-scroll td[data-col="Notes"],
+.table-scroll td[data-col="Remarks"]{
+  min-width:var(--col-comments);
+}
 
 /* Force table cells to match exactly */
 tbody td{padding:8px 6px;box-sizing:border-box}
@@ -1342,7 +1354,7 @@ function applyColumnWidths(table, headers){
   const widthMap = {
     'ID':'66px','Title':'200px','Status':'120px','Priority':'92px','Assigned to':'160px',
     'Created on':'110px','Completed on':'110px','Last updated':'120px','Age':'96px',
-    'Location':'160px','Asset':'150px','Categories':'140px'
+    'Location':'160px','Asset':'150px','Comments':'320px','Comment':'320px','Notes':'320px','Remarks':'320px','Categories':'140px'
   };
   const colgroup = document.createElement('colgroup');
   headers.forEach(h=>{
