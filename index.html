@@ -711,17 +711,23 @@ tbody td{padding:8px 6px;box-sizing:border-box}
     display:flex;
     justify-content:space-between;
     align-items:flex-start;
-    padding:12px 24px 0;
+    padding:18px 36px 0;
+    gap:12px;
   }
-  #christmasLights .lights-strand::before{
-    content:"";
+  #christmasLights .lights-cable{
     position:absolute;
-    top:26px;
-    left:1.5%;
-    right:1.5%;
-    height:0;
-    border-top:3px solid rgba(31,41,55,.28);
-    border-radius:70% 70% 0 0;
+    top:14px;
+    left:0;
+    right:0;
+    height:94px;
+    width:100%;
+  }
+  #christmasLights .lights-cable path{
+    fill:none;
+    stroke:rgba(31,41,55,.32);
+    stroke-width:3;
+    stroke-linecap:round;
+    stroke-linejoin:round;
   }
   #christmasLights .light-bulb{
     position:relative;
@@ -1157,7 +1163,7 @@ tbody td{padding:8px 6px;box-sizing:border-box}
   <script>
   (()=>{
     const COLORS=['#f97316','#fde047','#34d399','#60a5fa','#f472b6'];
-    const COUNT=26;
+    const COUNT=18;
     const motionQuery=window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):null;
     let container=null;
     let enabled=false;
@@ -1173,15 +1179,25 @@ tbody td{padding:8px 6px;box-sizing:border-box}
       container.setAttribute('aria-hidden','true');
       const strand=document.createElement('div');
       strand.className='lights-strand';
+      const cable=document.createElementNS('http://www.w3.org/2000/svg','svg');
+      cable.classList.add('lights-cable');
+      cable.setAttribute('viewBox','0 0 100 60');
+      cable.setAttribute('preserveAspectRatio','none');
+      const cablePath=document.createElementNS('http://www.w3.org/2000/svg','path');
+      cablePath.setAttribute('d','M0 26 C 18 66, 26 66, 38 26 S 62 -14, 74 26 S 88 66, 100 26');
+      cable.appendChild(cablePath);
       for(let i=0;i<COUNT;i++){
         const bulb=document.createElement('span');
         bulb.className='light-bulb';
         bulb.style.setProperty('--bulb-color', COLORS[i % COLORS.length]);
         bulb.style.setProperty('--twinkle-delay', `${(i % COLORS.length)*0.18}s`);
-        const wave=COUNT>1?Math.sin((i/(COUNT-1))*Math.PI):0;
-        bulb.style.setProperty('--bulb-offset', `${(wave*18).toFixed(2)}px`);
+        const t=COUNT>1?i/(COUNT-1):0;
+        const wave=Math.pow(Math.sin(t*Math.PI*2),2);
+        const offset=8+wave*28;
+        bulb.style.setProperty('--bulb-offset', `${offset.toFixed(2)}px`);
         strand.appendChild(bulb);
       }
+      container.appendChild(cable);
       container.appendChild(strand);
       document.body.appendChild(container);
       updateMotionState();
