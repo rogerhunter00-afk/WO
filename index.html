@@ -27,6 +27,7 @@
   --priority-rail:#E85A70;
   --sticky-controls-offset:0px;
   --ui-offset:0px;
+  --table-min-width:1100px;
   --winter-night-start:#020b1f;
   --winter-night-mid:color-mix(in srgb,#020b1f 55%,#08163a 45%);
   --winter-night-end:#08163a;
@@ -147,7 +148,7 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
 /* ===== TABLE WITH WORKING STICKY HEADER ===== */
 table{
   width:100%;
-  min-width:1100px;
+  min-width:var(--table-min-width, 1100px);
   border-collapse:separate;
   border-spacing:0;
   table-layout:fixed;
@@ -3532,10 +3533,45 @@ SeasonalTheme.apply('all');
 // Keep this in sync with the CSS breakpoint that switches to the tile/mobile layout
 const MOBILE_BREAKPOINT = 1248;
 
+const TABLE_WIDTH_TOLERANCE = 1;
+let __tableMinWidthCache = null;
+
+function getTableMinWidth(){
+  if (__tableMinWidthCache != null) return __tableMinWidthCache;
+  const raw = getComputedStyle(document.documentElement).getPropertyValue('--table-min-width');
+  const parsed = parseFloat(raw);
+  __tableMinWidthCache = Number.isFinite(parsed) ? parsed : 1100;
+  return __tableMinWidthCache;
+}
+
+function pageAvailableWidth(){
+  const page = document.querySelector('.page');
+  return (page?.clientWidth || document.documentElement.clientWidth || window.innerWidth || 0);
+}
+
+function needsMobileLayout(){
+  const minWidth = getTableMinWidth();
+  const activeWrap = document.querySelector('.dash[data-active="true"] .table-scroll');
+
+  if (activeWrap && !activeWrap.hidden){
+    const available = activeWrap.clientWidth;
+    if (available > 0){
+      const table = activeWrap.querySelector('table');
+      const required = table ? (table.scrollWidth || table.offsetWidth || minWidth) : minWidth;
+      const delta = required - available;
+      if (delta > TABLE_WIDTH_TOLERANCE) return true;
+      if (delta < -TABLE_WIDTH_TOLERANCE) return false;
+    }
+  }
+
+  return pageAvailableWidth() + TABLE_WIDTH_TOLERANCE < minWidth;
+}
+
 function isMobileView(){
   if (document.body.classList.contains('force-mobile')) return true;
   if (new URLSearchParams(location.search).has('mobile')) return true;
-  return window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches;
+  if (window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches) return true;
+  return needsMobileLayout();
 }
 
 function cardHTML(row){
