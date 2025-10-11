@@ -6,15 +6,36 @@
   <title>PSSR Inspection Tracker – ALS Engineering Dashboard</title>
   <style>
     :root {
+      --bg:#f3f5f9;
+      --paper:#ffffff;
       --ink:#0b0f1a;
       --muted:#6b7280;
-      --als-blue:#0b67c2;
-      --als-blue-strong:#0a5cb0;
-      --thead:#0b67c2;
+      --border:#e5e9f2;
+
+      --brand:#0b67c2;
+      --brand-strong:#0a5cb0;
+
+      --btn-fg:#ffffff;
+      --btn-bg:var(--brand);
+      --btn-bg-hover:var(--brand-strong);
+      --btn-outline-fg:var(--brand);
+      --btn-outline-bd:#bcd7f4;
+      --btn-ghost-fg:var(--brand);
+      --btn-ghost-bg:transparent;
+      --btn-ghost-bg-hover:rgba(11,103,194,.10);
+
+      --input-bg:#ffffff;
+      --input-fg:var(--ink);
+      --input-bd:var(--border);
+      --input-bd-focus:var(--brand);
+      --shadow:0 1px 2px rgba(16,24,40,.06),0 4px 10px rgba(16,24,40,.06);
+
+      --als-blue:var(--brand);
+      --als-blue-strong:var(--brand-strong);
+      --thead:var(--brand);
       --thead-text:#fff;
-      --grid:#e6e9ef;
-      --zebra:#fff;
-      --paper:#fff;
+      --grid:var(--border);
+      --zebra:var(--paper);
       --sticky-controls-offset:0px;
       color-scheme:light;
     }
@@ -22,20 +43,30 @@
     @media (prefers-color-scheme: dark) {
       :root {
         color-scheme:dark;
+        --bg:#0f1422;
+        --paper:#131a2b;
         --ink:#f3f4f6;
         --muted:#9ca3af;
-        --als-blue:#3b82f6;
-        --als-blue-strong:#2563eb;
+        --border:#233150;
+        --brand:#3b82f6;
+        --brand-strong:#2563eb;
+        --btn-outline-bd:#2b3a63;
+        --btn-ghost-bg-hover:rgba(11,103,194,.18);
+        --input-bg:#0f1422;
+        --input-fg:#f3f4f6;
+        --input-bd:#233150;
+        --input-bd-focus:#3b82f6;
+        --als-blue:var(--brand);
+        --als-blue-strong:var(--brand-strong);
         --thead:#1e3a8a;
-        --grid:#374151;
-        --zebra:#111827;
-        --paper:#0f172a;
+        --grid:#233150;
+        --zebra:#1c2438;
       }
     }
 
     body {
       margin:0;
-      background:var(--paper);
+      background:var(--bg);
       color:var(--ink);
       font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
       font-size:13px;
@@ -48,30 +79,32 @@
       position:fixed;
       inset:0 0 auto 0;
       height:var(--sticky-controls-offset);
-      background:var(--paper);
+      background:var(--bg);
       pointer-events:none;
       z-index:180;
     }
 
     .page {
       --page-pad-top:12px;
-      --page-pad-inline:32px;
-      --page-pad-bottom:32px;
+      --page-pad-inline:clamp(20px,4vw,32px);
+      --page-pad-bottom:28px;
       padding:var(--page-pad-top) var(--page-pad-inline) var(--page-pad-bottom);
-      max-width:clamp(920px,92vw,1280px);
+      max-width:clamp(920px,94vw,1320px);
       margin-inline:auto;
       box-sizing:border-box;
     }
 
     @media (max-width: 960px){
       .page {
-        --page-pad-inline:24px;
+        --page-pad-inline:clamp(18px,6vw,26px);
+        --page-pad-bottom:24px;
       }
     }
 
     @media (max-width: 720px){
       .page {
         --page-pad-inline:16px;
+        --page-pad-bottom:20px;
       }
     }
 
@@ -273,46 +306,65 @@
       position:sticky;
       top:0;
       z-index:300;
-      background:var(--paper);
-      border-bottom:1px solid var(--grid);
+      background:color-mix(in srgb,var(--bg) 20%,transparent);
+      border-bottom:1px solid color-mix(in srgb,var(--border) 55%,transparent);
       padding:8px 0;
+      backdrop-filter:blur(12px);
     }
 
     .sticky-top__content {
       display:flex;
       align-items:center;
-      justify-content:space-between;
+      justify-content:flex-start;
+      gap:10px;
+      row-gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .controls-bar {
+      background:transparent;
+      border:0;
+      box-shadow:none;
+      padding:8px 0;
+      display:flex;
       gap:10px;
       flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .controls-bar>* {
+      flex:0 0 auto;
     }
 
     .sticky-controls {
       display:flex;
       gap:10px;
+      row-gap:8px;
       align-items:center;
       flex-wrap:wrap;
     }
 
-    .refresh-btn,
-    .mobile-sort__direction {
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      gap:6px;
-      border:1px solid var(--als-blue);
-      border-radius:8px;
-      background:var(--paper);
-      color:var(--als-blue);
-      font-weight:700;
-      padding:6px 12px;
-      cursor:pointer;
+    .controls-bar label {
+      color:var(--muted);
+      font-weight:600;
     }
 
-    .refresh-btn:focus-visible,
-    .mobile-sort__direction:focus-visible,
-    select:focus-visible {
-      outline:2px solid color-mix(in srgb,var(--als-blue) 65%,transparent);
-      outline-offset:2px;
+    .controls-bar select {
+      background:var(--input-bg);
+      color:var(--input-fg);
+      border:1px solid var(--input-bd);
+      border-radius:10px;
+      padding:8px 10px;
+      font:inherit;
+      transition:border-color .18s ease,box-shadow .18s ease,background-color .18s ease;
+      flex:1 1 auto;
+      min-width:0;
+    }
+
+    .controls-bar select:focus {
+      outline:0;
+      border-color:var(--input-bd-focus);
+      box-shadow:0 0 0 3px color-mix(in oklab,var(--input-bd-focus) 30%,transparent);
     }
 
     .mobile-sort {
@@ -323,15 +375,64 @@
       color:var(--ink);
     }
 
-    .mobile-sort select {
-      font:inherit;
-      padding:6px 10px;
-      border-radius:8px;
-      border:1px solid var(--grid);
-      background:var(--paper);
-      color:inherit;
-      flex:1 1 auto;
-      min-width:0;
+    .btn {
+      --pad-x:14px;
+      --pad-y:8px;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:var(--pad-y) var(--pad-x);
+      border-radius:999px;
+      font-weight:600;
+      line-height:1;
+      border:1px solid transparent;
+      cursor:pointer;
+      transition:transform .02s ease,background .15s ease,border-color .15s ease;
+      color:var(--ink);
+      background:var(--btn-ghost-bg);
+    }
+
+    .btn:active {
+      transform:translateY(1px);
+    }
+
+    .btn--primary {
+      color:var(--btn-fg);
+      background:var(--btn-bg);
+      border-color:var(--btn-bg);
+    }
+
+    .btn--primary:hover {
+      background:var(--btn-bg-hover);
+    }
+
+    .btn--outline {
+      color:var(--btn-outline-fg);
+      background:transparent;
+      border-color:var(--btn-outline-bd);
+    }
+
+    .btn--outline:hover {
+      border-color:var(--btn-outline-fg);
+    }
+
+    .btn--ghost {
+      color:var(--btn-ghost-fg);
+      background:var(--btn-ghost-bg);
+    }
+
+    .btn--ghost:hover {
+      background:var(--btn-ghost-bg-hover);
+    }
+
+    .btn--sm {
+      --pad-x:10px;
+      --pad-y:6px;
+      font-size:12px;
+    }
+
+    .refresh-btn {
+      margin-right:auto;
     }
 
     .table-wrapper {
@@ -703,8 +804,8 @@
     </section>
     <section class="sticky-top" data-component="sticky-controls">
       <div class="sticky-top__content">
-        <div class="sticky-controls">
-          <button type="button" class="refresh-btn" data-action="refresh">Refresh data</button>
+        <div class="sticky-controls controls-bar">
+          <button type="button" class="refresh-btn btn btn--outline" data-action="refresh">Refresh data</button>
           <div class="mobile-sort" data-role="mobile-sort">
             <label for="mobile-sort-select">Sort by</label>
             <select id="mobile-sort-select" data-role="mobile-sort-select" aria-label="Select column to sort">
@@ -715,7 +816,7 @@
               <option value="Countdown">Countdown</option>
               <option value="Comments">Comments</option>
             </select>
-            <button type="button" class="mobile-sort__direction" data-role="mobile-sort-direction" data-direction="asc" aria-label="Toggle sort direction (currently ascending)">Ascending</button>
+            <button type="button" class="mobile-sort__direction btn btn--outline btn--sm" data-role="mobile-sort-direction" data-direction="asc" aria-label="Toggle sort direction (currently ascending)">Ascending</button>
           </div>
         </div>
       </div>
