@@ -2779,11 +2779,8 @@ function needsMobileLayout(){
   if (activeWrap && !activeWrap.hidden){
     const available = activeWrap.clientWidth;
     if (available > 0){
-      const table = activeWrap.querySelector('table');
-      const required = table ? (table.scrollWidth || table.offsetWidth || minWidth) : minWidth;
-      const delta = required - available;
-      if (delta > TABLE_WIDTH_TOLERANCE) return true;
-      if (delta < -TABLE_WIDTH_TOLERANCE) return false;
+      if (available + TABLE_WIDTH_TOLERANCE < minWidth) return true;
+      if (available - TABLE_WIDTH_TOLERANCE >= minWidth) return false;
     }
   }
 
