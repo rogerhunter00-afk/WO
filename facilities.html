@@ -50,6 +50,7 @@
   --priority-rail:#E85A70;
   --sticky-controls-offset:0px;
   --ui-offset:0px;
+  --table-min-width:1100px;
 }
 
 /* REVERT to default page scroll */
@@ -168,9 +169,15 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
 }
 
 .page-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;margin-bottom:0;position:relative;z-index:350;gap:16px}
-.page-head__title{display:flex;align-items:center;gap:12px;flex:1 1 auto;min-width:0;flex-wrap:wrap}
+.page-head__title{display:flex;align-items:center;gap:12px;flex:1 1 auto;min-width:0;flex-wrap:wrap;position:relative}
 .page-head__title .title{margin:0;flex:1 1 auto;min-width:0}
-.page-head__title .week-badge{margin-left:0}
+.page-head__title nav{margin-left:auto;display:flex;flex-wrap:wrap;gap:8px}
+.page-head__title--with-badge{padding-right:var(--week-badge-space,188px)}
+.page-head__title--with-badge .week-badge{position:absolute;top:50%;right:0;transform:translateY(-50%);margin:0;white-space:nowrap}
+.week-badge{display:inline-flex;align-items:center;gap:6px;margin-left:0;font-size:12px;font-weight:700;padding:4px 10px;border:1px solid var(--grid);border-radius:999px;background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));vertical-align:middle}
+.week-badge[data-state="loading"]::before{content:"";width:10px;height:10px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:weekBadgeSpin .75s linear infinite}
+.week-badge[hidden]{display:none}
+@keyframes weekBadgeSpin{to{transform:rotate(360deg)}}
 .title{font-size:28px;font-weight:800;margin:0;color:var(--ink)}
 .logo{height:50px;margin-left:auto;display:block;flex-shrink:0}
 .top-rule{height:2px;background:var(--als-blue);border-bottom:1px solid var(--als-blue-strong);margin:0;position:relative;z-index:320}
@@ -180,6 +187,9 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
 .sticky-content{transition:opacity .18s ease}
 .sticky-top[data-collapsed="true"]{padding:6px 0}
 .sticky-top[data-collapsed="true"] .sticky-content{display:none!important;opacity:0}
+.sticky-top[data-collapsed="true"] .controls{display:none!important}
+.sticky-top[data-collapsed="true"] .sticky-top__bar{gap:0}
+.sticky-top[data-collapsed="true"] #collapseBtn{margin-left:0}
 
 .controls{display:flex;gap:10px;row-gap:8px;align-items:center;font-size:12px;flex-wrap:wrap}
 .controls--primary{gap:8px;flex:1 1 auto}
@@ -332,7 +342,7 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
 /* ===== TABLE WITH WORKING STICKY HEADER ===== */
 table{
   width:100%;
-  min-width:1100px;
+  min-width:var(--table-min-width, 1100px);
   border-collapse:separate;
   border-spacing:0;
   table-layout:fixed;
@@ -530,16 +540,34 @@ tbody td{padding:8px 6px;box-sizing:border-box}
 .age-chip:focus-visible{outline:2px solid color-mix(in srgb,currentColor 55%,transparent);outline-offset:2px}
 
 /* mobile cards */
+.mobile-sort{display:none}
+.mobile-sort__label{font-size:11px;font-weight:700;letter-spacing:.4px;color:var(--muted);text-transform:uppercase}
+.mobile-sort__select{font:inherit;font-weight:600;padding:8px 12px;border-radius:10px;border:1px solid color-mix(in srgb,var(--als-blue) 24%,var(--grid));background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));color:var(--ink);min-width:0;flex:1 1 220px;cursor:pointer;transition:border-color .18s ease,box-shadow .18s ease,background-color .18s ease}
+.mobile-sort__select:focus-visible{outline:none;border-color:var(--als-blue);box-shadow:0 0 0 2px color-mix(in srgb,var(--als-blue) 30%,transparent)}
+.mobile-sort__direction{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:10px;border:1px solid var(--als-blue);background:color-mix(in srgb,var(--als-blue) 14%,var(--paper));color:var(--als-blue);font-weight:700;cursor:pointer;transition:background-color .18s ease,border-color .18s ease,color .18s ease,box-shadow .18s ease}
+.mobile-sort__direction:hover{background:color-mix(in srgb,var(--als-blue) 20%,var(--paper));box-shadow:0 6px 16px color-mix(in srgb,var(--als-blue) 18%,transparent)}
+.mobile-sort__direction:focus-visible{outline:2px solid color-mix(in srgb,var(--als-blue) 60%,transparent);outline-offset:2px}
+.mobile-sort__direction::after{content:"";width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid currentColor;transition:transform .18s ease}
+.mobile-sort__direction[data-direction="desc"]::after{transform:rotate(180deg)}
+.mobile-sort__direction[disabled]{opacity:.45;cursor:not-allowed;box-shadow:none;background:color-mix(in srgb,var(--als-blue) 6%,var(--paper));color:color-mix(in srgb,var(--als-blue) 55%,var(--muted));border-color:color-mix(in srgb,var(--als-blue) 35%,var(--grid))}
 .mobile-cards{display:none}
-.mobile-card{border:1px solid var(--grid);border-radius:14px;padding:12px;background:var(--paper);display:grid;grid-template-columns:1fr auto;gap:8px 12px}
+.mobile-card{border:1px solid var(--grid);border-radius:14px;padding:10px 12px;background:var(--paper);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:start}
 .mobile-card+.mobile-card{margin-top:10px}
-.mobile-card__title{font-weight:800;line-height:1.3}
+.mobile-card__title{font-weight:800;line-height:1.3;display:flex;flex-wrap:wrap;gap:6px;align-items:baseline;min-width:0}
+.mobile-card__name{font-weight:800;min-width:0;flex:1 1 auto;word-break:break-word}
+.mobile-card__badge{justify-self:end;align-self:start}
 .mobile-card__id{font-weight:900;opacity:.7}
-.mobile-card__meta{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--muted)}
-.mobile-card__row{grid-column:1/-1;display:flex;gap:8px;align-items:center}
+.mobile-card__meta{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:4px 12px;font-size:12px;color:var(--muted)}
+.mobile-card__row{display:flex;align-items:center;gap:6px;min-width:0}
+.mobile-card__row strong{font-weight:700;white-space:nowrap}
+.mobile-card__row span{min-width:0}
+.mobile-card__categories{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px}
 .mobile-card .status-chip{font-size:12px}
-.mobile-card .chip-cat{padding:3px 8px;font-size:11px;margin:2px 4px 0 0}
+.mobile-card .chip-cat{padding:3px 8px;font-size:11px;margin:2px 6px 0 0}
 @media(max-width:910px){
+  .mobile-sort{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;margin:12px 0 16px;padding:12px;border:1px solid var(--grid);border-radius:14px;background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));box-shadow:0 10px 24px rgba(11,103,194,.08)}
+  .mobile-sort__label{flex:1 1 100%;margin:0}
+  .mobile-sort__select{flex:1 1 220px}
   .dash-table{display:none}
   .mobile-cards{display:block}
   .page{--page-pad-inline:16px}
@@ -612,6 +640,8 @@ tbody td{padding:8px 6px;box-sizing:border-box}
 @media(max-width:884px){
   .page{--page-pad-top:16px;--page-pad-inline:16px;--page-pad-bottom:28px}
   .page-head{flex-direction:column;align-items:flex-start;gap:12px}
+  .page-head__title--with-badge{padding-right:0}
+  .page-head__title--with-badge .week-badge{position:static;transform:none;margin-top:8px}
   .title{font-size:24px;margin-bottom:4px}
   .logo{height:42px}
   .controls{column-gap:10px;row-gap:8px}
@@ -630,8 +660,6 @@ tbody td{padding:8px 6px;box-sizing:border-box}
   .controls,.columns-bar{display:none!important}
   .active-filter-chips{display:none!important}
 }
-
-.week-badge{display:inline-block;margin-left:12px;font-size:12px;font-weight:700;padding:4px 10px;border:1px solid var(--grid);border-radius:999px;background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));vertical-align:middle}
 
 @media print{
   html, body{ overflow:visible; }
@@ -738,9 +766,9 @@ tbody td{padding:8px 6px;box-sizing:border-box}
 <body class="light">
   <div class="page">
     <header class="page-head">
-      <div class="page-head__title">
+      <div class="page-head__title page-head__title--with-badge">
         <h1 class="title">Facilities Work Orders Dashboard</h1>
-        <span class="week-badge" id="week-badge" aria-live="polite">Loading…</span>
+        <span class="week-badge" id="week-badge" aria-live="polite" data-state="loading">Loading…</span>
         <nav class="nav" aria-label="Dashboard sections">
           <a class="tab" href="index.html">Work Orders</a>
           <a class="tab" aria-selected="true" href="facilities.html">Facilities</a>
@@ -859,8 +887,21 @@ tbody td{padding:8px 6px;box-sizing:border-box}
   let __loadController = null;
 
 const $loading = () => document.getElementById('loadingOverlay');
-const showLoading = () => { const el = $loading(); if (el) el.style.display = 'grid'; };
-const hideLoading = () => { const el = $loading(); if (el) el.style.display = 'none'; };
+const getWeekBadge = () => document.getElementById('week-badge');
+const showLoading = (message = 'Loading…') => {
+  const overlay = $loading();
+  if (overlay) overlay.style.display = 'grid';
+  const badge = getWeekBadge();
+  if (badge) {
+    badge.hidden = false;
+    badge.dataset.state = 'loading';
+    badge.textContent = message;
+  }
+};
+const hideLoading = () => {
+  const overlay = $loading();
+  if (overlay) overlay.style.display = 'none';
+};
 
 async function loadChosenGid(meta, { bust=false } = {}){
   if (__loadController) __loadController.abort();
@@ -1909,30 +1950,19 @@ function chooseInitialWeek(weeks){
 }
 
 function setWeekBadge(text, { prefix='Week' } = {}){
-  const titleEl = document.querySelector('.title');
-  if(!titleEl) return;
-
-  let badge = document.getElementById('week-badge');
-  if(!badge){
-    badge = document.createElement('span');
-    badge.id = 'week-badge';
-    badge.style.marginLeft   = '10px';
-    badge.style.fontSize     = '12px';
-    badge.style.fontWeight   = '800';
-    badge.style.padding      = '4px 8px';
-    badge.style.border       = '1px solid var(--grid)';
-    badge.style.borderRadius = '999px';
-    badge.style.background   = 'color-mix(in srgb, var(--als-blue) 10%, var(--paper))';
-    titleEl.appendChild(badge);
-  }
+  const badge = getWeekBadge();
+  if(!badge) return;
+  badge.hidden = false;
+  badge.dataset.state = 'ready';
   badge.textContent = `${prefix}: ${text || 'Latest'}`;
 }
 
 function applyWeekBadge(meta){
   if(meta?.weekEnd === SINGLE_SHEET_WEEK_END){
-    const badge = document.getElementById('week-badge');
+    const badge = getWeekBadge();
     if(badge){
-      badge.remove();
+      badge.hidden = true;
+      badge.dataset.state = 'ready';
     }
     return;
   }
@@ -2852,8 +2882,20 @@ const $collapseBtn = document.getElementById('collapseBtn');
 function setCollapsed(isCollapsed){
   if(!$sticky || !$collapseBtn) return;
   $sticky.dataset.collapsed = isCollapsed ? 'true' : 'false';
+  const label = isCollapsed ? 'Show controls' : 'Hide controls';
   $collapseBtn.setAttribute('aria-expanded', String(!isCollapsed));
-  $collapseBtn.textContent = isCollapsed ? 'Show controls' : 'Hide controls';
+  $collapseBtn.textContent = label;
+  $collapseBtn.setAttribute('aria-label', label);
+  $collapseBtn.title = label;
+
+  const hiddenTargets = $sticky.querySelectorAll('.sticky-content, .controls');
+  hiddenTargets.forEach(el => {
+    if (isCollapsed){
+      el.setAttribute('aria-hidden', 'true');
+    } else {
+      el.removeAttribute('aria-hidden');
+    }
+  });
 
   // keep layout/overlays correct
   updateStickyControlsOffset();
@@ -2877,7 +2919,7 @@ $collapseBtn?.addEventListener('click', ()=>{
 // Refresh index + dashboards
 const refreshBtn = document.getElementById('refreshBtn');
 refreshBtn?.addEventListener('click', async ()=>{
-  showLoading();
+  showLoading('Refreshing…');
   try{
     await loadLatestOrChosenWeek(true); // busts index + week now
   }catch(e){
@@ -2924,11 +2966,46 @@ themeBtn.addEventListener('click', ()=>{
   requestAnimationFrame(updateTheadHeight); // recalc sticky header height
 });
 
-  // Detect mobile (also allow ?mobile=1 for desktop testing, or <body class="force-mobile">)
+const TABLE_WIDTH_TOLERANCE = 1;
+let __tableMinWidthCache = null;
+
+function getTableMinWidth(){
+  if (__tableMinWidthCache != null) return __tableMinWidthCache;
+  const raw = getComputedStyle(document.documentElement).getPropertyValue('--table-min-width');
+  const parsed = parseFloat(raw);
+  __tableMinWidthCache = Number.isFinite(parsed) ? parsed : 1100;
+  return __tableMinWidthCache;
+}
+
+function pageAvailableWidth(){
+  const page = document.querySelector('.page');
+  return (page?.clientWidth || document.documentElement.clientWidth || window.innerWidth || 0);
+}
+
+function needsMobileLayout(){
+  const minWidth = getTableMinWidth();
+  const activeWrap = document.querySelector('.dash[data-active="true"] .table-scroll');
+
+  if (activeWrap && !activeWrap.hidden){
+    const available = activeWrap.clientWidth;
+    if (available > 0){
+      const table = activeWrap.querySelector('table');
+      const required = table ? (table.scrollWidth || table.offsetWidth || minWidth) : minWidth;
+      const delta = required - available;
+      if (delta > TABLE_WIDTH_TOLERANCE) return true;
+      if (delta < -TABLE_WIDTH_TOLERANCE) return false;
+    }
+  }
+
+  return pageAvailableWidth() + TABLE_WIDTH_TOLERANCE < minWidth;
+}
+
+// Detect mobile (also allow ?mobile=1 for desktop testing, or <body class="force-mobile">)
 function isMobileView(){
   if (document.body.classList.contains('force-mobile')) return true;
   if (new URLSearchParams(location.search).has('mobile')) return true;
-  return window.matchMedia('(max-width: 910px)').matches;
+  if (window.matchMedia('(max-width: 910px)').matches) return true;
+  return needsMobileLayout();
 }
 
 function cardHTML(row){
@@ -2965,21 +3042,26 @@ function cardHTML(row){
   <article class="mobile-card" role="listitem" aria-label="WO ${esc(row['ID'])}">
     <div class="mobile-card__title">
       <span class="mobile-card__id">#${esc(row['ID'])}</span>
-      &nbsp;${esc(row['Title'])}
+      <span class="mobile-card__name">${esc(row['Title'])}</span>
     </div>
     <div class="mobile-card__badge">
       <span class="status-chip ${statusCls}">${esc(row['Status'])}</span>
     </div>
 
-    <div class="mobile-card__row"><strong>Priority:</strong> ${esc(row['Priority']||'—')}</div>
-    <div class="mobile-card__row">
-      <strong>Age:</strong>
-      <span class="${ageCls}"${ageStyle}${ageTtl ? ` title="${esc(ageTtl)}" aria-label="Planned for Winter"` : ''}>
-        ${esc(ageLbl)}
-      </span>
+    <div class="mobile-card__meta">
+      <div class="mobile-card__row">
+        <strong>Priority:</strong>
+        <span>${esc(row['Priority']||'—')}</span>
+      </div>
+      <div class="mobile-card__row">
+        <strong>Age:</strong>
+        <span class="${ageCls}"${ageStyle}${ageTtl ? ` title="${esc(ageTtl)}" aria-label="Planned for Winter"` : ''}>
+          ${esc(ageLbl)}
+        </span>
+      </div>
     </div>
 
-    ${shown || more ? `<div class="mobile-card__row">${shown}${more}</div>` : ''}
+    ${shown || more ? `<div class="mobile-card__categories">${shown}${more}</div>` : ''}
   </article>`;
 }
 

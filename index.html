@@ -51,6 +51,7 @@
   --priority-rail:#E85A70;
   --sticky-controls-offset:0px;
   --ui-offset:0px;
+  --table-min-width:1100px;
   --winter-night-start:#020b1f;
   --winter-night-mid:color-mix(in srgb,#020b1f 55%,#08163a 45%);
   --winter-night-end:#08163a;
@@ -206,9 +207,16 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
 }
 
 .page-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;margin-bottom:0;position:relative;z-index:350;gap:16px}
-.page-head__title{display:flex;align-items:center;gap:12px;flex:1 1 auto;min-width:0;flex-wrap:wrap}
+.page-head__title{display:flex;align-items:center;gap:12px;flex:1 1 auto;min-width:0;flex-wrap:wrap;position:relative}
 .page-head__title .title{margin:0;flex:1 1 auto;min-width:0}
-.page-head__title .week-badge{margin-left:0}
+.page-head__title nav{margin-left:auto;display:flex;flex-wrap:wrap;gap:8px}
+.page-head__title--with-badge{padding-right:var(--week-badge-space,188px)}
+.page-head__title--with-badge .week-badge{position:absolute;top:50%;right:0;transform:translateY(-50%);margin:0;white-space:nowrap}
+.week-badge{display:inline-flex;align-items:center;gap:6px;margin-left:0;font-size:12px;font-weight:700;padding:4px 10px;border:1px solid var(--grid);border-radius:999px;background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));vertical-align:middle}
+.week-badge[data-state="loading"]::before{content:"";width:10px;height:10px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:weekBadgeSpin .75s linear infinite}
+.week-badge[hidden]{display:none}
+.week-picker .week-badge{margin-left:0}
+@keyframes weekBadgeSpin{to{transform:rotate(360deg)}}
 .title{font-size:28px;font-weight:800;margin:0;color:var(--ink)}
 .logo{height:50px;margin-left:auto;display:block;flex-shrink:0}
 .top-rule{height:2px;background:var(--als-blue);border-bottom:1px solid var(--als-blue-strong);margin:0;position:relative;z-index:320}
@@ -218,6 +226,9 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
 .sticky-content{transition:opacity .18s ease}
 .sticky-top[data-collapsed="true"]{padding:6px 0}
 .sticky-top[data-collapsed="true"] .sticky-content{display:none!important;opacity:0}
+.sticky-top[data-collapsed="true"] .controls{display:none!important}
+.sticky-top[data-collapsed="true"] .sticky-top__bar{gap:0}
+.sticky-top[data-collapsed="true"] #collapseBtn{margin-left:0}
 
 .controls{display:flex;gap:10px;row-gap:8px;align-items:center;font-size:12px;flex-wrap:wrap}
 .controls--primary{gap:8px;flex:1 1 auto}
@@ -362,7 +373,7 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
 /* ===== TABLE WITH WORKING STICKY HEADER ===== */
 table{
   width:100%;
-  min-width:1100px;
+  min-width:var(--table-min-width, 1100px);
   border-collapse:separate;
   border-spacing:0;
   table-layout:fixed;
@@ -654,6 +665,8 @@ tbody td{padding:8px 6px;box-sizing:border-box}
   .page{--page-pad-top:16px;--page-pad-inline:16px;--page-pad-bottom:28px}
   .page-head{gap:12px}
   .page-head__title{gap:10px}
+  .page-head__title--with-badge{padding-right:0}
+  .page-head__title--with-badge .week-badge{position:static;transform:none;margin-top:8px}
   .title{font-size:24px}
   .logo{height:40px}
   .controls{column-gap:10px;row-gap:8px}
@@ -672,8 +685,6 @@ tbody td{padding:8px 6px;box-sizing:border-box}
   .controls,.columns-bar{display:none!important}
   .active-filter-chips{display:none!important}
 }
-
-.week-badge{display:inline-block;margin-left:0;font-size:12px;font-weight:700;padding:4px 10px;border:1px solid var(--grid);border-radius:999px;background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));vertical-align:middle}
 
 @media print{
   html, body{ overflow:visible; }
@@ -780,9 +791,9 @@ tbody td{padding:8px 6px;box-sizing:border-box}
 <body class="light">
   <div class="page">
     <header class="page-head">
-      <div class="page-head__title">
+      <div class="page-head__title page-head__title--with-badge">
         <h1 class="title">Work Orders Dashboard</h1>
-        <span class="week-badge" id="week-badge" aria-live="polite">Loading…</span>
+        <span class="week-badge" id="week-badge" aria-live="polite" data-state="loading">Loading…</span>
         <nav class="nav" aria-label="Dashboard sections">
           <a class="tab" aria-selected="true" href="index.html">Work Orders</a>
           <a class="tab" href="facilities.html">Facilities</a>
@@ -840,7 +851,8 @@ tbody td{padding:8px 6px;box-sizing:border-box}
             <div class="filter-group week-picker">
               <button id="weekPrev" class="btn btn--outline btn--sm" type="button" data-week-nav="prev" aria-label="View previous dates">‹ Prev</button>
               <div id="weekPicker" aria-live="polite"></div>
-              <button id="weekNext" class="btn btn--outline btn--sm" type="button" data-week-nav="next" aria-label="View next dates">Next ›</button>
+              <button id="weekNext" class="btn btn--pill" type="button" data-week-nav="next" aria-label="View next dates">Next ›</button>
+              <span class="week-badge" id="week-badge" aria-live="polite">Loading…</span>
             </div>
 
             <div class="filter-group">
@@ -1497,8 +1509,21 @@ tbody td{padding:8px 6px;box-sizing:border-box}
   let __loadController = null;
 
 const $loading = () => document.getElementById('loadingOverlay');
-const showLoading = () => { const el = $loading(); if (el) el.style.display = 'grid'; };
-const hideLoading = () => { const el = $loading(); if (el) el.style.display = 'none'; };
+const getWeekBadge = () => document.getElementById('week-badge');
+const showLoading = (message = 'Loading…') => {
+  const overlay = $loading();
+  if (overlay) overlay.style.display = 'grid';
+  const badge = getWeekBadge();
+  if (badge) {
+    badge.hidden = false;
+    badge.dataset.state = 'loading';
+    badge.textContent = message;
+  }
+};
+const hideLoading = () => {
+  const overlay = $loading();
+  if (overlay) overlay.style.display = 'none';
+};
 
 async function loadChosenGid(meta, { bust=false } = {}){
   if (__loadController) __loadController.abort();
@@ -2477,22 +2502,10 @@ function chooseInitialWeek(weeks){
 }
 
 function setWeekBadge(text){
-  const titleEl = document.querySelector('.title'); 
-  if(!titleEl) return;
-
-  let badge = document.getElementById('week-badge');
-  if(!badge){
-    badge = document.createElement('span');
-    badge.id = 'week-badge';
-    badge.style.marginLeft   = '10px';
-    badge.style.fontSize     = '12px';
-    badge.style.fontWeight   = '800';
-    badge.style.padding      = '4px 8px';
-    badge.style.border       = '1px solid var(--grid)';
-    badge.style.borderRadius = '999px';
-    badge.style.background   = 'color-mix(in srgb, var(--als-blue) 10%, var(--paper))';
-    titleEl.appendChild(badge);
-  }
+  const badge = getWeekBadge();
+  if(!badge) return;
+  badge.hidden = false;
+  badge.dataset.state = 'ready';
   badge.textContent = `Week: ${text || 'Latest'}`;
 }
 
@@ -3520,8 +3533,20 @@ const $collapseBtn = document.getElementById('collapseBtn');
 function setCollapsed(isCollapsed){
   if(!$sticky || !$collapseBtn) return;
   $sticky.dataset.collapsed = isCollapsed ? 'true' : 'false';
+  const label = isCollapsed ? 'Show controls' : 'Hide controls';
   $collapseBtn.setAttribute('aria-expanded', String(!isCollapsed));
-  $collapseBtn.textContent = isCollapsed ? 'Show controls' : 'Hide controls';
+  $collapseBtn.textContent = label;
+  $collapseBtn.setAttribute('aria-label', label);
+  $collapseBtn.title = label;
+
+  const hiddenTargets = $sticky.querySelectorAll('.sticky-content, .controls');
+  hiddenTargets.forEach(el => {
+    if (isCollapsed){
+      el.setAttribute('aria-hidden', 'true');
+    } else {
+      el.removeAttribute('aria-hidden');
+    }
+  });
 
   // keep layout/overlays correct
   updateStickyControlsOffset();
@@ -3545,7 +3570,7 @@ $collapseBtn?.addEventListener('click', ()=>{
 // Refresh index + dashboards
 const refreshBtn = document.getElementById('refreshBtn');
 refreshBtn?.addEventListener('click', async ()=>{
-  showLoading();
+  showLoading('Refreshing…');
   try{
     await loadLatestOrChosenWeek(true); // busts index + week now
   }catch(e){
@@ -3747,10 +3772,45 @@ SeasonalTheme.apply('all');
 // Keep this in sync with the CSS breakpoint that switches to the tile/mobile layout
 const MOBILE_BREAKPOINT = 1248;
 
+const TABLE_WIDTH_TOLERANCE = 1;
+let __tableMinWidthCache = null;
+
+function getTableMinWidth(){
+  if (__tableMinWidthCache != null) return __tableMinWidthCache;
+  const raw = getComputedStyle(document.documentElement).getPropertyValue('--table-min-width');
+  const parsed = parseFloat(raw);
+  __tableMinWidthCache = Number.isFinite(parsed) ? parsed : 1100;
+  return __tableMinWidthCache;
+}
+
+function pageAvailableWidth(){
+  const page = document.querySelector('.page');
+  return (page?.clientWidth || document.documentElement.clientWidth || window.innerWidth || 0);
+}
+
+function needsMobileLayout(){
+  const minWidth = getTableMinWidth();
+  const activeWrap = document.querySelector('.dash[data-active="true"] .table-scroll');
+
+  if (activeWrap && !activeWrap.hidden){
+    const available = activeWrap.clientWidth;
+    if (available > 0){
+      const table = activeWrap.querySelector('table');
+      const required = table ? (table.scrollWidth || table.offsetWidth || minWidth) : minWidth;
+      const delta = required - available;
+      if (delta > TABLE_WIDTH_TOLERANCE) return true;
+      if (delta < -TABLE_WIDTH_TOLERANCE) return false;
+    }
+  }
+
+  return pageAvailableWidth() + TABLE_WIDTH_TOLERANCE < minWidth;
+}
+
 function isMobileView(){
   if (document.body.classList.contains('force-mobile')) return true;
   if (new URLSearchParams(location.search).has('mobile')) return true;
-  return window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches;
+  if (window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches) return true;
+  return needsMobileLayout();
 }
 
 function cardHTML(row){

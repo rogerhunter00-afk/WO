@@ -37,6 +37,7 @@
       --grid:var(--border);
       --zebra:var(--paper);
       --sticky-controls-offset:0px;
+      --table-min-width:720px;
       color-scheme:light;
     }
 
@@ -441,7 +442,7 @@
 
     table {
       width:100%;
-      min-width:720px;
+      min-width:var(--table-min-width, 720px);
       border-collapse:separate;
       border-spacing:0;
       table-layout:fixed;
@@ -662,6 +663,46 @@
       margin-top:18px;
     }
 
+    body[data-table-mode="mobile"] .table-wrapper {
+      display:none;
+    }
+
+    body[data-table-mode="mobile"] .mobile-cards {
+      display:block;
+    }
+
+    body[data-table-mode="mobile"] .sticky-top__content {
+      flex-direction:column;
+      align-items:flex-start;
+    }
+
+    body[data-table-mode="mobile"] .sticky-controls {
+      width:100%;
+      flex-direction:column;
+      align-items:stretch;
+      gap:12px;
+    }
+
+    body[data-table-mode="mobile"] .refresh-btn {
+      width:100%;
+      justify-content:center;
+    }
+
+    body[data-table-mode="mobile"] .mobile-sort {
+      display:grid;
+      width:100%;
+      gap:8px;
+    }
+
+    body[data-table-mode="mobile"] .mobile-sort label {
+      font-weight:600;
+    }
+
+    body[data-table-mode="mobile"] .mobile-sort select,
+    body[data-table-mode="mobile"] .mobile-sort__direction {
+      width:100%;
+    }
+
     .mobile-card {
       border:1px solid var(--grid);
       border-radius:14px;
@@ -734,7 +775,7 @@
         --page-pad-inline:24px;
       }
       table {
-        min-width:720px;
+        min-width:var(--table-min-width, 720px);
       }
     }
 
@@ -881,6 +922,56 @@
     ];
 
     const DUE_SOON_THRESHOLD_DAYS = 60;
+
+    const TABLE_WIDTH_TOLERANCE = 1;
+    const MOBILE_BREAKPOINT = 936;
+    let __tableMinWidthCache = null;
+
+    function getTableMinWidth(){
+      if (__tableMinWidthCache != null) return __tableMinWidthCache;
+      const raw = getComputedStyle(document.documentElement).getPropertyValue('--table-min-width');
+      const parsed = parseFloat(raw);
+      __tableMinWidthCache = Number.isFinite(parsed) ? parsed : 720;
+      return __tableMinWidthCache;
+    }
+
+    function pageAvailableWidth(){
+      const page = document.querySelector('.page');
+      return (page?.clientWidth || document.documentElement.clientWidth || window.innerWidth || 0);
+    }
+
+    function needsMobileLayout(container){
+      if (window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches) return true;
+
+      const minWidth = getTableMinWidth();
+      const wrap = container?.__scrollRegion;
+
+      if (wrap && !wrap.hidden && wrap.offsetParent !== null){
+        const available = wrap.clientWidth;
+        if (available > 0){
+          const table = wrap.querySelector('table');
+          const required = table ? (table.scrollWidth || table.offsetWidth || minWidth) : minWidth;
+          const delta = required - available;
+          if (delta > TABLE_WIDTH_TOLERANCE) return true;
+          if (delta < -TABLE_WIDTH_TOLERANCE) return false;
+        }
+      }
+
+      return pageAvailableWidth() + TABLE_WIDTH_TOLERANCE < minWidth;
+    }
+
+    function updateResponsiveMode(container){
+      if (!container){
+        document.body.removeAttribute('data-table-mode');
+        return;
+      }
+
+      if (needsMobileLayout(container)){
+        document.body.setAttribute('data-table-mode','mobile');
+      } else {
+        document.body.removeAttribute('data-table-mode');
+      }
+    }
 
     function sanitizeSheetUrl(value){
       if(!value) return null;
@@ -1214,6 +1305,7 @@
       if(!rows.length){
         tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No inspections are currently scheduled.</td></tr>';
         scrollRegion?.setAttribute('data-loading','false');
+        updateResponsiveMode(container);
         return;
       }
       const html = rows.map(row => {
@@ -1236,6 +1328,7 @@
       }).join('');
       tbody.innerHTML = html;
       scrollRegion?.setAttribute('data-loading','false');
+      updateResponsiveMode(container);
     }
 
     function renderMobileCards(container, rows){
@@ -1388,10 +1481,17 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      updateStickyOffsets();
-      window.addEventListener('resize', () => window.requestAnimationFrame(updateStickyOffsets));
-
       const container = document.querySelector('[data-component="pssr-table"]');
+
+      const handleResize = () => {
+        updateStickyOffsets();
+        updateResponsiveMode(container);
+      };
+
+      updateStickyOffsets();
+      updateResponsiveMode(container);
+      window.addEventListener('resize', () => window.requestAnimationFrame(handleResize));
+
       if(!container) return;
       container.__thead = container.querySelector('thead');
       container.__tbody = container.querySelector('tbody');
