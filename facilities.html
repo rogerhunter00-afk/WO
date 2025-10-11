@@ -69,6 +69,9 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
 .sticky-content{transition:opacity .18s ease}
 .sticky-top[data-collapsed="true"]{padding:6px 0}
 .sticky-top[data-collapsed="true"] .sticky-content{display:none!important;opacity:0}
+.sticky-top[data-collapsed="true"] .controls{display:none!important}
+.sticky-top[data-collapsed="true"] .sticky-top__bar{gap:0}
+.sticky-top[data-collapsed="true"] #collapseBtn{margin-left:0}
 
 .controls{display:flex;gap:12px;align-items:center;font-size:12px;flex-wrap:wrap}
 .controls--primary{gap:8px;flex:1 1 auto}
@@ -2647,8 +2650,20 @@ const $collapseBtn = document.getElementById('collapseBtn');
 function setCollapsed(isCollapsed){
   if(!$sticky || !$collapseBtn) return;
   $sticky.dataset.collapsed = isCollapsed ? 'true' : 'false';
+  const label = isCollapsed ? 'Show controls' : 'Hide controls';
   $collapseBtn.setAttribute('aria-expanded', String(!isCollapsed));
-  $collapseBtn.textContent = isCollapsed ? 'Show controls' : 'Hide controls';
+  $collapseBtn.textContent = label;
+  $collapseBtn.setAttribute('aria-label', label);
+  $collapseBtn.title = label;
+
+  const hiddenTargets = $sticky.querySelectorAll('.sticky-content, .controls');
+  hiddenTargets.forEach(el => {
+    if (isCollapsed){
+      el.setAttribute('aria-hidden', 'true');
+    } else {
+      el.removeAttribute('aria-hidden');
+    }
+  });
 
   // keep layout/overlays correct
   updateStickyControlsOffset();
