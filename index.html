@@ -85,9 +85,16 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
 .page{--page-pad-top:12px;--page-pad-inline:48px;--page-pad-bottom:56px;padding:var(--page-pad-top) var(--page-pad-inline) var(--page-pad-bottom);box-sizing:border-box;max-width:clamp(960px,96vw,1680px);margin-inline:auto}
 
 .page-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;margin-bottom:0;position:relative;z-index:350;gap:16px}
-.page-head__title{display:flex;align-items:center;gap:12px;flex:1 1 auto;min-width:0;flex-wrap:wrap}
+.page-head__title{display:flex;align-items:center;gap:12px;flex:1 1 auto;min-width:0;flex-wrap:wrap;position:relative}
 .page-head__title .title{margin:0;flex:1 1 auto;min-width:0}
+.page-head__title nav{margin-left:auto;display:flex;flex-wrap:wrap;gap:8px}
+.page-head__title--with-badge{padding-right:var(--week-badge-space,188px)}
+.page-head__title--with-badge .week-badge{position:absolute;top:50%;right:0;transform:translateY(-50%);margin:0;white-space:nowrap}
+.week-badge{display:inline-flex;align-items:center;gap:6px;margin-left:0;font-size:12px;font-weight:700;padding:4px 10px;border:1px solid var(--grid);border-radius:999px;background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));vertical-align:middle}
+.week-badge[data-state="loading"]::before{content:"";width:10px;height:10px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:weekBadgeSpin .75s linear infinite}
+.week-badge[hidden]{display:none}
 .week-picker .week-badge{margin-left:0}
+@keyframes weekBadgeSpin{to{transform:rotate(360deg)}}
 .title{font-size:28px;font-weight:800;margin:0;color:var(--ink)}
 .logo{height:50px;margin-left:auto;display:block;flex-shrink:0}
 .top-rule{height:2px;background:var(--als-blue);border-bottom:1px solid var(--als-blue-strong);margin:0;position:relative;z-index:320}
@@ -439,6 +446,8 @@ tbody td{padding:8px 6px;box-sizing:border-box}
   .page{--page-pad-top:16px;--page-pad-inline:18px;--page-pad-bottom:32px}
   .page-head{gap:12px}
   .page-head__title{gap:10px}
+  .page-head__title--with-badge{padding-right:0}
+  .page-head__title--with-badge .week-badge{position:static;transform:none;margin-top:8px}
   .title{font-size:24px}
   .logo{height:40px}
   .controls{gap:10px}
@@ -457,8 +466,6 @@ tbody td{padding:8px 6px;box-sizing:border-box}
   .controls,.columns-bar{display:none!important}
   .active-filter-chips{display:none!important}
 }
-
-.week-badge{display:inline-block;margin-left:0;font-size:12px;font-weight:700;padding:4px 10px;border:1px solid var(--grid);border-radius:999px;background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));vertical-align:middle}
 
 @media print{
   html, body{ overflow:visible; }
@@ -565,8 +572,9 @@ tbody td{padding:8px 6px;box-sizing:border-box}
 <body class="light">
   <div class="page">
     <header class="page-head">
-      <div class="page-head__title">
+      <div class="page-head__title page-head__title--with-badge">
         <h1 class="title">Work Orders Dashboard</h1>
+        <span class="week-badge" id="week-badge" aria-live="polite" data-state="loading">Loading…</span>
         <nav class="nav" aria-label="Dashboard sections">
           <a class="tab" aria-selected="true" href="index.html">Work Orders</a>
           <a class="tab" href="facilities.html">Facilities</a>
@@ -1282,8 +1290,21 @@ tbody td{padding:8px 6px;box-sizing:border-box}
   let __loadController = null;
 
 const $loading = () => document.getElementById('loadingOverlay');
-const showLoading = () => { const el = $loading(); if (el) el.style.display = 'grid'; };
-const hideLoading = () => { const el = $loading(); if (el) el.style.display = 'none'; };
+const getWeekBadge = () => document.getElementById('week-badge');
+const showLoading = (message = 'Loading…') => {
+  const overlay = $loading();
+  if (overlay) overlay.style.display = 'grid';
+  const badge = getWeekBadge();
+  if (badge) {
+    badge.hidden = false;
+    badge.dataset.state = 'loading';
+    badge.textContent = message;
+  }
+};
+const hideLoading = () => {
+  const overlay = $loading();
+  if (overlay) overlay.style.display = 'none';
+};
 
 async function loadChosenGid(meta, { bust=false } = {}){
   if (__loadController) __loadController.abort();
@@ -2262,22 +2283,10 @@ function chooseInitialWeek(weeks){
 }
 
 function setWeekBadge(text){
-  const titleEl = document.querySelector('.title'); 
-  if(!titleEl) return;
-
-  let badge = document.getElementById('week-badge');
-  if(!badge){
-    badge = document.createElement('span');
-    badge.id = 'week-badge';
-    badge.style.marginLeft   = '10px';
-    badge.style.fontSize     = '12px';
-    badge.style.fontWeight   = '800';
-    badge.style.padding      = '4px 8px';
-    badge.style.border       = '1px solid var(--grid)';
-    badge.style.borderRadius = '999px';
-    badge.style.background   = 'color-mix(in srgb, var(--als-blue) 10%, var(--paper))';
-    titleEl.appendChild(badge);
-  }
+  const badge = getWeekBadge();
+  if(!badge) return;
+  badge.hidden = false;
+  badge.dataset.state = 'ready';
   badge.textContent = `Week: ${text || 'Latest'}`;
 }
 
@@ -3330,7 +3339,7 @@ $collapseBtn?.addEventListener('click', ()=>{
 // Refresh index + dashboards
 const refreshBtn = document.getElementById('refreshBtn');
 refreshBtn?.addEventListener('click', async ()=>{
-  showLoading();
+  showLoading('Refreshing…');
   try{
     await loadLatestOrChosenWeek(true); // busts index + week now
   }catch(e){
