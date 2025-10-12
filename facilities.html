@@ -444,8 +444,15 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
 .kpis .card h3{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
 .kpis .card .big{font-size:26px;font-weight:900}
 @media(max-width:600px){
-  .kpis{--kpi-size:clamp(120px,38vw,150px);gap:10px;justify-content:flex-start}
-  .kpis .card{padding:16px;gap:8px}
+  .kpis{
+    --kpi-size:clamp(180px,85vw,360px);
+    grid-template-columns:minmax(0,1fr);
+    grid-auto-rows:auto;
+    justify-content:stretch;
+    justify-items:stretch;
+    gap:10px;
+  }
+  .kpis .card{padding:16px;gap:8px;height:auto}
   .kpis .card .big{font-size:24px}
 }
 .kpi-clickable{cursor:pointer;user-select:none;transition:box-shadow .18s ease,border-color .18s ease,background-color .18s ease}
