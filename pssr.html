@@ -175,6 +175,61 @@
       box-shadow:0 0 0 2px color-mix(in srgb,var(--als-blue) 30%,transparent);
     }
 
+    .site-filter {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .site-filter__label {
+      font-weight:600;
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    .site-filter__label [data-role="site-filter-active"] {
+      color:var(--ink);
+      font-weight:700;
+    }
+
+    .site-filter__tabs {
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+    }
+
+    .site-filter__tab {
+      padding:7px 12px;
+      border-radius:999px;
+      border:1px solid var(--grid);
+      background:transparent;
+      color:var(--ink);
+      font-weight:700;
+      line-height:1;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      cursor:pointer;
+      transition:box-shadow .15s ease,border-color .15s ease,background .15s ease;
+      white-space:nowrap;
+    }
+
+    .site-filter__tab[aria-pressed="true"],
+    .site-filter__tab:focus-visible {
+      outline:none;
+      border-color:var(--als-blue);
+      background:color-mix(in srgb,var(--als-blue) 8%,var(--paper));
+      box-shadow:0 0 0 2px color-mix(in srgb,var(--als-blue) 30%,transparent);
+    }
+
+    .site-filter__tab[disabled] {
+      opacity:.45;
+      cursor:not-allowed;
+      box-shadow:none;
+    }
+
     .top-rule {
       height:2px;
       background:var(--als-blue);
@@ -345,6 +400,66 @@
       flex-wrap:wrap;
     }
 
+    .banner{margin-top:12px;padding:10px 12px;border-radius:12px;border:1px solid var(--grid);display:flex;gap:8px;align-items:center}
+    .banner.ok{background:color-mix(in srgb, #059669 14%, var(--paper))}
+    .banner.warn{background:color-mix(in srgb, #b45309 14%, var(--paper))}
+    .banner.err{background:color-mix(in srgb, #b91c1c 14%, var(--paper))}
+    .banner [data-msg]{font-weight:700}
+
+    .pssr-content {
+      display:grid;
+      grid-template-columns:minmax(0,1fr);
+      gap:18px;
+      align-items:start;
+      margin-top:18px;
+    }
+
+    @media (min-width: 1080px){
+      .pssr-content {
+        grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);
+      }
+    }
+
+    .document-viewer {
+      border:1px solid color-mix(in srgb,var(--grid) 78%,transparent);
+      border-radius:14px;
+      background:color-mix(in srgb,var(--paper) 96%,var(--als-blue) 1%);
+      box-shadow:0 4px 10px rgba(15,23,42,0.05);
+      min-height:320px;
+      overflow:hidden;
+      position:relative;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .document-viewer iframe {
+      border:0;
+      flex:1 1 auto;
+      width:100%;
+      min-height:320px;
+      background:var(--paper);
+    }
+
+    .document-viewer .placeholder {
+      padding:18px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.5;
+    }
+
+    body[data-table-mode="mobile"] .document-viewer {
+      display:none;
+    }
+
+    body[data-table-mode="mobile"] .pssr-content {
+      display:none;
+    }
+
+    .test-panel{margin-top:16px;border:1px dashed var(--grid);border-radius:12px;padding:10px}
+    .test-panel h3{margin:0 0 8px 0;font-size:13px}
+    .test-pass{color:#059669;font-weight:800}
+    .test-fail{color:#b91c1c;font-weight:800}
+
     .controls-bar label {
       color:var(--muted);
       font-weight:600;
@@ -437,7 +552,7 @@
     }
 
     .table-wrapper {
-      margin-top:16px;
+      margin-top:0;
     }
 
     table {
@@ -547,6 +662,10 @@
     tbody tr.row-overdue td {
       background:color-mix(in srgb,#dc2626 16%,var(--zebra));
       color:color-mix(in srgb,#1f2937 15%,var(--ink));
+    }
+
+    tbody tr.is-active td {
+      box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--als-blue) 45%, transparent);
     }
 
     .table-scroll thead th[data-col="Last Inspection Date"],
@@ -703,6 +822,25 @@
       width:100%;
     }
 
+    body[data-table-mode="mobile"] .site-filter {
+      width:100%;
+      flex-direction:column;
+      align-items:stretch;
+      gap:10px;
+    }
+
+    body[data-table-mode="mobile"] .site-filter__tabs {
+      width:100%;
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+      gap:8px;
+    }
+
+    body[data-table-mode="mobile"] .site-filter__tab {
+      width:100%;
+      justify-content:center;
+    }
+
     .mobile-card {
       border:1px solid var(--grid);
       border-radius:14px;
@@ -847,6 +985,15 @@
       <div class="sticky-top__content">
         <div class="sticky-controls controls-bar">
           <button type="button" class="refresh-btn btn btn--outline" data-action="refresh">Refresh data</button>
+          <div class="site-filter" data-role="site-filter">
+            <span class="site-filter__label">Site: <span data-role="site-filter-active">All sites</span></span>
+            <div class="site-filter__tabs" role="group" aria-label="Filter inspections by site" data-role="site-nav">
+              <button type="button" class="site-filter__tab" data-site-key="all" aria-pressed="true">All sites</button>
+              <button type="button" class="site-filter__tab" data-site-key="byron" aria-pressed="false">Byron</button>
+              <button type="button" class="site-filter__tab" data-site-key="keith" aria-pressed="false">Keith</button>
+              <button type="button" class="site-filter__tab" data-site-key="mugiemoss" aria-pressed="false">Mugiemoss</button>
+            </div>
+          </div>
           <div class="mobile-sort" data-role="mobile-sort">
             <label for="mobile-sort-select">Sort by</label>
             <select id="mobile-sort-select" data-role="mobile-sort-select" aria-label="Select column to sort">
@@ -862,70 +1009,133 @@
         </div>
       </div>
     </section>
-    <section class="table-wrapper" data-component="pssr-table">
-      <div class="table-scroll" data-role="scroll-region" data-loading="true">
-        <table aria-describedby="pssr-table-caption">
-          <caption id="pssr-table-caption" class="visually-hidden">PSSR inspection schedule</caption>
-          <thead>
-            <tr>
-              <th scope="col" data-col="Asset" aria-sort="none">Asset <span class="sort-arrow" aria-hidden="true"></span></th>
-              <th scope="col" data-col="Location" aria-sort="none">Location <span class="sort-arrow" aria-hidden="true"></span></th>
-              <th scope="col" data-col="Last Inspection Date" aria-sort="none">Last Inspection Date <span class="sort-arrow" aria-hidden="true"></span></th>
-              <th scope="col" data-col="Next Inspection Date" aria-sort="none">Next Inspection Date <span class="sort-arrow" aria-hidden="true"></span></th>
-              <th scope="col" data-col="Countdown" aria-sort="none">Countdown <span class="sort-arrow" aria-hidden="true"></span></th>
-              <th scope="col" data-col="Comments" aria-sort="none">Comments <span class="sort-arrow" aria-hidden="true"></span></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td colspan="6" class="empty-state">Loading inspection data…</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
+    <div id="banner" class="banner ok" hidden>
+      <span data-msg>Ready</span><span data-detail></span>
+    </div>
+    <div class="pssr-content">
+      <section class="table-wrapper" data-component="pssr-table">
+        <div class="table-scroll" data-role="scroll-region" data-loading="true">
+          <table aria-describedby="pssr-table-caption">
+            <caption id="pssr-table-caption" class="visually-hidden">PSSR inspection schedule</caption>
+            <thead>
+              <tr>
+                <th scope="col" data-col="Asset" aria-sort="none">Asset <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th scope="col" data-col="Location" aria-sort="none">Location <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th scope="col" data-col="Last Inspection Date" aria-sort="none">Last Inspection Date <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th scope="col" data-col="Next Inspection Date" aria-sort="none">Next Inspection Date <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th scope="col" data-col="Countdown" aria-sort="none">Countdown <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th scope="col" data-col="Comments" aria-sort="none">Comments <span class="sort-arrow" aria-hidden="true"></span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="6" class="empty-state">Loading inspection data…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section class="document-viewer" id="viewer" aria-label="Inspection document preview">
+        <div class="placeholder">Select an inspection to preview documentation.</div>
+      </section>
+    </div>
     <section class="mobile-cards" data-role="mobile-cards" aria-live="polite" role="list"></section>
     <div class="loading-banner" data-state="loading" role="status">Fetching latest inspections…</div>
     <div class="error-banner" data-state="error" role="alert" hidden>We were unable to load the inspection sheet. Please check the network or sheet permissions and try again.</div>
+    <section class="test-panel" id="tests">
+      <h3>Inline self-tests</h3>
+      <div id="test-results">Running…</div>
+    </section>
   </div>
 
   <script>
+    // ===== Config =====
     const DEFAULT_PSSR_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhXb-392ExhOiESN5E6IqM5ScrrB4oFpPcLhf8yis6_ZhFqjanoHomQJcqL-feiPi-t-sygaGb85at/pub?output=csv';
-    const PSSR_SHEET_URL = resolveSheetUrl();
-    if(PSSR_SHEET_URL){
-      window.__PSSR_SHEET_URL = PSSR_SHEET_URL;
-    }else{
-      console.error('PSSR sheet URL could not be resolved. Update DEFAULT_PSSR_SHEET_URL or supply ?sheetUrl=');
+    const DUE_SOON_THRESHOLD_DAYS = 60;
+
+    // Toggle via query params.
+    // Defaults: offline in file/sandbox; online in http(s).
+    const PARAMS = new URLSearchParams(location.search);
+    const FORCE_ONLINE = PARAMS.get('online') === '1';
+    const FORCE_OFFLINE = PARAMS.get('offline') === '1';
+    const DEFAULT_OFFLINE = location.protocol === 'file:' || location.hostname === '';
+    const ALLOW_NETWORK = FORCE_ONLINE ? true : (FORCE_OFFLINE ? false : !DEFAULT_OFFLINE);
+
+    function sanitizeSheetUrl(v){
+      if(!v) return null;
+      const t = String(v).trim();
+      if(!t) return null;
+      const c = t.startsWith('//') ? `https:${t}` : t;
+      try {
+        const u = new URL(c, location.href);
+        if(u.protocol === 'http:') u.protocol = 'https:';
+        return u.protocol === 'https:' ? u.toString() : null;
+      } catch { return null; }
     }
-    const SAMPLE_PSSR_ROWS = [
-      {
-        Asset: 'Steam Boiler 03',
-        Location: 'Aberdeen – Plant Room',
-        'Last Inspection Date': '15/02/2024',
-        'Next Inspection Date': '15/08/2024',
-        Comments: 'Six-month statutory inspection window.'
-      },
-      {
-        Asset: 'Air Receiver B',
-        Location: 'ALS Keith',
-        'Last Inspection Date': '04/07/2023',
-        'Next Inspection Date': '04/01/2024',
-        Comments: 'Overhaul required before recommissioning.'
-      },
-      {
-        Asset: 'Tunnel Washer 2',
-        Location: 'Cathkin – Wash Line',
-        'Last Inspection Date': '20/11/2023',
-        'Next Inspection Date': '20/11/2025',
-        Comments: 'PSSR inspection aligned with OEM service schedule.'
-      }
+
+    function getSheetUrl(){
+      const p = new URLSearchParams(location.search);
+      return sanitizeSheetUrl(p.get('sheetUrl') || p.get('sheet') || document.body?.dataset?.sheetUrl || DEFAULT_PSSR_SHEET_URL);
+    }
+
+    const SAMPLE = [
+      { Asset:'Steam Boiler 03', Location:'Aberdeen – Plant Room', 'Last Inspection Date':'15/02/2024', 'Next Inspection Date':'15/08/2024', Comments:'Six-month statutory inspection window.', 'Document URL':'about:blank' },
+      { Asset:'Air Receiver B',  Location:'ALS Keith',              'Last Inspection Date':'04/07/2023', 'Next Inspection Date':'04/01/2024', Comments:'Overhaul required before recommissioning.' },
+      { Asset:'Tunnel Washer 2', Location:'Cathkin – Wash Line',    'Last Inspection Date':'20/11/2023', 'Next Inspection Date':'20/11/2025', Comments:'PSSR inspection aligned with OEM service schedule.' }
     ];
 
-    const DUE_SOON_THRESHOLD_DAYS = 60;
+    const RESOLVED_PSSR_SHEET_URL = getSheetUrl();
+    if(RESOLVED_PSSR_SHEET_URL){
+      window.__PSSR_SHEET_URL = RESOLVED_PSSR_SHEET_URL;
+    }else{
+      console.warn('PSSR sheet URL could not be resolved. Update DEFAULT_PSSR_SHEET_URL or supply ?sheetUrl=.');
+    }
+
+    function banner(type, msg, detail=''){
+      const el = document.querySelector('#banner');
+      if(!el) return;
+      el.className = 'banner ' + (type || '');
+      el.hidden = false;
+      const msgNode = el.querySelector('[data-msg]');
+      const detailNode = el.querySelector('[data-detail]');
+      if(msgNode) msgNode.textContent = msg;
+      if(detailNode) detailNode.textContent = detail ? ' – ' + detail : '';
+    }
+
+    function setViewerPlaceholder(message){
+      const viewer = document.querySelector('#viewer');
+      if(!viewer) return;
+      viewer.innerHTML = '';
+      const div = document.createElement('div');
+      div.className = 'placeholder';
+      div.textContent = message;
+      viewer.appendChild(div);
+    }
 
     const TABLE_WIDTH_TOLERANCE = 1;
     const MOBILE_BREAKPOINT = 936;
     let __tableMinWidthCache = null;
+
+    async function safeFetch(url, {timeout=7000, retries=2} = {}){
+      if(!ALLOW_NETWORK) throw new Error('Network disabled in this environment');
+      let lastErr;
+      for(let attempt=0; attempt<=retries; attempt++){
+        const ctrl = new AbortController();
+        const t = setTimeout(()=>ctrl.abort(), timeout);
+        try {
+          const res = await fetch(url, { cache:'no-store', signal:ctrl.signal });
+          clearTimeout(t);
+          if(!res.ok) throw new Error(`HTTP ${res.status}`);
+          return await res.text();
+        } catch (err) {
+          lastErr = err;
+          clearTimeout(t);
+          if(attempt === retries) throw err;
+          await new Promise(r => setTimeout(r, 400 * (attempt+1)));
+        }
+      }
+      throw lastErr || new Error('Fetch failed');
+    }
 
     function getTableMinWidth(){
       if (__tableMinWidthCache != null) return __tableMinWidthCache;
@@ -971,48 +1181,6 @@
       } else {
         document.body.removeAttribute('data-table-mode');
       }
-    }
-
-    function sanitizeSheetUrl(value){
-      if(!value) return null;
-      const trimmed = String(value).trim();
-      if(!trimmed) return null;
-      const candidate = trimmed.startsWith('//') ? `https:${trimmed}` : trimmed;
-      try {
-        const url = new URL(candidate, window.location.href);
-        if(url.protocol === 'http:'){
-          url.protocol = 'https:';
-        }
-        if(url.protocol !== 'https:') return null;
-        return url.toString();
-      } catch {
-        return null;
-      }
-    }
-
-    function getSheetOverrideFromQuery(){
-      try {
-        const search = window.location.search;
-        if(!search) return null;
-        const params = new URLSearchParams(search);
-        const candidate = params.get('sheetUrl') || params.get('sheet');
-        return candidate || null;
-      } catch {
-        return null;
-      }
-    }
-
-    function resolveSheetUrl(){
-      const candidates = [
-        getSheetOverrideFromQuery(),
-        document.body?.dataset?.sheetUrl,
-        DEFAULT_PSSR_SHEET_URL
-      ];
-      for(const candidate of candidates){
-        const sanitized = sanitizeSheetUrl(candidate);
-        if(sanitized) return sanitized;
-      }
-      return null;
     }
 
     function esc(str){
@@ -1113,6 +1281,36 @@
       });
     }
 
+    function sortRows(rows, column, direction){
+      return applySort(Array.isArray(rows) ? rows.slice() : [], column, direction);
+    }
+
+    function matchesSite(row, siteKey){
+      if(!row || !siteKey || siteKey === 'all') return true;
+      const target = siteKey.toLowerCase();
+      const values = [
+        row?.__raw?.Site,
+        row?.__raw?.Location,
+        row?.__raw?.Area,
+        row?.__siteName,
+        row?.Location
+      ];
+      return values.some(value => {
+        if(!value) return false;
+        return String(value).toLowerCase().includes(target);
+      });
+    }
+
+    function applySiteFilter(rows, siteKey){
+      const list = Array.isArray(rows) ? rows.slice() : [];
+      if(!siteKey || siteKey === 'all') return list;
+      return list.filter(row => matchesSite(row, siteKey));
+    }
+
+    function applyFilters(rows){
+      return Array.isArray(rows) ? rows.slice() : [];
+    }
+
     function syncDesktopSortIndicators(container, column, direction){
       const thead = container.__thead;
       if(!thead) return;
@@ -1143,9 +1341,103 @@
       }
     }
 
+    function updateSiteFilterControls(container){
+      const nav = container.__siteFilterNav;
+      const activeKey = container.__siteFilter || 'all';
+      if(nav){
+        nav.querySelectorAll('[data-site-key]').forEach(btn => {
+          const key = btn.dataset.siteKey || 'all';
+          const isActive = key === activeKey;
+          btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+          if(isActive){
+            btn.setAttribute('aria-current','true');
+          }else{
+            btn.removeAttribute('aria-current');
+          }
+        });
+      }
+      const activeLabel = container.__siteFilterActiveLabel;
+      if(activeLabel){
+        const buttons = nav ? Array.from(nav.querySelectorAll('[data-site-key]')) : [];
+        const activeBtn = buttons.find(btn => (btn.dataset.siteKey || 'all') === activeKey);
+        const text = activeBtn?.textContent?.trim() || 'All sites';
+        activeLabel.textContent = text;
+      }
+    }
+
+    function syncSiteFilterAvailability(container){
+      const nav = container.__siteFilterNav;
+      if(!nav) return;
+      const rows = Array.isArray(container.__rows) ? container.__rows : [];
+      let current = container.__siteFilter || 'all';
+      let currentAvailable = current === 'all';
+      nav.querySelectorAll('[data-site-key]').forEach(btn => {
+        const key = btn.dataset.siteKey || 'all';
+        if(key === 'all'){
+          btn.disabled = false;
+          btn.removeAttribute('aria-disabled');
+          return;
+        }
+        const hasRows = rows.some(row => matchesSite(row, key));
+        btn.disabled = !hasRows;
+        if(btn.disabled){
+          btn.setAttribute('aria-disabled','true');
+        }else{
+          btn.removeAttribute('aria-disabled');
+        }
+        if(key === current && !hasRows){
+          currentAvailable = false;
+        }
+      });
+      if(!currentAvailable){
+        current = 'all';
+        container.__siteFilter = current;
+      }
+      updateSiteFilterControls(container);
+    }
+
+    function refreshView(container){
+      if(!container) return;
+      const state = container.__currentSort || { column:'Next Inspection Date', direction:'asc' };
+      const filtered = applySiteFilter(container.__rows, container.__siteFilter);
+      const sorted = applySort(filtered, state.column, state.direction);
+      container.__viewRows = sorted;
+      renderTable(container, sorted);
+      if(container.__selectedDocUrl){
+        const stillExists = sorted.some(row => (row.__docUrl || '') === container.__selectedDocUrl);
+        if(!stillExists){
+          container.__selectedDocUrl = '';
+          setViewerPlaceholder('Select an inspection to preview documentation.');
+          if(container.__tbody){
+            container.__tbody.querySelectorAll('tr').forEach(row => row.classList.remove('is-active'));
+          }
+        }
+      }
+      renderMobileCards(container, sorted);
+      updateSummaryMetrics(filtered, {
+        siteFilter: container.__siteFilter,
+        totalRowCount: Array.isArray(container.__rows) ? container.__rows.length : 0
+      });
+    }
+
+    function attachSiteFilterHandlers(container){
+      const nav = container.__siteFilterNav;
+      if(!nav) return;
+      nav.querySelectorAll('[data-site-key]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if(btn.disabled) return;
+          const key = btn.dataset.siteKey || 'all';
+          if(container.__siteFilter === key) return;
+          container.__siteFilter = key;
+          updateSiteFilterControls(container);
+          refreshView(container);
+        });
+      });
+    }
+
     function normalizeCountdown(nextDate){
       if(!(nextDate instanceof Date) || isNaN(nextDate)){
-        return { label:'Unknown', className:'is-unknown', diffDays:null, overdue:false };
+        return { label:'Unknown', className:'is-unknown', diffDays:null, days:null, overdue:false };
       }
       const today = new Date();
       const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
@@ -1153,22 +1445,22 @@
       const diffDays = Math.round((normalized - startOfToday) / (1000 * 60 * 60 * 24));
       if(diffDays < 0){
         const days = Math.abs(diffDays);
-        return { label: `${days}d overdue`, className:'is-urgent', diffDays, overdue:true };
+        return { label: `${days}d overdue`, className:'is-urgent', diffDays, days:diffDays, overdue:true };
       }
       if(diffDays === 0){
-        return { label:'Due today', className:'is-urgent', diffDays, overdue:false };
+        return { label:'Due today', className:'is-urgent', diffDays, days:diffDays, overdue:false };
       }
       const months = diffDays / 30;
       if(months < 2){
-        return { label:`Due in ${diffDays}d`, className:'is-urgent', diffDays, overdue:false };
+        return { label:`Due in ${diffDays}d`, className:'is-urgent', diffDays, days:diffDays, overdue:false };
       }
       if(months < 6){
-        return { label:`Due in ${Math.round(months*10)/10}mo`, className:'is-warning', diffDays, overdue:false };
+        return { label:`Due in ${Math.round(months*10)/10}mo`, className:'is-warning', diffDays, days:diffDays, overdue:false };
       }
       if(months < 18){
-        return { label:`Due in ${Math.round(months)}mo`, className:'is-healthy', diffDays, overdue:false };
+        return { label:`Due in ${Math.round(months)}mo`, className:'is-healthy', diffDays, days:diffDays, overdue:false };
       }
-      return { label:`Due in ${Math.round(months)}mo`, className:'is-excellent', diffDays, overdue:false };
+      return { label:`Due in ${Math.round(months)}mo`, className:'is-excellent', diffDays, days:diffDays, overdue:false };
     }
 
     function parseCsv(text){
@@ -1234,12 +1526,11 @@
     }
 
     async function fetchSheet(){
-      if(!PSSR_SHEET_URL){
+      const url = getSheetUrl();
+      if(!url){
         throw new Error('No PSSR inspection sheet URL is configured.');
       }
-      const response = await fetch(PSSR_SHEET_URL, { cache:'no-store' });
-      if(!response.ok) throw new Error('Sheet request failed');
-      const text = await response.text();
+      const text = await safeFetch(url, { timeout:7000, retries:2 });
       if(/^[\[{]/.test(text.trim())){
         const json = JSON.parse(text);
         const rows = Array.isArray(json) ? json : (Array.isArray(json.rows) ? json.rows : []);
@@ -1275,16 +1566,20 @@
 
     function buildRowModel(raw){
       const asset = pickField(raw, ['Asset','Asset ID','Asset Name','Equipment']);
-      const location = pickField(raw, ['Location','Site','Area']);
+      const locationValue = pickField(raw, ['Location','Site','Area']);
+      const siteNameRaw = pickField(raw, ['Site']);
+      const primarySite = siteNameRaw || (typeof locationValue === 'string' ? locationValue.split(/[–—-]/)[0].trim() : locationValue);
+      const location = locationValue;
       const lastRaw = pickField(raw, ['Last Inspection Date','Last Inspection','Previous Inspection']);
       const nextRaw = pickField(raw, ['Next Inspection Date','Next Inspection','Inspection Due']);
       const comments = pickField(raw, ['Comments','Notes','Remarks']);
+      const documentUrl = pickField(raw, ['Document URL','Document','Link','Document Link','Attachment','Attachment URL']);
       const lastDate = parseDateLoose(lastRaw);
       const nextDate = parseDateLoose(nextRaw);
       const countdown = normalizeCountdown(nextDate instanceof Date ? new Date(nextDate) : nextDate);
       return {
         Asset: asset || '—',
-        Location: location || '—',
+        Location: location || primarySite || '—',
         'Last Inspection Date': lastDate ? formatDisplayDate(lastDate) : (lastRaw || '—'),
         'Next Inspection Date': nextDate ? formatDisplayDate(nextDate) : (nextRaw || '—'),
         Countdown: countdown.label,
@@ -1294,6 +1589,8 @@
         __countdownClass: countdown.className,
         __countdownDays: countdown.diffDays,
         __overdue: countdown.overdue,
+        __siteName: primarySite || '',
+        __docUrl: documentUrl || '',
         __raw: raw
       };
     }
@@ -1315,8 +1612,9 @@
         const lastTitle = esc(row['Last Inspection Date']);
         const nextTitle = esc(row['Next Inspection Date']);
         const commentsTitle = esc(row.Comments);
+        const docAttr = row.__docUrl ? ` data-doc="${esc(row.__docUrl)}"` : '';
         return `
-          <tr class="${overdueClass}">
+          <tr class="${overdueClass}" tabindex="0"${docAttr}>
             <td data-col="Asset" title="${assetTitle}"><span>${assetTitle}</span></td>
             <td data-col="Location" title="${locationTitle}"><span>${locationTitle}</span></td>
             <td data-col="Last Inspection Date" title="${lastTitle}"><span>${lastTitle}</span></td>
@@ -1327,8 +1625,69 @@
         `;
       }).join('');
       tbody.innerHTML = html;
+      if(container.__selectedDocUrl){
+        const active = Array.from(tbody.querySelectorAll('tr')).find(tr => (tr.dataset.doc || '') === container.__selectedDocUrl);
+        if(active){
+          active.classList.add('is-active');
+        }
+      }
       scrollRegion?.setAttribute('data-loading','false');
       updateResponsiveMode(container);
+    }
+
+    function wireViewer(container){
+      const viewer = document.querySelector('#viewer');
+      if(!viewer || !container?.__tbody) return;
+      const tbody = container.__tbody;
+      const highlight = (tr) => {
+        if(!tbody) return;
+        tbody.querySelectorAll('tr').forEach(row => row.classList.remove('is-active'));
+        if(tr) tr.classList.add('is-active');
+      };
+      const open = (url) => {
+        if(!url){
+          setViewerPlaceholder('No document link on this row.');
+          return;
+        }
+        const raw = typeof url === 'string' ? url.trim() : '';
+        const sanitized = sanitizeSheetUrl(raw);
+        const safeUrl = sanitized || (raw.startsWith('data:') || raw.startsWith('about:') ? raw : '');
+        if(!safeUrl){
+          setViewerPlaceholder('No document link on this row.');
+          return;
+        }
+        const offline = !ALLOW_NETWORK && !safeUrl.startsWith('data:') && !safeUrl.startsWith('about:');
+        if(offline){
+          setViewerPlaceholder('Document preview disabled offline.');
+          return;
+        }
+        viewer.innerHTML = '';
+        const frame = document.createElement('iframe');
+        frame.src = safeUrl;
+        frame.loading = 'lazy';
+        frame.title = 'Inspection document preview';
+        viewer.appendChild(frame);
+      };
+      const selectRow = (tr) => {
+        if(!tr) return;
+        container.__selectedDocUrl = tr.dataset.doc || '';
+        highlight(tr);
+        open(container.__selectedDocUrl);
+      };
+      tbody.addEventListener('click', event => {
+        const tr = event.target.closest('tr');
+        if(!tr) return;
+        selectRow(tr);
+      });
+      tbody.addEventListener('keydown', event => {
+        if(event.key === 'Enter' || event.key === ' '){
+          const tr = event.target.closest('tr');
+          if(!tr) return;
+          selectRow(tr);
+          event.preventDefault();
+        }
+      });
+      container.__openDocument = open;
     }
 
     function renderMobileCards(container, rows){
@@ -1361,12 +1720,15 @@
       mobile.innerHTML = html;
     }
 
-    function updateSummaryMetrics(rows){
+    function updateSummaryMetrics(rows, context={}){
       const metricsRoot = document.querySelector('[data-role="pssr-metrics"]');
       if(!metricsRoot) return;
       const list = Array.isArray(rows) ? rows : [];
       const total = list.length;
       const dueSoonThreshold = DUE_SOON_THRESHOLD_DAYS;
+      const siteFilter = context.siteFilter || 'all';
+      const overallCount = typeof context.totalRowCount === 'number' ? context.totalRowCount : total;
+      const isFiltered = siteFilter !== 'all';
       const dueSoonRows = list.filter(row => typeof row?.__countdownDays === 'number' && row.__countdownDays >= 0 && row.__countdownDays <= dueSoonThreshold);
       const overdueRows = list.filter(row => row?.__overdue);
       const upcomingRows = list
@@ -1396,7 +1758,11 @@
       setMetric(
         'total',
         total.toString(),
-        total === 0 ? 'Awaiting published data' : total === 1 ? 'Asset currently on the schedule' : 'Assets currently on the schedule'
+        total === 0
+          ? (isFiltered && overallCount > 0 ? 'No inspections for this site' : 'Awaiting published data')
+          : total === 1
+            ? 'Asset currently on the schedule'
+            : 'Assets currently on the schedule'
       );
 
       setMetric(
@@ -1423,6 +1789,8 @@
         setMetric('next', headline, note, state);
       }else if(list.length){
         setMetric('next', '—', 'No inspections with a scheduled date');
+      }else if(isFiltered && overallCount > 0){
+        setMetric('next', '—', 'No inspections scheduled for this site');
       }else{
         setMetric('next', '—', 'Awaiting schedule');
       }
@@ -1433,11 +1801,7 @@
       container.__currentSort = { column, direction: dir };
       syncDesktopSortIndicators(container, column, dir);
       updateMobileSortControls(container);
-      const sorted = applySort(container.__rows, column, dir);
-      container.__viewRows = sorted;
-      renderTable(container, sorted);
-      renderMobileCards(container, sorted);
-      updateSummaryMetrics(container.__rows);
+      refreshView(container);
     }
 
     function attachSortHandlers(container){
@@ -1480,6 +1844,53 @@
       document.documentElement.style.setProperty('--sticky-controls-offset', `${Math.ceil(height)}px`);
     }
 
+    function expect(name, cond){
+      const el = document.querySelector('#test-results');
+      if(el){
+        const p = document.createElement('div');
+        p.textContent = (cond ? '✔ ' : '✖ ') + name;
+        p.className = cond ? 'test-pass' : 'test-fail';
+        el.appendChild(p);
+      }
+      return cond;
+    }
+
+    function runTests(){
+      const out = document.querySelector('#test-results');
+      if(out){
+        out.textContent = '';
+      }
+
+      expect('parseDateLoose dd/mm/yyyy', !!parseDateLoose('05/10/2025'));
+      expect('parseDateLoose d/m/yy → 20yy', parseDateLoose('5/7/25')?.getFullYear() === 2025);
+      expect('parseDateLoose ISO', !!parseDateLoose('2025-10-05'));
+
+      const csv = 'Asset,Comments\n"Boiler, No.1","""Quoted"" note"\n';
+      const { headers, rows } = parseCsv(csv);
+      expect('parseCsv headers', headers[0] === 'Asset' && headers[1] === 'Comments');
+      expect('parseCsv quoted field with comma', rows[0]['Asset'] === 'Boiler, No.1');
+      expect('parseCsv escaped quotes', rows[0]['Comments'] === '"Quoted" note');
+
+      const tomorrow = new Date(Date.now() + 86400000);
+      const c = normalizeCountdown(tomorrow);
+      expect('countdown future not overdue', c.days > 0 && !c.overdue);
+
+      const past = new Date(Date.now() - 3 * 86400000);
+      const cp = normalizeCountdown(past);
+      expect('countdown overdue', cp.overdue && cp.label.includes('overdue'));
+
+      const models = [
+        buildRowModel({Asset:'A','Next Inspection Date':'01/01/2026'}),
+        buildRowModel({Asset:'B','Next Inspection Date':'01/01/2024'}),
+        buildRowModel({Asset:'C','Next Inspection Date':'01/01/2025'})
+      ];
+      const sorted = sortRows(models, 'Next Inspection Date', 'asc');
+      expect('sortRows by next asc', sorted[0].Asset === 'B' && sorted[2].Asset === 'A');
+
+      const filtered = applyFilters(models.map(m => ({ ...m, Location:'EK', Comments:'test' })));
+      expect('applyFilters no filters keeps all', filtered.length === 3);
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       const container = document.querySelector('[data-component="pssr-table"]');
 
@@ -1499,12 +1910,21 @@
       container.__mobileCards = document.querySelector('[data-role="mobile-cards"]');
       container.__mobileSortSelect = document.querySelector('[data-role="mobile-sort-select"]');
       container.__mobileSortDirectionBtn = document.querySelector('[data-role="mobile-sort-direction"]');
+      container.__siteFilterNav = document.querySelector('[data-role="site-nav"]');
+      container.__siteFilterActiveLabel = document.querySelector('[data-role="site-filter-active"]');
       container.__rows = [];
       container.__viewRows = [];
       container.__currentSort = { column:'Next Inspection Date', direction:'asc' };
+      container.__siteFilter = 'all';
+      container.__selectedDocUrl = '';
+
+      setViewerPlaceholder('Select an inspection to preview documentation.');
+      wireViewer(container);
 
       attachSortHandlers(container);
       handleMobileSort(container);
+      updateSiteFilterControls(container);
+      attachSiteFilterHandlers(container);
 
       const refreshButton = document.querySelector('[data-action="refresh"]');
       const loadingBanner = document.querySelector('[data-state="loading"]');
@@ -1516,34 +1936,38 @@
         errorBanner.hidden = true;
         errorBanner.textContent = defaultErrorMessage;
         container.__scrollRegion?.setAttribute('data-loading','true');
+        container.__selectedDocUrl = '';
+        setViewerPlaceholder('Select an inspection to preview documentation.');
         if(container.__mobileCards){
           container.__mobileCards.dataset.state = 'loading';
           container.__mobileCards.setAttribute('aria-busy','true');
           container.__mobileCards.innerHTML = '<div class="mobile-card mobile-card--status" role="listitem" aria-live="polite">Loading inspection data…</div>';
         }
         try {
+          if(!ALLOW_NETWORK){
+            throw new Error('Network disabled in this environment');
+          }
           const { headers, rows } = await fetchSheet();
           ensurePssrSheet(headers, rows);
-          const mapped = rows.map(buildRowModel);
+          const hasRows = Array.isArray(rows) && rows.length > 0;
+          const sourceRows = hasRows ? rows : SAMPLE;
+          const mapped = sourceRows.map(buildRowModel);
           container.__rows = mapped;
+          syncSiteFilterAvailability(container);
           setSort(container, container.__currentSort.column, container.__currentSort.direction);
+          banner('ok', 'Live data loaded', hasRows ? 'online mode' : 'sheet returned no rows – showing sample data');
         } catch (error) {
-          console.error('Failed to load PSSR sheet', error);
+          console.warn('Falling back to SAMPLE. Reason:', error?.message || error);
           const message = (error && typeof error.message === 'string' && error.message.trim()) ? error.message.trim() : defaultErrorMessage;
-          if(!container.__rows.length && SAMPLE_PSSR_ROWS.length){
-            const fallback = SAMPLE_PSSR_ROWS.map(buildRowModel);
-            container.__rows = fallback;
-            setSort(container, container.__currentSort.column, container.__currentSort.direction);
-          }
-          errorBanner.textContent = message;
-          errorBanner.hidden = false;
-          if(!container.__rows.length){
-            renderTable(container, []);
-            renderMobileCards(container, []);
-          }
+          const fallback = SAMPLE.map(buildRowModel);
+          container.__rows = fallback;
+          syncSiteFilterAvailability(container);
+          setSort(container, container.__currentSort.column, container.__currentSort.direction);
+          banner('warn', 'Showing sample data', message);
         } finally {
           loadingBanner.hidden = true;
           container.__scrollRegion?.setAttribute('data-loading','false');
+          runTests();
         }
       }
 
