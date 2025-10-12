@@ -639,6 +639,13 @@ tbody td{padding:8px 6px;box-sizing:border-box}
 .mobile-sort__direction[data-direction="desc"]::after{transform:rotate(180deg)}
 .mobile-sort__direction[disabled]{opacity:.45;cursor:not-allowed;box-shadow:none;background:color-mix(in srgb,var(--als-blue) 6%,var(--paper));color:color-mix(in srgb,var(--als-blue) 55%,var(--muted));border-color:color-mix(in srgb,var(--als-blue) 35%,var(--grid))}
 .mobile-cards{display:none}
+body.mobile-layout .mobile-sort{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;margin:12px 0 16px;padding:12px;border:1px solid var(--grid);border-radius:14px;background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));box-shadow:0 10px 24px rgba(11,103,194,.08)}
+body.mobile-layout .mobile-sort__label{flex:1 1 100%;margin:0}
+body.mobile-layout .mobile-sort__select{flex:1 1 220px}
+body.mobile-layout .dash-table .table-scroll{display:none}
+body.mobile-layout .mobile-cards{display:block}
+body.mobile-layout .page{--page-pad-inline:16px}
+body.mobile-layout .columns-bar{display:none}
 .mobile-card{border:1px solid var(--grid);border-radius:14px;padding:10px 12px;background:var(--paper);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:start}
 .mobile-card+.mobile-card{margin-top:10px}
 .mobile-card__title{font-weight:800;line-height:1.3;display:flex;flex-wrap:wrap;gap:6px;align-items:baseline;min-width:0}
@@ -1622,6 +1629,7 @@ function renderRowsSmart(tbodyEl, headers, rows, container){
 
 function renderRowsScoped(tbodyEl, headers, rows, container){
   const mobile = isMobileView();
+  syncMobileLayoutClass(mobile);
   const safeRows = Array.isArray(rows) ? rows : [];
   if (!tbodyEl) return;
 
@@ -1678,7 +1686,9 @@ function renderRowsScoped(tbodyEl, headers, rows, container){
 }
 
 function renderRowsScopedChunked(tbodyEl, headers, rows, container){
-  if (isMobileView() || !tbodyEl) {
+  const mobile = isMobileView();
+  syncMobileLayoutClass(mobile);
+  if (mobile || !tbodyEl) {
     return renderRowsScoped(tbodyEl, headers, rows, container);
   }
 
@@ -1731,8 +1741,8 @@ function renderRowsScopedChunked(tbodyEl, headers, rows, container){
       requestAnimationFrame(paintChunk);
     } else {
       const hasRows = safe.length > 0;
-      container?.__tableWrap && (container.__tableWrap.hidden = isMobileView() || !hasRows);
-      container?.__mobileSortWrap && (container.__mobileSortWrap.hidden = !isMobileView() || !hasRows);
+      container?.__tableWrap && (container.__tableWrap.hidden = mobile || !hasRows);
+      container?.__mobileSortWrap && (container.__mobileSortWrap.hidden = !mobile || !hasRows);
       container?.__mobileCards && (container.__mobileCards.hidden = true);
       container?.__emptyState && (container.__emptyState.hidden = hasRows);
       updateTheadHeight();
@@ -3157,6 +3167,10 @@ function pageAvailableWidth(){
   return (page?.clientWidth || document.documentElement.clientWidth || window.innerWidth || 0);
 }
 
+function syncMobileLayoutClass(isMobile){
+  document.body?.classList.toggle('mobile-layout', Boolean(isMobile));
+}
+
 function viewportWidth(){
   if (typeof window === 'undefined') return 0;
 
@@ -3272,8 +3286,10 @@ function cardHTML(row){
 }
 
   let __wasMobile = isMobileView();
+  syncMobileLayoutClass(__wasMobile);
 window.addEventListener('resize', ()=>{
   const now = isMobileView();
+  syncMobileLayoutClass(now);
   if (now !== __wasMobile){
     __wasMobile = now;
     if (LAST_HEADERS && ALL_ROWS) ingestToDashboards(LAST_HEADERS, ALL_ROWS);
