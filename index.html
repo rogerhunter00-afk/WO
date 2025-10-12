@@ -284,6 +284,52 @@ body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Hel
 body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offset, var(--sticky-controls-offset,0px));background:var(--bg);pointer-events:none;z-index:180}
 @media (max-width: 1248px){body::before{height:0}}
 
+/* === GLOBAL WINTER FX LAYER === */
+.fx-layer,
+.fx-layer canvas,
+.fx-layer div{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+}
+
+.fx-layer{z-index:320;opacity:0;transition:opacity .6s ease;}
+
+.fx-layer canvas{z-index:2;}
+#snow-mid{z-index:3;}
+#snow-near{z-index:4;}
+.night-tint{z-index:0;}
+.aurora-glow{z-index:1;}
+
+.page,
+.page-head,
+main{position:relative;}
+
+/* === Atmospheric Tint + Glow === */
+.night-tint{
+  background:radial-gradient(ellipse at center, rgba(8,20,40,0.42) 0%, rgba(2,6,15,0.9) 100%);
+  mix-blend-mode:multiply;
+  opacity:.48;
+  transition:opacity 1s ease;
+}
+
+.aurora-glow{
+  background:radial-gradient(800px 500px at 60% 0%, rgba(0,80,255,0.12), transparent 70%),
+              radial-gradient(1000px 400px at 20% 0%, rgba(255,255,255,0.08), transparent 80%);
+  animation:auroraWave 20s ease-in-out infinite alternate;
+  opacity:.3;
+}
+
+@keyframes auroraWave{
+  0%{background-position:60% 0%,20% 0%;}
+  100%{background-position:40% 0%,10% -20%;}
+}
+
+@media (prefers-reduced-motion: reduce){
+  .aurora-glow{animation:none;}
+  body.winter h1.title{animation:none;}
+}
+
 .page{
   --page-pad-top:12px;
   --page-pad-inline:clamp(20px,4vw,36px);
@@ -451,12 +497,104 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
 .kpi{background:var(--paper);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:14px 16px;color:var(--ink)}
 .kpi .label{font-size:12px;color:var(--muted);letter-spacing:.2px}
 .kpi .value{font-size:24px;font-weight:800;line-height:1.1;margin-top:4px}
-.card{background:var(--paper);border:1px solid var(--border);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow);color:var(--ink)}
+.card{position:relative;background:var(--paper);border:1px solid var(--border);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow);color:var(--ink)}
 .card h3{margin:0 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
 .card .big{font-size:22px;font-weight:900}
+.card::before{content:"";position:absolute;inset:-1px;border-radius:inherit;opacity:0;pointer-events:none;z-index:-1;}
 .kpi-clickable{cursor:pointer;user-select:none;transition:box-shadow .18s ease,border-color .18s ease,background-color .18s ease}
 .kpi-clickable:hover{box-shadow:0 0 0 2px color-mix(in srgb,var(--als-blue) 25%,transparent);border-color:var(--als-blue)}
 .kpi-clickable[aria-pressed="true"]{background:color-mix(in srgb,var(--als-blue) 12%,var(--paper));border-color:var(--als-blue);box-shadow:0 0 0 2px color-mix(in srgb,var(--als-blue) 25%,transparent)}
+
+/* === Winter Mode Styling === */
+body.winter{
+  --bg:#050b1d;
+  --paper:rgba(15,25,45,0.55);
+  --ink:#eaf1ff;
+  --muted:#b6c3d8;
+  --border:rgba(110,150,214,0.28);
+  --grid:rgba(90,128,196,0.28);
+  --zebra:rgba(12,22,40,0.55);
+  --thead:rgba(54,94,168,0.78);
+  --thead-text:#ecf4ff;
+  --als-blue:#68a8ff;
+  --als-blue-strong:#8cc7ff;
+  --btn-outline-bd:rgba(120,170,232,0.35);
+  --btn-ghost-bg-hover:rgba(104,168,255,0.18);
+  --btn-bg:#68a8ff;
+  --btn-bg-hover:#7cc2ff;
+  --input-bg:rgba(10,20,36,0.55);
+  --input-fg:#eaf1ff;
+  --input-bd:rgba(120,170,232,0.35);
+  --input-bd-focus:#68a8ff;
+  --surface-border:rgba(120,170,232,0.4);
+  text-shadow:0 0 6px rgba(11,103,194,.35);
+  background:radial-gradient(circle at top,#03112c,#020914 75%);
+}
+
+body.winter .night-tint{opacity:.54;}
+
+body.winter h1.title{animation:headerGlow 8s ease-in-out infinite;}
+
+@keyframes headerGlow{
+  0%,100%{text-shadow:0 0 6px rgba(100,180,255,0.2);}
+  50%{text-shadow:0 0 12px rgba(120,200,255,0.5);}
+}
+
+body.winter .sticky-top,
+body.winter .controls-bar,
+body.winter .kpi,
+body.winter .card,
+body.winter .dash-empty,
+body.winter .table-scroll,
+body.winter .mobile-card,
+body.winter .mobile-sort__controls,
+body.winter .mobile-sort__toggle,
+body.winter .active-filter-chips,
+body.winter .filter-chip{
+  backdrop-filter:blur(6px) saturate(120%);
+  background-color:rgba(15,25,45,0.55);
+  border-color:rgba(255,255,255,0.08);
+  box-shadow:0 18px 32px rgba(6,12,24,0.42);
+}
+
+body.winter .table-scroll thead th{
+  background:rgba(54,94,168,0.86);
+  border-color:rgba(8,16,32,0.5);
+}
+
+body.winter .table-scroll tbody td{
+  background:rgba(11,20,38,0.62);
+  border-bottom-color:rgba(118,168,244,0.24);
+}
+
+body.winter .mobile-card,
+body.winter .kpi{
+  position:relative;
+}
+
+body.winter .card::before,
+body.winter .mobile-card::before,
+body.winter .kpi::before{
+  opacity:.25;
+  background:radial-gradient(circle at top,rgba(180,220,255,0.35),transparent 70%);
+  filter:blur(0.5px);
+}
+
+body.winter .nav .tab[aria-selected="true"]{background:rgba(104,168,255,0.22);border-color:rgba(104,168,255,0.6);box-shadow:0 0 0 2px rgba(104,168,255,0.45);color:#f3f7ff;}
+body.winter .nav .tab{color:var(--ink);border-color:rgba(118,168,244,0.32);background:rgba(9,18,34,0.45);}
+body.winter .nav .tab:hover{border-color:rgba(104,168,255,0.7);}
+
+body.winter .btn--primary{background:linear-gradient(130deg,rgba(64,134,232,0.9),rgba(98,180,255,0.9));border-color:rgba(104,168,255,0.9);}
+body.winter .btn--primary:hover{background:linear-gradient(130deg,rgba(80,156,255,0.95),rgba(124,200,255,0.95));}
+
+body.winter .btn--outline{color:#d6e8ff;border-color:rgba(120,170,232,0.6);}
+
+body.winter .btn--ghost{color:#dcecff;}
+
+body.winter .mobile-sort__toggle,
+body.winter .mobile-sort__controls{color:#eaf1ff;}
+
+body.winter .filter-chip{color:#eaf1ff;}
 
 /* ===== TABLE WITH WORKING STICKY HEADER ===== */
 table{
@@ -890,6 +1028,14 @@ tbody td{padding:8px 6px;box-sizing:border-box}
 </style>
 </head>
 <body class="light">
+  <!-- ❄️ Winter visual effects (hidden until Winter Plan is active) -->
+  <div class="fx-layer" id="fx-layer" hidden>
+    <canvas id="snow-far" aria-hidden="true"></canvas>
+    <canvas id="snow-mid" aria-hidden="true"></canvas>
+    <canvas id="snow-near" aria-hidden="true"></canvas>
+    <div class="night-tint" aria-hidden="true"></div>
+    <div class="aurora-glow" aria-hidden="true"></div>
+  </div>
   <div class="page">
     <header class="page-head">
       <div class="page-head__title page-head__title--with-badge">
@@ -1038,17 +1184,6 @@ tbody td{padding:8px 6px;box-sizing:border-box}
      4) Leaving Winter Plan reapplies the saved theme and toggles overlays automatically.
      5) APIs: WinterOverlay.{setDensity,refresh,destroy}, ChristmasLights.{enable,disable,refresh}.
   */
-  #bgfx,
-  #snow{
-    position:fixed;
-    inset:0;
-    width:100%;
-    height:100%;
-    pointer-events:none;
-    display:none;
-  }
-  #bgfx{z-index:9998;}
-  #snow{z-index:10000;}
   #christmasLights{
     position:fixed;
     inset:0;
@@ -1162,16 +1297,19 @@ tbody td{padding:8px 6px;box-sizing:border-box}
   <script>
   (()=>{
     const DEFAULT_LEVEL='medium';
-    const DENSITY_MAP={off:0,light:70,medium:150,heavy:260};
+    const DENSITY_MAP={off:0,light:0.55,medium:1,heavy:1.35};
+    const LAYERS=[
+      { id:'snow-far', base:60, speed:0.28, size:1.1, alpha:0.38, sway:0.22 },
+      { id:'snow-mid', base:90, speed:0.46, size:1.6, alpha:0.55, sway:0.36 },
+      { id:'snow-near', base:50, speed:0.82, size:2.3, alpha:0.85, sway:0.48 },
+    ];
+
     const state={
       density:DEFAULT_LEVEL,
-      desiredCount:DENSITY_MAP[DEFAULT_LEVEL],
-      bgCanvas:null,
-      snowCanvas:null,
-      bgCtx:null,
-      snowCtx:null,
-      stars:[],
-      flakes:[],
+      factor:DENSITY_MAP[DEFAULT_LEVEL],
+      targetFactor:DENSITY_MAP[DEFAULT_LEVEL],
+      layer:null,
+      layers:[],
       width:0,
       height:0,
       cssWidth:0,
@@ -1179,76 +1317,32 @@ tbody td{padding:8px 6px;box-sizing:border-box}
       dpr:window.devicePixelRatio||1,
       rafId:null,
       animating:false,
-      resizeHandler:null,
-      active:false,
-      userDisabled:false,
-      motionQuery:window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):null,
       lastFrameTime:0,
+      resizeHandler:null,
+      motionQuery:window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):null,
+      fadeAnimation:null,
+      userDisabled:false,
+      active:false,
     };
 
-    const rootEl=document.documentElement;
-    function readVar(styles,name,fallback){
-      const value=styles.getPropertyValue(name);
-      return value && value.trim()?value.trim():fallback;
+    function ensureLayer(){
+      if(state.layer) return true;
+      const layer=document.getElementById('fx-layer');
+      if(!layer) return false;
+      state.layer=layer;
+      state.layers=LAYERS.map(config=>{
+        const canvas=layer.querySelector(`#${config.id}`);
+        const ctx=canvas?.getContext('2d',{ alpha:true });
+        return { config, canvas, ctx, flakes:[] };
+      });
+      return true;
     }
 
-    function withAlpha(color,alpha){
-      const trimmed=color.trim();
-      const hexMatch=trimmed.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
-      if(!hexMatch) return trimmed;
-      let hex=hexMatch[1];
-      if(hex.length===3){
-        hex=hex.split('').map(ch=>ch+ch).join('');
-      }
-      const r=parseInt(hex.slice(0,2),16);
-      const g=parseInt(hex.slice(2,4),16);
-      const b=parseInt(hex.slice(4,6),16);
-      return `rgba(${r},${g},${b},${alpha})`;
-    }
-
-    function toRgb(color){
-      const trimmed=color.trim();
-      const hexMatch=trimmed.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
-      if(hexMatch){
-        let hex=hexMatch[1];
-        if(hex.length===3){
-          hex=hex.split('').map(ch=>ch+ch).join('');
-        }
-        return { r:parseInt(hex.slice(0,2),16), g:parseInt(hex.slice(2,4),16), b:parseInt(hex.slice(4,6),16) };
-      }
-      const rgbMatch=trimmed.match(/rgba?\(([^)]+)\)/i);
-      if(rgbMatch){
-        const parts=rgbMatch[1].split(',').map(part=>Number(part.trim()));
-        return {
-          r:Number.isFinite(parts[0])?parts[0]:255,
-          g:Number.isFinite(parts[1])?parts[1]:255,
-          b:Number.isFinite(parts[2])?parts[2]:255,
-        };
-      }
-      return { r:255,g:255,b:255 };
-    }
-
-    function ensureCanvases(){
-      if(state.bgCanvas && state.snowCanvas) return;
-      const bg=document.createElement('canvas');
-      bg.id='bgfx';
-      const snow=document.createElement('canvas');
-      snow.id='snow';
-      bg.style.display='block';
-      snow.style.display='none';
-      document.body.append(bg,snow);
-      state.bgCanvas=bg;
-      state.snowCanvas=snow;
-      state.bgCtx=bg.getContext('2d');
-      state.snowCtx=snow.getContext('2d');
-    }
-
-    function updateCanvasMetrics(){
-      if(!state.bgCanvas || !state.snowCanvas) return;
+    function resizeCanvases(){
+      if(!ensureLayer()) return;
       const cssWidth=window.innerWidth||document.documentElement.clientWidth||0;
       const cssHeight=window.innerHeight||document.documentElement.clientHeight||0;
-      const dpr=window.devicePixelRatio||1;
-      const scaledDpr=Math.max(1,Math.min(3,dpr));
+      const scaledDpr=Math.max(1,Math.min(3,window.devicePixelRatio||1));
       const width=Math.max(1,Math.floor(cssWidth*scaledDpr));
       const height=Math.max(1,Math.floor(cssHeight*scaledDpr));
 
@@ -1258,238 +1352,297 @@ tbody td{padding:8px 6px;box-sizing:border-box}
       state.width=width;
       state.height=height;
 
-      [state.bgCanvas,state.snowCanvas].forEach(canvas=>{
-        canvas.width=width;
-        canvas.height=height;
-        canvas.style.width=`${cssWidth}px`;
-        canvas.style.height=`${cssHeight}px`;
+      state.layers.forEach(layer=>{
+        if(!layer.canvas) return;
+        layer.canvas.width=width;
+        layer.canvas.height=height;
+        layer.canvas.style.width=`${cssWidth}px`;
+        layer.canvas.style.height=`${cssHeight}px`;
       });
     }
 
-    function buildStars(){
-      const count=Math.min(80,Math.max(18,Math.round((state.cssWidth+state.cssHeight)/36)));
-      const stars=[];
-      for(let i=0;i<count;i++){
-        stars.push({
-          x:Math.random()*state.width,
-          y:Math.random()*state.height,
-          radius:(Math.random()*1.2+0.4)*state.dpr,
-          alpha:Math.random()*0.25+0.05,
-        });
+    function createFlake(config){
+      const radius=(Math.random()*config.size+0.6)*state.dpr;
+      return {
+        x:Math.random()*state.width,
+        y:Math.random()*state.height,
+        radius,
+        vy:(Math.random()*0.45+config.speed)*state.dpr,
+        vx:(Math.random()*0.3-0.15)*config.speed*state.dpr,
+        sway:Math.random()*Math.PI*2,
+        swaySpeed:(Math.random()*0.012+0.004)*(0.8+config.speed),
+        swayAmp:(Math.random()*0.6+0.4)*config.sway*state.dpr*2.4,
+      };
+    }
+
+    function populateLayer(layer){
+      const { config, ctx }=layer;
+      if(!ctx){
+        layer.flakes=[];
+        return;
       }
-      state.stars=stars;
-    }
-
-    function drawBackground(){
-      const ctx=state.bgCtx;
-      if(!ctx) return;
-      const w=state.width;
-      const h=state.height;
-      ctx.clearRect(0,0,w,h);
-
-      const styles=getComputedStyle(rootEl);
-      const skyTop=withAlpha(readVar(styles,'--winter-night-start','#020b1f'),0.35);
-      const skyMid=withAlpha(readVar(styles,'--winter-night-mid','#041330'),0.48);
-      const skyBottom=withAlpha(readVar(styles,'--winter-night-far','#08163a'),0.62);
-      const moonInner=withAlpha(readVar(styles,'--winter-moon','#fff4d2'),0.18);
-      const starBase=toRgb(readVar(styles,'--winter-star','#ffffff'));
-
-      const sky=ctx.createLinearGradient(0,0,0,h);
-      sky.addColorStop(0,skyTop);
-      sky.addColorStop(0.6,skyMid);
-      sky.addColorStop(1,skyBottom);
-      ctx.fillStyle=sky;
-      ctx.fillRect(0,0,w,h);
-
-      const moonX=w*0.25;
-      const moonY=-h*0.2;
-      const moon=ctx.createRadialGradient(moonX,moonY,w*0.05,moonX,moonY,w*0.6);
-      moon.addColorStop(0,moonInner);
-      moon.addColorStop(1,'rgba(8, 12, 32, 0)');
-      ctx.fillStyle=moon;
-      ctx.fillRect(0,0,w,h);
-
-      state.stars.forEach(star=>{
-        ctx.beginPath();
-        ctx.fillStyle=`rgba(${starBase.r},${starBase.g},${starBase.b},${star.alpha})`;
-        ctx.arc(star.x,star.y,star.radius,0,Math.PI*2);
-        ctx.fill();
-      });
-
-      const vignette=ctx.createRadialGradient(w/2,h/2,Math.min(w,h)*0.45,w/2,h/2,Math.max(w,h));
-      vignette.addColorStop(0,'rgba(0,0,0,0)');
-      vignette.addColorStop(1,'rgba(0,0,0,0.35)');
-      ctx.fillStyle=vignette;
-      ctx.fillRect(0,0,w,h);
-    }
-
-    function createFlakes(count){
+      const count=Math.round((config.base||0)*state.factor);
+      if(count<=0){
+        layer.flakes=[];
+        ctx.clearRect(0,0,state.width,state.height);
+        return;
+      }
       const flakes=[];
       for(let i=0;i<count;i++){
-        flakes.push({
-          x:Math.random()*state.width,
-          y:Math.random()*state.height,
-          radius:(Math.random()*2+1)*state.dpr,
-          vy:(Math.random()*0.8+0.4)*state.dpr,
-          vx:(Math.random()*0.8-0.4)*state.dpr,
-        });
+        flakes.push(createFlake(config));
       }
-      return flakes;
+      layer.flakes=flakes;
     }
 
-    function stopSnow(){
-      state.animating=false;
-      if(state.rafId){
-        cancelAnimationFrame(state.rafId);
-        state.rafId=null;
-      }
-      if(state.snowCtx){
-        state.snowCtx.clearRect(0,0,state.width,state.height);
-      }
-      state.lastFrameTime=0;
+    function totalFlakes(){
+      return state.layers.reduce((sum,layer)=>sum+layer.flakes.length,0);
     }
 
-    function renderSnow(){
-      if(!state.animating || !state.snowCtx){
-        state.animating=false;
+    function render(now){
+      if(!state.animating){
         state.rafId=null;
         return;
       }
-      const ctx=state.snowCtx;
-      const w=state.width;
-      const h=state.height;
-      const now=performance.now();
       if(!state.lastFrameTime){
         state.lastFrameTime=now;
       }
       const delta=Math.min(now-state.lastFrameTime,160);
       const step=delta/16.6667;
       state.lastFrameTime=now;
-      ctx.clearRect(0,0,w,h);
 
-      if(!state.flakes.length){
-        state.animating=false;
-        state.rafId=null;
+      let drawn=0;
+      state.layers.forEach(layer=>{
+        const { ctx, flakes, config }=layer;
+        if(!ctx){
+          return;
+        }
+        ctx.clearRect(0,0,state.width,state.height);
+        if(!flakes.length){
+          return;
+        }
+        drawn+=flakes.length;
+        ctx.save();
+        ctx.fillStyle=`rgba(255,255,255,${config.alpha})`;
+        flakes.forEach(flake=>{
+          flake.x+=flake.vx*step+Math.cos(flake.sway)*flake.swayAmp*step;
+          flake.y+=flake.vy*step;
+          flake.sway+=flake.swaySpeed*step;
+
+          if(flake.y>state.height+flake.radius){
+            flake.y=-flake.radius;
+            flake.x=Math.random()*state.width;
+          }
+          if(flake.x<-flake.radius){
+            flake.x=state.width+flake.radius;
+          }else if(flake.x>state.width+flake.radius){
+            flake.x=-flake.radius;
+          }
+
+          ctx.beginPath();
+          ctx.arc(flake.x,flake.y,flake.radius,0,Math.PI*2);
+          ctx.fill();
+        });
+        ctx.restore();
+      });
+
+      if(drawn===0){
+        stopAnimation();
         return;
       }
 
-      ctx.fillStyle='rgba(255,255,255,0.85)';
-      for(const flake of state.flakes){
-        flake.x+=flake.vx*step;
-        flake.y+=flake.vy*step;
-
-        if(flake.x<-flake.radius) flake.x=w+flake.radius;
-        if(flake.x>w+flake.radius) flake.x=-flake.radius;
-        if(flake.y>h+flake.radius){
-          flake.y=-flake.radius;
-          flake.x=Math.random()*w;
-        }
-
-        ctx.beginPath();
-        ctx.arc(flake.x,flake.y,flake.radius,0,Math.PI*2);
-        ctx.fill();
-      }
-
-      if(state.animating){
-        state.rafId=requestAnimationFrame(renderSnow);
-      }
+      state.rafId=requestAnimationFrame(render);
     }
 
-    function startSnow(){
-      if(!state.snowCtx) return;
-      if(!state.flakes.length){
-        stopSnow();
-        return;
-      }
-      state.lastFrameTime=performance.now();
+    function startAnimation(){
       if(state.animating) return;
+      if(totalFlakes()<=0) return;
       state.animating=true;
-      state.rafId=requestAnimationFrame(renderSnow);
+      state.lastFrameTime=0;
+      state.rafId=requestAnimationFrame(render);
+    }
+
+    function stopAnimation(){
+      state.animating=false;
+      if(state.rafId){
+        cancelAnimationFrame(state.rafId);
+        state.rafId=null;
+      }
+      state.lastFrameTime=0;
     }
 
     function ensureActive(){
-      if(state.userDisabled) return false;
       if(state.motionQuery?.matches) return false;
-      ensureCanvases();
-      updateCanvasMetrics();
-      buildStars();
-      drawBackground();
-      if(state.bgCanvas){
-        state.bgCanvas.style.display='block';
+      if(!ensureLayer()) return false;
+      if(!state.active){
+        resizeCanvases();
+        state.active=true;
+        if(!state.resizeHandler){
+          state.resizeHandler=()=>{
+            if(!state.active) return;
+            resizeCanvases();
+            state.layers.forEach(populateLayer);
+            startAnimation();
+          };
+          window.addEventListener('resize',state.resizeHandler,{ passive:true });
+        }
       }
-      if(!state.resizeHandler){
-        state.resizeHandler=()=>{
-          if(state.motionQuery?.matches) return;
-          handleResize();
-        };
-        window.addEventListener('resize',state.resizeHandler,{ passive:true });
-      }
-      state.active=true;
       return true;
     }
 
-    function updateSnow(count){
-      state.desiredCount=count;
-      if(!state.snowCanvas) ensureCanvases();
-      if(count<=0){
-        state.flakes=[];
-        if(state.snowCanvas){
-          state.snowCanvas.style.display='none';
-        }
-        stopSnow();
-        return;
+    function fadeIn(){
+      if(!state.layer) return;
+      state.layer.hidden=false;
+      if(state.fadeAnimation){
+        state.fadeAnimation.cancel();
       }
-      if(!ensureActive()) return;
-      if(state.snowCanvas){
-        state.snowCanvas.style.display='block';
-      }
-      state.flakes=createFlakes(count);
-      state.lastFrameTime=performance.now();
-      startSnow();
-    }
-
-    function handleResize(){
-      if(!state.active) return;
-      updateCanvasMetrics();
-      buildStars();
-      drawBackground();
-      if(state.desiredCount>0){
-        state.flakes=createFlakes(state.desiredCount);
-        if(state.snowCanvas){
-          state.snowCanvas.style.display='block';
-        }
-        state.lastFrameTime=performance.now();
-        startSnow();
+      if(state.layer.animate){
+        const anim=state.layer.animate([
+          { opacity:0 },
+          { opacity:1 }
+        ],{ duration:1200, easing:'ease-out', fill:'forwards' });
+        state.fadeAnimation=anim;
+        anim.onfinish=()=>{ state.layer.style.opacity='1'; state.fadeAnimation=null; };
+        anim.oncancel=()=>{ state.layer.style.opacity='1'; state.fadeAnimation=null; };
+      }else{
+        state.layer.style.opacity='1';
       }
     }
 
-    function teardown(){
-      stopSnow();
+    function showStaticLayer(){
+      if(!ensureLayer()) return;
+      resizeCanvases();
+      stopAnimation();
+      if(state.fadeAnimation){
+        state.fadeAnimation.oncancel=null;
+        state.fadeAnimation.onfinish=null;
+        state.fadeAnimation.cancel();
+        state.fadeAnimation=null;
+      }
       if(state.resizeHandler){
         window.removeEventListener('resize',state.resizeHandler);
         state.resizeHandler=null;
       }
       state.active=false;
-      state.flakes=[];
-      state.stars=[];
-      if(state.bgCanvas){
-        state.bgCanvas.remove();
-        state.bgCanvas=null;
+      state.layers.forEach(layer=>{
+        layer.flakes=[];
+        layer.ctx?.clearRect(0,0,state.width,state.height);
+      });
+      state.layer.hidden=false;
+      state.layer.style.opacity='1';
+    }
+
+    function finalizeFadeOut(){
+      stopAnimation();
+      state.layers.forEach(layer=>{
+        layer.flakes=[];
+        layer.ctx?.clearRect(0,0,state.width,state.height);
+      });
+      if(state.layer){
+        state.layer.hidden=true;
+        state.layer.style.opacity='0';
       }
-      if(state.snowCanvas){
-        state.snowCanvas.remove();
-        state.snowCanvas=null;
+      if(state.resizeHandler){
+        window.removeEventListener('resize',state.resizeHandler);
+        state.resizeHandler=null;
       }
-      state.bgCtx=null;
-      state.snowCtx=null;
+      state.active=false;
+      state.fadeAnimation=null;
+    }
+
+    function fadeOut(){
+      if(!state.layer){
+        finalizeFadeOut();
+        return Promise.resolve();
+      }
+      if(state.fadeAnimation){
+        state.fadeAnimation.cancel();
+      }
+      const current=parseFloat(getComputedStyle(state.layer).opacity)||1;
+      if(state.layer.animate){
+        return new Promise(resolve=>{
+          const done=()=>{
+            finalizeFadeOut();
+            resolve();
+          };
+          const anim=state.layer.animate([
+            { opacity:current },
+            { opacity:0 }
+          ],{ duration:700, easing:'ease-in-out', fill:'forwards' });
+          state.fadeAnimation=anim;
+          anim.onfinish=done;
+          anim.oncancel=done;
+        });
+      }
+      finalizeFadeOut();
+      return Promise.resolve();
+    }
+
+    function refreshFlakes(){
+      if(!ensureActive()) return;
+      state.layers.forEach(populateLayer);
+      if(totalFlakes()>0){
+        fadeIn();
+        startAnimation();
+      }else{
+        fadeOut();
+      }
+    }
+
+    function setDensity(level){
+      const normalized=level && Object.prototype.hasOwnProperty.call(DENSITY_MAP,level)?level:DEFAULT_LEVEL;
+      const factor=DENSITY_MAP[normalized];
+      state.density=normalized;
+      state.factor=factor;
+      state.targetFactor=factor;
+      state.userDisabled=false;
+
+      resizeCanvases();
+
+      if(state.motionQuery?.matches){
+        if(factor<=0){
+          fadeOut();
+        }else{
+          showStaticLayer();
+        }
+        return;
+      }
+
+      if(factor<=0){
+        fadeOut();
+        return;
+      }
+
+      refreshFlakes();
+    }
+
+    function refresh(){
+      if(state.motionQuery?.matches) return;
+      if(state.userDisabled) return;
+      if(state.targetFactor<=0) return;
+      state.factor=state.targetFactor;
+      resizeCanvases();
+      refreshFlakes();
+    }
+
+    function destroy(){
+      state.userDisabled=true;
+      state.targetFactor=0;
+      return fadeOut();
     }
 
     function handleMotionChange(event){
       if(event.matches){
-        teardown();
-      }else if(!state.userDisabled){
-        ensureActive();
-        updateSnow(state.desiredCount);
+        if(state.targetFactor>0){
+          showStaticLayer();
+        }else{
+          fadeOut();
+        }
+      }else if(!state.userDisabled && state.targetFactor>0){
+        state.factor=state.targetFactor;
+        resizeCanvases();
+        refreshFlakes();
+      }else{
+        fadeOut();
       }
     }
 
@@ -1501,33 +1654,10 @@ tbody td{padding:8px 6px;box-sizing:border-box}
       }
     }
 
-    const api={
-      setDensity(level){
-        const normalized=level && Object.prototype.hasOwnProperty.call(DENSITY_MAP,level)?level:DEFAULT_LEVEL;
-        state.density=normalized;
-        state.userDisabled=false;
-        const count=DENSITY_MAP[normalized]??DENSITY_MAP[DEFAULT_LEVEL];
-        if(state.motionQuery?.matches){
-          state.desiredCount=count;
-          return;
-        }
-        ensureActive();
-        updateSnow(count);
-      },
-      destroy(){
-        state.userDisabled=true;
-        teardown();
-      },
-      refresh(){
-        if(state.motionQuery?.matches) return;
-        if(state.userDisabled) return;
-        if(!ensureActive()) return;
-        updateSnow(state.desiredCount);
-      }
-    };
-
+    const api={ setDensity, refresh, destroy };
     window.WinterOverlay=api;
   })();
+
   </script>
   <script>
   (()=>{
@@ -3901,6 +4031,9 @@ function isWinterPlanActive(){
 const SeasonalTheme=(()=>{
   function apply(site){
     const isWinter=site==='winter';
+    if(isWinter){
+      document.body.classList.add('winter');
+    }
     ThemeController.setWinterLock(isWinter);
 
     if(isWinter){
@@ -3911,9 +4044,21 @@ const SeasonalTheme=(()=>{
       }
       ThemeController.applyChristmasLights();
     }else{
-      window.WinterOverlay?.destroy();
-      ThemeController.applyStoredTheme({ force:true });
-      ThemeController.applyChristmasLights();
+      const finishTeardown=()=>{
+        document.body.classList.remove('winter');
+        ThemeController.applyStoredTheme({ force:true });
+        ThemeController.applyChristmasLights();
+      };
+      try{
+        const teardown=window.WinterOverlay?.destroy?.();
+        if(teardown && typeof teardown.then==='function'){
+          teardown.then(finishTeardown).catch(finishTeardown);
+        }else{
+          finishTeardown();
+        }
+      }catch{
+        finishTeardown();
+      }
     }
   }
 
