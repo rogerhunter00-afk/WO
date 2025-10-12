@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light" />
   <title>PSSR Inspection Tracker – ALS Engineering Dashboard</title>
   <style>
     :root {
@@ -44,6 +45,15 @@
       --sticky-controls-offset:0px;
       --table-min-width:720px;
       --ui-offset:0px;
+      --ctrl-bg:#ffffff;
+      --ctrl-fg:#0b0f1a;
+      --ctrl-muted:#6b7280;
+      --ctrl-ring:#3b82f6;
+      --ctrl-pill:#f3f6fb;
+      --ctrl-pill-border:#dfe6ef;
+      --ctrl-shadow:0 1px 2px rgba(0,0,0,.05);
+      --ctrl-hover:rgba(11,103,194,.08);
+      --ctrl-on:#0b67c2;
       color-scheme:light;
     }
 
@@ -73,7 +83,88 @@
         --thead:#1e3a8a;
         --grid:#233150;
         --zebra:#1c2438;
+        --ctrl-bg:#0d1117;
+        --ctrl-fg:#e8edf5;
+        --ctrl-muted:#9aa7b7;
+        --ctrl-ring:#60a5fa;
+        --ctrl-pill:#111827;
+        --ctrl-pill-border:#1f2937;
+        --ctrl-shadow:0 1px 0 rgba(255,255,255,.06) inset;
+        --ctrl-hover:rgba(96,165,250,.15);
+        --ctrl-on:#60a5fa;
       }
+    }
+
+    .dark {
+      color-scheme:dark;
+      --bg:#0f1422;
+      --paper:#131a2b;
+      --ink:#f3f4f6;
+      --muted:#9ca3af;
+      --border:#233150;
+      --brand:#3b82f6;
+      --brand-strong:#2563eb;
+      --btn-outline-bd:#2b3a63;
+      --btn-ghost-bg-hover:rgba(11,103,194,.18);
+      --input-bg:#0f1422;
+      --input-fg:#f3f4f6;
+      --input-bd:#233150;
+      --input-bd-focus:#3b82f6;
+      --als-blue:var(--brand);
+      --als-blue-strong:var(--brand-strong);
+      --risk-critical:#f87171;
+      --risk-warning:#fbbf24;
+      --risk-ok:#34d399;
+      --surface-subtle:color-mix(in srgb,var(--als-blue) 14%,var(--paper));
+      --surface-strong:color-mix(in srgb,var(--als-blue) 20%,var(--paper));
+      --thead:#1e3a8a;
+      --grid:#233150;
+      --zebra:#1c2438;
+      --ctrl-bg:#0d1117;
+      --ctrl-fg:#e8edf5;
+      --ctrl-muted:#9aa7b7;
+      --ctrl-ring:#60a5fa;
+      --ctrl-pill:#111827;
+      --ctrl-pill-border:#1f2937;
+      --ctrl-shadow:0 1px 0 rgba(255,255,255,.06) inset;
+      --ctrl-hover:rgba(96,165,250,.15);
+      --ctrl-on:#60a5fa;
+    }
+
+    .light {
+      color-scheme:light;
+      --bg:#f3f5f9;
+      --paper:#ffffff;
+      --ink:#0b0f1a;
+      --muted:#6b7280;
+      --border:#e5e9f2;
+      --brand:#0b67c2;
+      --brand-strong:#0a5cb0;
+      --btn-outline-bd:#bcd7f4;
+      --btn-ghost-bg-hover:rgba(11,103,194,.10);
+      --input-bg:#ffffff;
+      --input-fg:var(--ink);
+      --input-bd:var(--border);
+      --input-bd-focus:var(--brand);
+      --als-blue:var(--brand);
+      --als-blue-strong:var(--brand-strong);
+      --risk-critical:#dc2626;
+      --risk-warning:#b45309;
+      --risk-ok:#059669;
+      --surface-subtle:color-mix(in srgb,var(--als-blue) 4%,var(--paper));
+      --surface-strong:color-mix(in srgb,var(--als-blue) 9%,var(--paper));
+      --thead:var(--brand);
+      --grid:var(--border);
+      --zebra:var(--paper);
+      --ctrl-bg:#ffffff;
+      --ctrl-fg:#0b0f1a;
+      --ctrl-muted:#6b7280;
+      --ctrl-ring:#3b82f6;
+      --ctrl-pill:#f3f6fb;
+      --ctrl-pill-border:#dfe6ef;
+      --ctrl-shadow:0 1px 2px rgba(0,0,0,.05);
+      --ctrl-hover:rgba(11,103,194,.08);
+      --ctrl-on:#0b67c2;
     }
 
     body {
@@ -580,91 +671,6 @@
       color:color-mix(in srgb,currentColor 78%,var(--muted));
     }
 
-    .pssr-metrics {
-      margin:0;
-      display:flex;
-      gap:8px;
-      overflow-x:auto;
-      padding-bottom:4px;
-      scrollbar-width:thin;
-      scrollbar-color:color-mix(in srgb,var(--als-blue) 45%,transparent) color-mix(in srgb,var(--als-blue) 10%,transparent);
-    }
-
-    .pssr-metrics__item {
-      padding:10px 12px;
-      border-radius:10px;
-      border:1px solid color-mix(in srgb,var(--als-blue) 12%,var(--grid));
-      background:color-mix(in srgb,var(--paper) 96%,var(--als-blue) 1%);
-      box-shadow:0 3px 9px rgba(15,23,42,0.06);
-      display:flex;
-      flex-direction:column;
-      gap:4px;
-      min-height:82px;
-      transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease;
-      flex:1 0 140px;
-    }
-
-    .pssr-metrics::-webkit-scrollbar {
-      height:6px;
-    }
-
-    .pssr-metrics::-webkit-scrollbar-track {
-      background:color-mix(in srgb,var(--als-blue) 10%,transparent);
-      border-radius:999px;
-    }
-
-    .pssr-metrics::-webkit-scrollbar-thumb {
-      background:color-mix(in srgb,var(--als-blue) 45%,transparent);
-      border-radius:999px;
-    }
-
-    .pssr-metrics__item:hover,
-    .pssr-metrics__item:focus-within {
-      transform:translateY(-1px);
-      box-shadow:0 8px 16px rgba(15,23,42,0.08);
-    }
-
-    .pssr-metrics__item.is-alert {
-      border-color:color-mix(in srgb,#dc2626 45%,transparent);
-      box-shadow:0 12px 24px rgba(220,38,38,0.18);
-    }
-
-    .pssr-metrics__item.is-warning {
-      border-color:color-mix(in srgb,#b45309 45%,transparent);
-      box-shadow:0 12px 24px rgba(180,83,9,0.18);
-    }
-
-    .pssr-metrics__label {
-      margin:0;
-      font-size:11px;
-      text-transform:uppercase;
-      letter-spacing:0.08em;
-      color:color-mix(in srgb,var(--muted) 82%,var(--ink));
-    }
-
-    .pssr-metrics__value {
-      font-size:20px;
-      font-weight:800;
-      line-height:1.1;
-    }
-
-    .pssr-metrics__note {
-      margin:0;
-      color:var(--muted);
-      font-size:11px;
-      line-height:1.4;
-    }
-
-    @media (prefers-reduced-motion: reduce){
-      .pssr-metrics__item,
-      .pssr-metrics__item:hover,
-      .pssr-metrics__item:focus-within {
-        transition:none;
-        transform:none;
-        box-shadow:0 6px 14px rgba(15,23,42,0.06);
-      }
-    }
-
     @media (min-width: 960px){
       .pssr-overview {
         grid-template-columns:minmax(0,1.35fr) minmax(0,1.05fr);
@@ -904,6 +910,91 @@
       font-size:12px;
     }
 
+    .ctrl-pill {
+      display:inline-flex;
+      align-items:center;
+      gap:.5rem;
+      height:36px;
+      padding:0 .75rem;
+      border-radius:9999px;
+      border:1px solid var(--ctrl-pill-border);
+      background:var(--ctrl-pill);
+      color:var(--ctrl-fg);
+      box-shadow:var(--ctrl-shadow);
+      font:inherit;
+      font-weight:600;
+      letter-spacing:.1px;
+      cursor:pointer;
+      user-select:none;
+      transition:background .2s ease,border-color .2s ease,color .2s ease,transform .06s ease;
+    }
+
+    .ctrl-pill:hover {
+      background:var(--ctrl-hover);
+    }
+
+    .ctrl-pill:active {
+      transform:translateY(1px);
+    }
+
+    .ctrl-pill:focus-visible {
+      outline:2px solid var(--ctrl-ring);
+      outline-offset:2px;
+    }
+
+    .ctrl-pill:disabled {
+      opacity:.6;
+      cursor:not-allowed;
+      box-shadow:none;
+    }
+
+    .switch-wrap {
+      display:inline-flex;
+      align-items:center;
+      gap:.5rem;
+    }
+
+    .switch {
+      position:relative;
+      width:56px;
+      height:28px;
+      border-radius:9999px;
+      background:color-mix(in oklab,var(--ctrl-fg) 12%,transparent);
+      border:1px solid var(--ctrl-pill-border);
+      transition:background .2s ease,border-color .2s ease;
+    }
+
+    .switch__thumb {
+      position:absolute;
+      top:3px;
+      left:3px;
+      width:22px;
+      height:22px;
+      border-radius:50%;
+      background:var(--ctrl-bg);
+      box-shadow:var(--ctrl-shadow);
+      transition:left .2s ease,background .2s ease;
+    }
+
+    [role="switch"][aria-checked="true"] .switch {
+      background:color-mix(in oklab,var(--ctrl-on) 40%,transparent);
+      border-color:color-mix(in oklab,var(--ctrl-on) 55%,var(--ctrl-pill-border));
+    }
+
+    [role="switch"][aria-checked="true"] .switch__thumb {
+      left:31px;
+      background:var(--ctrl-bg);
+    }
+
+    .switch-label {
+      color:var(--ctrl-fg);
+      font-weight:600;
+    }
+
+    .refresh-btn {
+      margin-right:auto;
+    }
+
     .table-wrapper {
       margin-top:0;
     }
@@ -951,7 +1042,7 @@
       color:var(--thead-text);
       font-weight:750;
       letter-spacing:0.1px;
-      padding:9px 8px;
+      padding:13px 8px;
       border-bottom:1px solid color-mix(in srgb,#000 18%,transparent);
       text-align:left;
       white-space:nowrap;
@@ -1003,12 +1094,12 @@
     }
 
     tbody td {
-      padding:9px 8px;
+      padding:13px 8px;
       border-bottom:1px solid var(--grid);
       background:var(--zebra);
       vertical-align:top;
       word-break:break-word;
-      line-height:1.35;
+      line-height:1.5;
     }
 
     tbody tr:last-child td {
@@ -1139,12 +1230,8 @@
     .mobile-cards {
       display:none;
       margin-top:18px;
-      grid-template-columns:minmax(0,1fr);
-      gap:12px;
-      align-items:stretch;
+      padding-bottom:24px;
       width:100%;
-      max-width:960px;
-      margin-inline:auto;
     }
 
     body[data-table-mode="mobile"] .table-wrapper {
@@ -1152,7 +1239,7 @@
     }
 
     body[data-table-mode="mobile"] .mobile-cards {
-      display:grid;
+      display:block;
     }
 
     body[data-table-mode="mobile"] .sticky-top__content {
@@ -1208,16 +1295,20 @@
     .mobile-card {
       border:1px solid var(--grid);
       border-radius:14px;
-      padding:16px;
+      padding:12px;
       background:var(--paper);
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-      box-shadow:0 4px 12px rgba(15,23,42,.08);
-      height:100%;
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:8px 12px;
+      width:100%;
+    }
+
+    .mobile-card + .mobile-card {
+      margin-top:10px;
     }
 
     .mobile-card__header {
+      grid-column:1/-1;
       display:flex;
       align-items:flex-start;
       justify-content:space-between;
@@ -1235,84 +1326,101 @@
 
     .mobile-card__title {
       font-weight:800;
-      font-size:15px;
-      line-height:1.35;
+      font-size:13px;
+      line-height:1.3;
       min-width:0;
     }
 
     .mobile-card__subtitle {
-      font-size:12px;
-      color:color-mix(in srgb,var(--muted) 68%,var(--ink));
+      font-size:11px;
+      color:var(--muted);
       font-weight:600;
-      line-height:1.3;
+      line-height:1.2;
+      display:flex;
+      flex-wrap:wrap;
+      gap:4px;
     }
 
     .mobile-card__subtitle span + span::before {
       content:'•';
-      margin:0 6px;
-      color:color-mix(in srgb,var(--muted) 75%,var(--ink));
+      margin:0 3px;
+      color:color-mix(in srgb,var(--muted) 78%,var(--ink));
       font-weight:400;
     }
 
-    .mobile-card__meta {
+    .mobile-card__chip {
+      align-self:flex-start;
+      font-size:11px;
+      padding-inline:8px;
+      white-space:nowrap;
+    }
+
+    .mobile-card__details {
+      grid-column:1/-1;
       margin:0;
       padding:0;
-      display:grid;
-      gap:8px;
-      grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
-    }
-
-    .mobile-card__meta-item {
-      list-style:none;
       display:flex;
-      flex-direction:column;
-      gap:2px;
-      padding:10px 12px;
-      border-radius:12px;
-      background:var(--surface-subtle);
-      border:1px solid color-mix(in srgb,var(--grid) 65%,transparent);
-      min-width:0;
+      flex-wrap:wrap;
+      gap:8px 12px;
+      row-gap:6px;
+      align-items:center;
     }
 
-    .mobile-card__meta-label {
+    .mobile-card__details dt,
+    .mobile-card__details dd {
+      margin:0;
       font-size:11px;
-      letter-spacing:0.04em;
-      text-transform:uppercase;
-      color:color-mix(in srgb,var(--muted) 80%,var(--ink));
-      font-weight:700;
     }
 
-    .mobile-card__meta-value {
-      font-size:12.5px;
+    .mobile-card__detail-label {
       font-weight:600;
-      color:color-mix(in srgb,var(--ink) 92%,var(--muted));
+      letter-spacing:0;
+      text-transform:none;
+      color:var(--muted);
+    }
+
+    .mobile-card__detail-label::after {
+      content:':';
+      margin-left:4px;
+      opacity:.65;
+    }
+
+    .mobile-card__detail-value {
+      font-weight:700;
+      color:var(--ink);
+      text-align:left;
       word-break:break-word;
     }
 
-    .mobile-card__comment {
-      margin:0;
-      font-size:12.5px;
-      line-height:1.45;
-      color:color-mix(in srgb,var(--muted) 65%,var(--ink));
-      background:color-mix(in srgb,var(--als-blue) 6%,var(--paper));
-      border:1px solid color-mix(in srgb,var(--grid) 70%,transparent);
-      border-radius:12px;
-      padding:10px 12px;
+    .mobile-card__detail-value--wide {
+      flex:1 1 100%;
     }
 
-    .mobile-card__comment-label {
-      display:block;
+    .mobile-card__note {
+      grid-column:1/-1;
+      margin:0;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+
+    .mobile-card__note-label {
       font-size:11px;
-      letter-spacing:0.04em;
-      text-transform:uppercase;
-      color:color-mix(in srgb,var(--muted) 80%,var(--ink));
-      font-weight:700;
-      margin-bottom:4px;
+      font-weight:600;
+      letter-spacing:0;
+      text-transform:none;
+      color:var(--muted);
+    }
+
+    .mobile-card__note-text {
+      margin:0;
+      font-size:11px;
+      line-height:1.4;
+      color:color-mix(in srgb,var(--ink) 80%,var(--muted));
     }
 
     .mobile-card.row-overdue {
       border-color:color-mix(in srgb,#dc2626 45%,var(--grid));
-      box-shadow:0 0 0 2px color-mix(in srgb,#dc2626 22%,transparent);
     }
 
     .mobile-card--status {
@@ -1328,42 +1436,25 @@
 
     @media (min-width: 560px) {
       .mobile-card {
-        padding:18px;
-        gap:14px;
-      }
-
-      .mobile-card__meta {
-        grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+        padding:14px;
+        gap:10px 14px;
       }
     }
 
     @media (max-width:540px) {
-      .mobile-cards {
-        grid-template-columns:minmax(0,1fr);
-      }
-
       .mobile-card {
-        padding:12px;
-        gap:10px;
-      }
-
-      .mobile-card__subtitle {
-        font-size:11.5px;
-      }
-
-      .mobile-card__meta-item {
-        padding:8px 10px;
-      }
-
-      .mobile-card__meta-value,
-      .mobile-card__comment {
-        font-size:12px;
+        padding:11px;
+        gap:8px 12px;
       }
     }
 
     @media (max-width:420px) {
-      .mobile-card__meta {
-        grid-template-columns:minmax(0,1fr);
+      .mobile-card__details {
+        column-gap:8px;
+      }
+
+      .mobile-card__detail-label {
+        font-size:9px;
       }
     }
 
@@ -1379,7 +1470,7 @@
     @media (max-width:1248px) {
       .page { --page-pad-top:16px; --page-pad-inline:clamp(16px,6vw,24px); --page-pad-bottom:40px; }
       .table-wrapper { display:none; }
-      .mobile-cards { display:grid; }
+      .mobile-cards { display:flex; flex-direction:column; align-items:center; gap:10px; padding-bottom:24px; }
       .sticky-top__content { flex-direction:column; align-items:flex-start; }
       .sticky-controls { width:100%; flex-direction:column; align-items:stretch; gap:12px; }
       .mobile-sort { display:grid; width:100%; gap:8px; }
@@ -1419,28 +1510,6 @@
         </div>
       </div>
       <div class="pssr-overview__insights">
-        <dl class="pssr-metrics" data-role="pssr-metrics">
-          <div class="pssr-metrics__item" data-metric="total">
-            <dt class="pssr-metrics__label">Total inspections</dt>
-            <dd class="pssr-metrics__value" data-metric-value>—</dd>
-            <dd class="pssr-metrics__note" data-metric-note>Awaiting data</dd>
-          </div>
-          <div class="pssr-metrics__item" data-metric="due-soon">
-            <dt class="pssr-metrics__label">Due soon</dt>
-            <dd class="pssr-metrics__value" data-metric-value>—</dd>
-            <dd class="pssr-metrics__note" data-metric-note>Due within 60 days</dd>
-          </div>
-          <div class="pssr-metrics__item" data-metric="overdue">
-            <dt class="pssr-metrics__label">Overdue</dt>
-            <dd class="pssr-metrics__value" data-metric-value>—</dd>
-            <dd class="pssr-metrics__note" data-metric-note>Requires immediate action</dd>
-          </div>
-          <div class="pssr-metrics__item" data-metric="next">
-            <dt class="pssr-metrics__label">Next scheduled</dt>
-            <dd class="pssr-metrics__value" data-metric-value>—</dd>
-            <dd class="pssr-metrics__note" data-metric-note>Awaiting schedule</dd>
-          </div>
-        </dl>
         <section class="pssr-risk-panel" aria-label="Risk snapshot" data-role="pssr-risk">
           <h3 class="pssr-risk-panel__title">Risk snapshot</h3>
           <p class="pssr-risk-panel__message" data-role="pssr-risk-message">Awaiting inspection data.</p>
@@ -1468,6 +1537,11 @@
     <section class="sticky-top" data-component="sticky-controls">
       <div class="sticky-top__content">
         <div class="sticky-controls controls-bar">
+          <button type="button" class="refresh-btn btn btn--outline" data-action="refresh">Refresh data</button>
+          <button class="ctrl-pill switch-wrap" id="dark-toggle" type="button" role="switch" aria-checked="false" aria-label="Toggle dark theme">
+            <span class="switch" aria-hidden="true"><span class="switch__thumb"></span></span>
+            <span class="switch-label">Dark</span>
+          </button>
           <div class="site-filter" data-role="site-filter">
             <span class="site-filter__label">Site: <span data-role="site-filter-active">All sites</span></span>
             <div class="site-filter__tabs" role="group" aria-label="Filter inspections by site" data-role="site-nav">
@@ -1553,6 +1627,63 @@
     const ALLOW_NETWORK = FORCE_ONLINE ? true : (FORCE_OFFLINE ? false : !DEFAULT_OFFLINE);
     const DEFAULT_ERROR_MESSAGE = 'We were unable to load the inspection sheet. Please check the network or sheet permissions and try again.';
 
+    const themeBtn = document.getElementById('dark-toggle');
+    const themeBtnLabel = themeBtn?.querySelector('.switch-label') || themeBtn?.querySelector('.label');
+    const metaColorScheme = document.querySelector('meta[name="color-scheme"]');
+    const THEME_STORAGE_KEY = 'theme';
+
+    function setThemeButtonLabel(text){
+      if(!themeBtn) return;
+      if(themeBtnLabel){
+        themeBtnLabel.textContent = text;
+      }else{
+        themeBtn.textContent = text;
+      }
+    }
+
+    function applyTheme(theme){
+      const normalized = theme === 'dark' ? 'dark' : 'light';
+      const isDark = normalized === 'dark';
+      document.body.classList.toggle('dark', isDark);
+      document.body.classList.toggle('light', !isDark);
+      document.body.classList.toggle('theme-dark', isDark);
+      document.documentElement.setAttribute('color-scheme', normalized);
+      metaColorScheme?.setAttribute('content', normalized);
+      setThemeButtonLabel(isDark ? 'Light' : 'Dark');
+      const label = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+      themeBtn?.setAttribute('aria-checked', isDark ? 'true' : 'false');
+      themeBtn?.setAttribute('aria-label', label);
+      themeBtn?.setAttribute('title', label);
+    }
+
+    const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    let hasStoredTheme = storedTheme === 'dark' || storedTheme === 'light';
+    let activeTheme = hasStoredTheme ? storedTheme : (prefersDark ? 'dark' : 'light');
+    applyTheme(activeTheme);
+
+    const colorSchemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+    if(colorSchemeQuery && typeof colorSchemeQuery.addEventListener === 'function'){
+      colorSchemeQuery.addEventListener('change', (event) => {
+        if(hasStoredTheme) return;
+        activeTheme = event.matches ? 'dark' : 'light';
+        applyTheme(activeTheme);
+      });
+    }else if(colorSchemeQuery && typeof colorSchemeQuery.addListener === 'function'){
+      colorSchemeQuery.addListener((event) => {
+        if(hasStoredTheme) return;
+        activeTheme = event.matches ? 'dark' : 'light';
+        applyTheme(activeTheme);
+      });
+    }
+
+    themeBtn?.addEventListener('click', () => {
+      activeTheme = document.body.classList.contains('theme-dark') ? 'light' : 'dark';
+      applyTheme(activeTheme);
+      localStorage.setItem(THEME_STORAGE_KEY, activeTheme);
+      hasStoredTheme = true;
+    });
+
     function sanitizeSheetUrl(v){
       if(!v) return null;
       const t = String(v).trim();
@@ -1568,6 +1699,67 @@
     function getSheetUrl(){
       const p = new URLSearchParams(location.search);
       return sanitizeSheetUrl(p.get('sheetUrl') || p.get('sheet') || document.body?.dataset?.sheetUrl || DEFAULT_PSSR_SHEET_URL);
+    }
+
+    function normalizeGoogleDocumentUrl(url){
+      if(!url) return '';
+      const host = (url.hostname || '').toLowerCase();
+      const path = (url.pathname || '').replace(/\/+$/, '');
+      const encodeId = (id) => encodeURIComponent(id || '');
+
+      if(host === 'drive.google.com'){
+        const folderMatch = path.match(/^\/drive\/folders\/([^/]+)/i);
+        if(folderMatch){
+          const id = encodeId(folderMatch[1]);
+          return new URL(`https://drive.google.com/embeddedfolderview?id=${id}#grid`);
+        }
+        const fileMatch = path.match(/^\/file\/d\/([^/]+)/i);
+        if(fileMatch){
+          const id = encodeId(fileMatch[1]);
+          return new URL(`https://drive.google.com/file/d/${id}/preview`);
+        }
+        const genericId = url.searchParams?.get('id');
+        if(genericId){
+          const id = encodeId(genericId);
+          return new URL(`https://drive.google.com/file/d/${id}/preview`);
+        }
+      }
+
+      if(host === 'docs.google.com'){
+        const docMatch = path.match(/^\/(document|spreadsheets|presentation|forms)\/d\/([^/]+)/i);
+        if(docMatch){
+          const type = docMatch[1].toLowerCase();
+          const id = encodeId(docMatch[2]);
+          if(type === 'forms'){
+            return new URL(`https://docs.google.com/forms/d/${id}/viewform?embedded=true`);
+          }
+          return new URL(`https://docs.google.com/${type}/d/${id}/preview`);
+        }
+      }
+
+      return url;
+    }
+
+    function normalizeDocumentUrl(raw){
+      if(!raw) return '';
+      const value = String(raw).trim();
+      if(!value) return '';
+      if(value.startsWith('data:') || value.startsWith('about:')){
+        return value;
+      }
+      try {
+        const url = new URL(value, location.href);
+        if(url.protocol === 'http:'){
+          url.protocol = 'https:';
+        }
+        if(url.protocol !== 'https:'){
+          return '';
+        }
+        const normalized = normalizeGoogleDocumentUrl(url);
+        return normalized ? normalized.toString() : '';
+      } catch {
+        return '';
+      }
     }
 
     function resolveSiteLabel(siteKey){
@@ -1605,6 +1797,17 @@
       const detailNode = el.querySelector('[data-detail]');
       if(msgNode) msgNode.textContent = msg;
       if(detailNode) detailNode.textContent = detail ? ' – ' + detail : '';
+    }
+
+    function hideBanner(){
+      const el = document.querySelector('#banner');
+      if(!el) return;
+      el.hidden = true;
+      el.className = 'banner';
+      const msgNode = el.querySelector('[data-msg]');
+      const detailNode = el.querySelector('[data-detail]');
+      if(msgNode) msgNode.textContent = '';
+      if(detailNode) detailNode.textContent = '';
     }
 
     function setViewerPlaceholder(message, { reveal = false } = {}){
@@ -2037,11 +2240,65 @@
       return { headers, rows: data };
     }
 
-    function pickField(row, keys){
+    function normalizeFieldKeyName(name){
+      return String(name ?? '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+    }
+
+    function pickField(row, keys, options={}){
+      const { fuzzy=[], fallbackUrl=false } = options;
       for(const key of keys){
         if(key in row && row[key] !== undefined){
           const value = row[key];
           if(String(value).trim().length) return value;
+        }
+      }
+      const entries = row && typeof row === 'object' ? Object.entries(row) : [];
+      if(fuzzy.length && entries.length){
+        const tokenized = entries.map(([key, value]) => {
+          const normalized = normalizeFieldKeyName(key);
+          return {
+            key,
+            value,
+            normalized,
+            tokens: normalized.split(/\s+/).filter(Boolean)
+          };
+        });
+        for(const descriptor of fuzzy){
+          const match = tokenized.find(({ tokens, normalized }) => {
+            if(!tokens.length) return false;
+            if(typeof descriptor === 'function'){
+              try {
+                return !!descriptor({ tokens, normalized });
+              } catch { return false; }
+            }
+            const all = Array.isArray(descriptor?.all) ? descriptor.all : null;
+            const any = Array.isArray(descriptor?.any) ? descriptor.any : null;
+            const includesAll = all ? all.every(token => tokens.some(t => t === token || t.startsWith(token))) : true;
+            const includesAny = any ? any.some(token => tokens.some(t => t === token || t.startsWith(token))) : true;
+            return includesAll && includesAny;
+          });
+          if(match && String(match.value ?? '').trim().length){
+            return match.value;
+          }
+        }
+      }
+      if(fallbackUrl && entries.length){
+        const urlLike = entries.find(([key, value]) => {
+          if(value == null) return false;
+          const text = String(value).trim();
+          if(!text) return false;
+          if(/^https?:\/\//i.test(text)) return true;
+          if(/^www\./i.test(text)) return true;
+          if(/drive\.google\.com|docs\.google\.com/i.test(text)) return true;
+          return false;
+        });
+        if(urlLike){
+          return urlLike[1];
         }
       }
       return '';
@@ -2095,7 +2352,21 @@
       const lastRaw = pickField(raw, ['Last Inspection Date','Last Inspection','Previous Inspection']);
       const nextRaw = pickField(raw, ['Next Inspection Date','Next Inspection','Inspection Due']);
       const comments = pickField(raw, ['Comments','Notes','Remarks']);
-      const documentUrl = pickField(raw, ['Document URL','Document','Link','Document Link','Attachment','Attachment URL']);
+      const documentUrl = pickField(
+        raw,
+        ['Document URL','Document','Link','Document Link','Attachment','Attachment URL'],
+        {
+          fuzzy:[
+            { all:['document'], any:['link','url','hyperlink','href'] },
+            { all:['doc'], any:['link','url'] },
+            { all:['certificate'], any:['link','url'] },
+            { all:['inspection','report'], any:['link','url'] },
+            { all:['record'], any:['link','url'] }
+          ],
+          fallbackUrl:true
+        }
+      );
+      const normalizedDocumentUrl = normalizeDocumentUrl(documentUrl);
       const lastDate = parseDateLoose(lastRaw);
       const nextDate = parseDateLoose(nextRaw);
       const countdown = normalizeCountdown(nextDate instanceof Date ? new Date(nextDate) : nextDate);
@@ -2112,7 +2383,7 @@
         __countdownDays: countdown.diffDays,
         __overdue: countdown.overdue,
         __siteName: primarySite || '',
-        __docUrl: documentUrl || '',
+        __docUrl: normalizedDocumentUrl,
         __raw: raw
       };
     }
@@ -2172,8 +2443,7 @@
           return;
         }
         const raw = typeof url === 'string' ? url.trim() : '';
-        const sanitized = sanitizeSheetUrl(raw);
-        const safeUrl = sanitized || (raw.startsWith('data:') || raw.startsWith('about:') ? raw : '');
+        const safeUrl = normalizeDocumentUrl(raw);
         if(!safeUrl){
           setViewerPlaceholder('No document link on this row.', { reveal:true });
           return;
@@ -2235,8 +2505,8 @@
         const subtitle = (showSite || showLocation)
           ? `<div class="mobile-card__subtitle">${showSite ? `<span>${esc(siteClean)}</span>` : ''}${showLocation ? `<span>${esc(locationClean)}</span>` : ''}</div>`
           : '';
-        const locationMeta = showLocation && showSite
-          ? `<div class="mobile-card__meta-item"><span class="mobile-card__meta-label">Location</span><span class="mobile-card__meta-value">${esc(locationClean)}</span></div>`
+        const locationDetail = showLocation && showSite
+          ? `<dt class="mobile-card__detail-label">Location</dt><dd class="mobile-card__detail-value mobile-card__detail-value--wide">${esc(locationClean)}</dd>`
           : '';
         const commentsRaw = (row.Comments || '').trim();
         const hasComment = !!commentsRaw && commentsRaw !== '—';
@@ -2248,14 +2518,17 @@
                 <div class="mobile-card__title">${esc(row.Asset)}</div>
                 ${subtitle}
               </div>
-              <span class="countdown-chip ${row.__countdownClass}">${esc(row.Countdown)}</span>
+              <span class="countdown-chip mobile-card__chip ${row.__countdownClass}">${esc(row.Countdown)}</span>
             </header>
-            <div class="mobile-card__meta">
-              ${locationMeta}
-              <div class="mobile-card__meta-item"><span class="mobile-card__meta-label">Last inspection</span><span class="mobile-card__meta-value">${esc(row['Last Inspection Date'])}</span></div>
-              <div class="mobile-card__meta-item"><span class="mobile-card__meta-label">Next inspection</span><span class="mobile-card__meta-value">${esc(row['Next Inspection Date'])}</span></div>
+            <dl class="mobile-card__details">
+              ${locationDetail}
+              <dt class="mobile-card__detail-label">Last</dt><dd class="mobile-card__detail-value">${esc(row['Last Inspection Date'])}</dd>
+              <dt class="mobile-card__detail-label">Next</dt><dd class="mobile-card__detail-value">${esc(row['Next Inspection Date'])}</dd>
+            </dl>
+            <div class="mobile-card__note">
+              <span class="mobile-card__note-label">Comments</span>
+              <p class="mobile-card__note-text">${commentText}</p>
             </div>
-            <p class="mobile-card__comment"><span class="mobile-card__comment-label">Comments</span>${commentText}</p>
           </article>
         `;
       }).join('');
@@ -2263,7 +2536,6 @@
     }
 
     function updateSummaryMetrics(rows, context={}){
-      const metricsRoot = document.querySelector('[data-role="pssr-metrics"]');
       const signalRoot = document.querySelector('[data-role="pssr-signal"]');
       const signalValueNode = document.querySelector('[data-role="pssr-signal-value"]');
       const signalNoteNode = document.querySelector('[data-role="pssr-signal-note"]');
@@ -2282,8 +2554,6 @@
       const siteListRoot = document.querySelector('[data-role="pssr-site-breakdown"]');
       const siteHintNode = document.querySelector('[data-role="pssr-site-hint"]');
 
-      if(!metricsRoot && !signalRoot && !riskPanel && !siteListRoot) return;
-
       const list = Array.isArray(rows) ? rows : [];
       const total = list.length;
       const dueSoonThreshold = DUE_SOON_THRESHOLD_DAYS;
@@ -2293,74 +2563,10 @@
       const dueSoonRows = list.filter(row => typeof row?.__countdownDays === 'number' && row.__countdownDays >= 0 && row.__countdownDays <= dueSoonThreshold);
       const overdueRows = list.filter(row => row?.__overdue);
       const compliantCount = Math.max(total - overdueRows.length - dueSoonRows.length, 0);
-      const upcomingRows = list
-        .filter(row => typeof row?.__countdownDays === 'number')
-        .sort((a,b) => a.__countdownDays - b.__countdownDays);
-      const nextDue = upcomingRows.length ? upcomingRows[0] : null;
 
       const riskState = total === 0
         ? 'empty'
         : (overdueRows.length > 0 ? 'critical' : (dueSoonRows.length > 0 ? 'warning' : 'stable'));
-
-      const setMetric = (key, value, note, state=null) => {
-        if(!metricsRoot) return;
-        const item = metricsRoot.querySelector(`[data-metric="${key}"]`);
-        if(!item) return;
-        const valueNode = item.querySelector('[data-metric-value]');
-        const noteNode = item.querySelector('[data-metric-note]');
-        if(valueNode){
-          valueNode.textContent = value;
-        }
-        if(noteNode){
-          noteNode.textContent = note;
-        }
-        item.classList.remove('is-alert','is-warning');
-        if(state === 'alert'){
-          item.classList.add('is-alert');
-        }else if(state === 'warning'){
-          item.classList.add('is-warning');
-        }
-      };
-
-      setMetric(
-        'total',
-        total.toString(),
-        total === 0
-          ? (isFiltered && overallCount > 0 ? 'No inspections for this site' : 'Awaiting published data')
-          : total === 1
-            ? 'Asset currently on the schedule'
-            : 'Assets currently on the schedule'
-      );
-
-      setMetric(
-        'due-soon',
-        dueSoonRows.length.toString(),
-        dueSoonRows.length ? `Due within ${dueSoonThreshold} days` : `All inspections beyond ${dueSoonThreshold} days`,
-        dueSoonRows.length ? 'warning' : null
-      );
-
-      setMetric(
-        'overdue',
-        overdueRows.length.toString(),
-        overdueRows.length ? 'Requires immediate action' : 'All inspections in compliance',
-        overdueRows.length ? 'alert' : null
-      );
-
-      if(nextDue){
-        const nextDate = nextDue['Next Inspection Date'];
-        const hasKnownDate = nextDate && nextDate !== '—';
-        const headline = hasKnownDate ? nextDate : nextDue.Countdown;
-        const pieces = [nextDue.Asset, nextDue.Location].map(v => String(v ?? '').trim()).filter(v => v && v !== '—');
-        const note = pieces.length ? pieces.join(' • ') : 'Scheduled item';
-        const state = nextDue.__overdue ? 'alert' : (typeof nextDue.__countdownDays === 'number' && nextDue.__countdownDays <= dueSoonThreshold ? 'warning' : null);
-        setMetric('next', headline, note, state);
-      }else if(list.length){
-        setMetric('next', '—', 'No inspections with a scheduled date');
-      }else if(isFiltered && overallCount > 0){
-        setMetric('next', '—', 'No inspections scheduled for this site');
-      }else{
-        setMetric('next', '—', 'Awaiting schedule');
-      }
 
       if(signalRoot){
         let signalValue = '—';
@@ -2652,7 +2858,11 @@
           container.__rows = mapped;
           syncSiteFilterAvailability(container);
           setSort(container, container.__currentSort.column, container.__currentSort.direction);
-          banner('ok', 'Live data loaded', hasRows ? 'online mode' : 'sheet returned no rows – showing sample data');
+          if(hasRows){
+            hideBanner();
+          }else{
+            banner('warn', 'Showing sample data', 'sheet returned no rows');
+          }
         } catch (error) {
           console.warn('Falling back to SAMPLE. Reason:', error?.message || error);
           const message = (error && typeof error.message === 'string' && error.message.trim()) ? error.message.trim() : DEFAULT_ERROR_MESSAGE;
