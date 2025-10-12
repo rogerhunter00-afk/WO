@@ -643,7 +643,7 @@ body.mobile-layout .mobile-sort{display:flex;flex-wrap:wrap;align-items:flex-end
 body.mobile-layout .mobile-sort__label{flex:1 1 100%;margin:0}
 body.mobile-layout .mobile-sort__select{flex:1 1 220px}
 body.mobile-layout .dash-table .table-scroll{display:none}
-body.mobile-layout .mobile-cards{display:grid;width:100%;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));align-items:stretch;justify-content:center}
+body.mobile-layout .mobile-cards{display:grid;width:100%;gap:12px;grid-template-columns:minmax(0,1fr);align-items:stretch;justify-content:stretch}
 body.mobile-layout .page{--page-pad-inline:16px}
 body.mobile-layout .columns-bar{display:none}
 .mobile-card{border:1px solid var(--grid);border-radius:12px;padding:10px;background:var(--paper);display:flex;flex-direction:column;gap:10px;box-shadow:0 2px 6px rgba(15,20,34,.05);width:100%;margin:0;min-height:100%}
@@ -653,7 +653,7 @@ body.mobile-layout .columns-bar{display:none}
 .mobile-card__id{font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
 .mobile-card__badge{flex-shrink:0}
 .mobile-card__badge .status-chip{font-size:11px;padding:3px 8px}
-.mobile-card__meta{margin:0;display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}
+.mobile-card__meta{margin:0;display:flex;flex-direction:column;gap:10px;font-size:12px;color:var(--muted)}
 .mobile-card__item{display:flex;justify-content:space-between;gap:12px}
 .mobile-card__item dt{margin:0;font-weight:600}
 .mobile-card__item dd{margin:0;font-weight:700;color:var(--ink);text-align:right;flex:1 1 auto;min-width:0;display:flex;justify-content:flex-end;align-items:center;gap:6px}
@@ -665,7 +665,7 @@ body.mobile-layout .columns-bar{display:none}
   .mobile-sort__label{flex:1 1 100%;margin:0}
   .mobile-sort__select{flex:1 1 220px}
   .dash-table .table-scroll{display:none}
-  .mobile-cards{display:grid;width:100%;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));align-items:stretch;justify-content:center}
+  .mobile-cards{display:grid;width:100%;gap:12px;grid-template-columns:minmax(0,1fr);align-items:stretch;justify-content:stretch}
   .page{--page-pad-inline:16px}
   .columns-bar{display:none} /* hide static bar on small screens */
 }
