@@ -1189,69 +1189,104 @@
       border-radius:14px;
       padding:16px;
       background:var(--paper);
-      display:grid;
-      grid-template-columns:minmax(0,1fr);
+      display:flex;
+      flex-direction:column;
       gap:12px;
       box-shadow:0 4px 12px rgba(15,23,42,.08);
       height:100%;
+    }
+
+    .mobile-card__header {
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      width:100%;
+    }
+
+    .mobile-card__heading {
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      min-width:0;
+      flex:1 1 auto;
     }
 
     .mobile-card__title {
       font-weight:800;
       font-size:15px;
       line-height:1.35;
-      flex:1 1 auto;
       min-width:0;
     }
 
-    .mobile-card__meta {
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
+    .mobile-card__subtitle {
       font-size:12px;
-      color:var(--muted);
-      align-items:stretch;
-      align-content:flex-start;
+      color:color-mix(in srgb,var(--muted) 68%,var(--ink));
+      font-weight:600;
+      line-height:1.3;
     }
 
-    .mobile-card__meta > div {
+    .mobile-card__subtitle span + span::before {
+      content:'•';
+      margin:0 6px;
+      color:color-mix(in srgb,var(--muted) 75%,var(--ink));
+      font-weight:400;
+    }
+
+    .mobile-card__meta {
+      margin:0;
+      padding:0;
+      display:grid;
+      gap:8px;
+      grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+    }
+
+    .mobile-card__meta-item {
+      list-style:none;
       display:flex;
       flex-direction:column;
-      gap:4px;
+      gap:2px;
       padding:10px 12px;
       border-radius:12px;
       background:var(--surface-subtle);
       border:1px solid color-mix(in srgb,var(--grid) 65%,transparent);
       min-width:0;
-      word-break:break-word;
-      flex:1 1 140px;
-      max-width:220px;
     }
 
-    .mobile-card__meta strong {
+    .mobile-card__meta-label {
       font-size:11px;
-      letter-spacing:0.02em;
+      letter-spacing:0.04em;
       text-transform:uppercase;
-      color:var(--muted);
+      color:color-mix(in srgb,var(--muted) 80%,var(--ink));
+      font-weight:700;
     }
 
-    .mobile-card__row {
-      display:flex;
-      flex-wrap:wrap;
-      gap:6px;
-      align-items:center;
-      font-size:12px;
-      width:100%;
+    .mobile-card__meta-value {
+      font-size:12.5px;
+      font-weight:600;
+      color:color-mix(in srgb,var(--ink) 92%,var(--muted));
       word-break:break-word;
     }
 
-    .mobile-card__row:first-of-type {
-      justify-content:space-between;
-      gap:10px;
+    .mobile-card__comment {
+      margin:0;
+      font-size:12.5px;
+      line-height:1.45;
+      color:color-mix(in srgb,var(--muted) 65%,var(--ink));
+      background:color-mix(in srgb,var(--als-blue) 6%,var(--paper));
+      border:1px solid color-mix(in srgb,var(--grid) 70%,transparent);
+      border-radius:12px;
+      padding:10px 12px;
     }
 
-    .mobile-card__row .countdown-chip {
-      margin-left:auto;
+    .mobile-card__comment-label {
+      display:block;
+      font-size:11px;
+      letter-spacing:0.04em;
+      text-transform:uppercase;
+      color:color-mix(in srgb,var(--muted) 80%,var(--ink));
+      font-weight:700;
+      margin-bottom:4px;
     }
 
     .mobile-card.row-overdue {
@@ -1272,30 +1307,12 @@
 
     @media (min-width: 560px) {
       .mobile-card {
-        grid-template-columns:minmax(0,1.2fr) minmax(0,0.9fr);
-        align-items:start;
+        padding:18px;
+        gap:14px;
       }
 
       .mobile-card__meta {
-        grid-column:2 / 3;
-        padding-left:16px;
-        border-left:1px solid color-mix(in srgb,var(--grid) 75%,transparent);
-      }
-
-      .mobile-card__row:first-of-type {
-        grid-column:1 / 2;
-        align-items:flex-start;
-      }
-
-      .mobile-card__row:last-of-type {
-        grid-column:1 / -1;
-        border-top:1px solid color-mix(in srgb,var(--grid) 75%,transparent);
-        padding-top:10px;
-        margin-top:4px;
-      }
-
-      .mobile-card__row:first-of-type .countdown-chip {
-        margin-left:auto;
+        grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
       }
     }
 
@@ -1303,31 +1320,29 @@
       .mobile-cards {
         grid-template-columns:minmax(0,1fr);
       }
+
       .mobile-card {
         padding:12px;
+        gap:10px;
       }
-      .mobile-card__row {
-        flex-direction:column;
-        align-items:flex-start;
-        gap:4px;
-      }
-      .mobile-card__meta {
+
+      .mobile-card__subtitle {
         font-size:11.5px;
       }
-      .mobile-card__meta > div {
-        padding:10px;
-        flex:1 1 120px;
-        max-width:200px;
+
+      .mobile-card__meta-item {
+        padding:8px 10px;
+      }
+
+      .mobile-card__meta-value,
+      .mobile-card__comment {
+        font-size:12px;
       }
     }
 
     @media (max-width:420px) {
       .mobile-card__meta {
-        flex-direction:column;
-      }
-      .mobile-card__meta > div {
-        flex:1 1 auto;
-        max-width:none;
+        grid-template-columns:minmax(0,1fr);
       }
     }
 
@@ -2176,18 +2191,36 @@
       }
       const html = list.map(row => {
         const overdueClass = row.__overdue ? 'row-overdue' : '';
+        const siteRaw = (row.__siteName || '').trim();
+        const locationRaw = (row.Location || '').trim();
+        const siteClean = siteRaw && siteRaw !== '—' ? siteRaw : '';
+        const locationClean = locationRaw && locationRaw !== '—' ? locationRaw : '';
+        const showSite = !!siteClean;
+        const showLocation = !!locationClean && locationClean.toLowerCase() !== siteClean.toLowerCase();
+        const subtitle = (showSite || showLocation)
+          ? `<div class="mobile-card__subtitle">${showSite ? `<span>${esc(siteClean)}</span>` : ''}${showLocation ? `<span>${esc(locationClean)}</span>` : ''}</div>`
+          : '';
+        const locationMeta = showLocation && showSite
+          ? `<div class="mobile-card__meta-item"><span class="mobile-card__meta-label">Location</span><span class="mobile-card__meta-value">${esc(locationClean)}</span></div>`
+          : '';
+        const commentsRaw = (row.Comments || '').trim();
+        const hasComment = !!commentsRaw && commentsRaw !== '—';
+        const commentText = hasComment ? esc(commentsRaw) : 'No comments provided.';
         return `
           <article class="mobile-card ${overdueClass}" aria-label="Inspection for ${esc(row.Asset)}" role="listitem">
-            <header class="mobile-card__row">
-              <div class="mobile-card__title">${esc(row.Asset)}</div>
+            <header class="mobile-card__header">
+              <div class="mobile-card__heading">
+                <div class="mobile-card__title">${esc(row.Asset)}</div>
+                ${subtitle}
+              </div>
               <span class="countdown-chip ${row.__countdownClass}">${esc(row.Countdown)}</span>
             </header>
             <div class="mobile-card__meta">
-              <div><strong>Location:</strong> ${esc(row.Location)}</div>
-              <div><strong>Last inspection:</strong> ${esc(row['Last Inspection Date'])}</div>
-              <div><strong>Next inspection:</strong> ${esc(row['Next Inspection Date'])}</div>
+              ${locationMeta}
+              <div class="mobile-card__meta-item"><span class="mobile-card__meta-label">Last inspection</span><span class="mobile-card__meta-value">${esc(row['Last Inspection Date'])}</span></div>
+              <div class="mobile-card__meta-item"><span class="mobile-card__meta-label">Next inspection</span><span class="mobile-card__meta-value">${esc(row['Next Inspection Date'])}</span></div>
             </div>
-            <div class="mobile-card__row"><strong>Comments:</strong> ${esc(row.Comments)}</div>
+            <p class="mobile-card__comment"><span class="mobile-card__comment-label">Comments</span>${commentText}</p>
           </article>
         `;
       }).join('');
