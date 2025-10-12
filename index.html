@@ -3943,6 +3943,15 @@ function pageAvailableWidth(){
   return (page?.clientWidth || document.documentElement.clientWidth || window.innerWidth || 0);
 }
 
+function viewportWidth(){
+  if (typeof window === 'undefined') return 0;
+  return Math.max(
+    window.innerWidth || 0,
+    document.documentElement?.clientWidth || 0,
+    document.body?.clientWidth || 0
+  );
+}
+
 function needsMobileLayout(){
   const minWidth = getTableMinWidth();
   const activeWrap = document.querySelector('.dash[data-active="true"] .table-scroll');
@@ -3961,7 +3970,18 @@ function needsMobileLayout(){
 function isMobileView(){
   if (document.body.classList.contains('force-mobile')) return true;
   if (new URLSearchParams(location.search).has('mobile')) return true;
-  if (window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches) return true;
+  const supportsMatchMedia = typeof window !== 'undefined' && typeof window.matchMedia === 'function';
+  if (supportsMatchMedia){
+    try{
+      if (window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches) return true;
+    }catch(err){
+      console.warn?.('[isMobileView] matchMedia failed', err);
+    }
+  }
+
+  const width = viewportWidth();
+  if (width && width <= MOBILE_BREAKPOINT) return true;
+
   return needsMobileLayout();
 }
 
