@@ -2294,6 +2294,11 @@ function isWinterPlanned(row){
   return hasPWP && (bucket === 'old' || bucket === 'ancient'); // only “red” ages
 }
 
+function isDone(row){
+  const status = String(row && row.Status || '');
+  return /^done$/i.test(status.trim());
+}
+
 function buildCategoryChips(value){
   const seen=new Set();
   return String(value||'')
@@ -2514,6 +2519,7 @@ function applyFilters(rows){
 if (container.__focusOldest){
   const pick = working
     .filter(r => !isWinterPlanned(r))     // ← add this
+    .filter(r => !isDone(r))
     .reduce((acc, r) => {
       const ms = r.__ageMs ?? ageMs(r);
       if (ms == null) return acc;
@@ -2610,6 +2616,7 @@ kpiWrap.appendChild(makeStatusKpi('Done',        'done',        done, container)
 // --- Oldest Age – clickable filter
 const oldestEntry = rows
   .filter(r => !isWinterPlanned(r)) // ignore frozen
+  .filter(r => !isDone(r))          // ignore completed
   .reduce((acc, r) => {
     const ms = r.__ageMs ?? ageMs(r);
     if (ms == null) return acc;
@@ -2640,6 +2647,7 @@ const applyFocusOldest = () => {
 if (container.__focusOldest) {
   const pick = working
     .filter(r => !isWinterPlanned(r))
+    .filter(r => !isDone(r))
     .reduce((acc, r) => {
       const ms = r.__ageMs ?? ageMs(r);
       if (ms == null) return acc;
@@ -2689,6 +2697,7 @@ const togglePrio = () => {
 if (container.__focusOldest) {
   const pick = working
     .filter(r => !isWinterPlanned(r))     // ← ignore frozen PWPs
+    .filter(r => !isDone(r))
     .reduce((acc, r) => {
       const ms = r.__ageMs ?? ageMs(r);
       if (ms == null) return acc;
