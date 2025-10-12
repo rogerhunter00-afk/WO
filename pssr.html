@@ -1614,10 +1614,10 @@
             <label class="sort-control__label" for="desktop-sort-select">Sort by</label>
             <div class="sort-control__inputs">
               <select id="desktop-sort-select" data-role="sort-select" aria-label="Select column to sort">
-                <option value="Asset">Asset</option>
+                <option value="Asset" selected>Asset</option>
                 <option value="Location">Location</option>
                 <option value="Last Inspection Date">Last Inspection Date</option>
-                <option value="Next Inspection Date" selected>Next Inspection Date</option>
+                <option value="Next Inspection Date">Next Inspection Date</option>
                 <option value="Countdown">Countdown</option>
                 <option value="Comments">Comments</option>
               </select>
@@ -1627,7 +1627,7 @@
           <div class="mobile-sort" data-role="mobile-sort">
             <label for="mobile-sort-select">Sort by</label>
             <select id="mobile-sort-select" data-role="mobile-sort-select" aria-label="Select column to sort">
-              <option value="Asset">Asset</option>
+              <option value="Asset" selected>Asset</option>
               <option value="Location">Location</option>
               <option value="Last Inspection Date">Last Inspection Date</option>
               <option value="Next Inspection Date">Next Inspection Date</option>
@@ -2184,7 +2184,7 @@
     }
 
     function updateSortControls(container){
-      const state = container.__currentSort || { column:'Next Inspection Date', direction:'asc' };
+      const state = container.__currentSort || { column:'Asset', direction:'asc' };
       const selects = Array.isArray(container.__sortSelects) ? container.__sortSelects : [];
       selects.forEach(select => {
         if(select){
@@ -2258,7 +2258,7 @@
 
     function refreshView(container){
       if(!container) return;
-      const state = container.__currentSort || { column:'Next Inspection Date', direction:'asc' };
+      const state = container.__currentSort || { column:'Asset', direction:'asc' };
       const filtered = applySiteFilter(container.__rows, container.__siteFilter);
       const sorted = applySort(filtered, state.column, state.direction);
       container.__viewRows = sorted;
@@ -2955,7 +2955,7 @@
       buttons.forEach(button => {
         if(!button) return;
         button.addEventListener('click', () => {
-          const fallbackColumn = container.__currentSort?.column || container.__sortSelects?.[0]?.value || 'Next Inspection Date';
+          const fallbackColumn = container.__currentSort?.column || container.__sortSelects?.[0]?.value || 'Asset';
           const current = container.__currentSort || { column:fallbackColumn, direction:'asc' };
           const direction = current.direction === 'asc' ? 'desc' : 'asc';
           setSort(container, current.column || fallbackColumn, direction);
@@ -2996,7 +2996,7 @@
       container.__siteFilterActiveLabel = document.querySelector('[data-role="site-filter-active"]');
       container.__rows = [];
       container.__viewRows = [];
-      container.__currentSort = { column:'Next Inspection Date', direction:'asc' };
+      container.__currentSort = { column:'Asset', direction:'asc' };
       container.__siteFilter = 'all';
       container.__selectedDocUrl = '';
 
