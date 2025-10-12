@@ -252,37 +252,37 @@
     }
 
     .pssr-overview {
-      margin:18px 0 12px;
-      padding:20px;
+      margin:12px 0 8px;
+      padding:16px;
       border:1px solid color-mix(in srgb,var(--grid) 72%,transparent);
       border-radius:16px;
       background:var(--surface-subtle);
       display:grid;
-      gap:20px;
+      gap:16px;
       grid-template-columns:minmax(0,1fr);
     }
 
     .pssr-overview__summary {
       display:flex;
       flex-direction:column;
-      gap:16px;
+      gap:12px;
     }
 
     .pssr-overview__insights {
       display:flex;
       flex-direction:column;
-      gap:18px;
+      gap:14px;
     }
 
     .pssr-site-panel {
       display:flex;
       flex-direction:column;
-      gap:14px;
-      border-radius:14px;
-      padding:16px 18px;
-      border:1px solid color-mix(in srgb,var(--grid) 70%,transparent);
+      gap:10px;
+      border-radius:10px;
+      padding:10px 12px;
+      border:1px solid color-mix(in srgb,var(--grid) 68%,transparent);
       background:var(--surface-strong);
-      box-shadow:0 6px 14px rgba(15,23,42,0.08);
+      box-shadow:0 3px 8px rgba(15,23,42,0.08);
       grid-column:1 / -1;
     }
 
@@ -311,13 +311,13 @@
     }
 
     .pssr-signal {
-      border-radius:14px;
-      padding:18px 20px;
+      border-radius:12px;
+      padding:14px 16px;
       display:grid;
-      gap:8px;
+      gap:6px;
       border:1px solid color-mix(in srgb,var(--als-blue) 18%,transparent);
       background:color-mix(in srgb,var(--als-blue) 6%,var(--paper));
-      box-shadow:0 6px 16px rgba(15,23,42,0.12);
+      box-shadow:0 4px 12px rgba(15,23,42,0.1);
       transition:background .18s ease, border-color .18s ease, box-shadow .18s ease;
     }
 
@@ -354,27 +354,27 @@
     }
 
     .pssr-signal__value {
-      font-size:32px;
+      font-size:26px;
       font-weight:900;
       letter-spacing:-0.01em;
     }
 
     .pssr-signal__note {
       margin:0;
-      font-size:13px;
+      font-size:12px;
       color:color-mix(in srgb,var(--muted) 72%,var(--ink));
       max-width:44ch;
     }
 
     .pssr-risk-panel {
-      border-radius:14px;
-      padding:18px 18px 20px;
+      border-radius:12px;
+      padding:14px 14px 16px;
       border:1px solid color-mix(in srgb,var(--grid) 70%,transparent);
       background:color-mix(in srgb,var(--paper) 92%,var(--als-blue) 3%);
-      box-shadow:0 6px 14px rgba(15,23,42,0.08);
+      box-shadow:0 4px 12px rgba(15,23,42,0.08);
       display:flex;
       flex-direction:column;
-      gap:14px;
+      gap:10px;
     }
 
     .pssr-risk-panel__title {
@@ -399,13 +399,13 @@
     .pssr-risk-bar {
       display:flex;
       flex-direction:column;
-      gap:10px;
+      gap:8px;
     }
 
     .pssr-risk-bar__track {
       position:relative;
       width:100%;
-      height:14px;
+      height:10px;
       border-radius:999px;
       overflow:hidden;
       border:1px solid color-mix(in srgb,var(--grid) 80%,transparent);
@@ -426,15 +426,15 @@
     .pssr-risk-bar__legend {
       display:flex;
       flex-wrap:wrap;
-      gap:12px;
-      font-size:12px;
+      gap:8px;
+      font-size:11px;
       color:color-mix(in srgb,var(--muted) 70%,var(--ink));
     }
 
     .pssr-risk-bar__legend-item {
       display:inline-flex;
       align-items:center;
-      gap:6px;
+      gap:5px;
       font-weight:600;
     }
 
@@ -452,15 +452,17 @@
 
     .pssr-site-panel__title {
       margin:0;
-      font-size:16px;
-      font-weight:800;
+      font-size:12.5px;
+      font-weight:780;
+      letter-spacing:0.06em;
+      text-transform:uppercase;
     }
 
     .pssr-site-panel__hint {
       margin:0;
-      font-size:12.5px;
-      color:color-mix(in srgb,var(--muted) 70%,var(--ink));
-      max-width:48ch;
+      font-size:10.5px;
+      color:color-mix(in srgb,var(--muted) 66%,var(--ink));
+      max-width:46ch;
     }
 
     .pssr-site-breakdown {
@@ -468,8 +470,8 @@
       margin:0;
       padding:0;
       display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(clamp(280px,24vw,360px),1fr));
-      gap:16px;
+      grid-template-columns:repeat(auto-fit,minmax(clamp(200px,20vw,260px),1fr));
+      gap:8px;
       align-items:stretch;
       justify-content:stretch;
       grid-auto-rows:1fr;
@@ -482,13 +484,13 @@
     }
 
     .pssr-site-breakdown__item {
-      padding:12px 14px;
-      border-radius:12px;
-      border:1px solid color-mix(in srgb,var(--grid) 75%,transparent);
-      background:color-mix(in srgb,var(--paper) 94%,var(--als-blue) 4%);
+      padding:8px 10px;
+      border-radius:8px;
+      border:1px solid color-mix(in srgb,var(--grid) 74%,transparent);
+      background:color-mix(in srgb,var(--paper) 94%,var(--als-blue) 3%);
       display:grid;
-      gap:8px;
-      box-shadow:0 4px 12px rgba(15,23,42,0.08);
+      gap:5px;
+      box-shadow:0 2px 6px rgba(15,23,42,0.08);
     }
 
     .pssr-site-breakdown__item.is-empty {
@@ -501,18 +503,18 @@
       display:flex;
       justify-content:space-between;
       align-items:center;
-      gap:12px;
+      gap:10px;
     }
 
     .pssr-site-breakdown__name {
-      font-weight:750;
-      font-size:15px;
+      font-weight:720;
+      font-size:12.5px;
     }
 
     .pssr-site-breakdown__status {
       display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
-      gap:12px;
+      grid-template-columns:repeat(auto-fit,minmax(92px,1fr));
+      gap:8px;
       align-items:stretch;
     }
 
@@ -521,18 +523,18 @@
       flex-direction:column;
       justify-content:center;
       align-items:center;
-      gap:6px;
-      border-radius:18px;
-      padding:18px 12px;
-      min-height:120px;
+      gap:4px;
+      border-radius:12px;
+      padding:10px 8px;
+      min-height:76px;
       text-align:center;
-      font-size:13px;
-      font-weight:650;
+      font-size:10.5px;
+      font-weight:630;
       letter-spacing:-0.01em;
-      background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));
-      color:color-mix(in srgb,var(--muted) 55%,var(--ink));
-      border:1px solid color-mix(in srgb,var(--grid) 75%,transparent);
-      box-shadow:0 6px 18px rgba(15,23,42,0.08);
+      background:color-mix(in srgb,var(--als-blue) 8%,var(--paper));
+      color:color-mix(in srgb,var(--muted) 52%,var(--ink));
+      border:1px solid color-mix(in srgb,var(--grid) 74%,transparent);
+      box-shadow:0 3px 10px rgba(15,23,42,0.08);
     }
 
     .pssr-site-breakdown__badge[data-empty="true"] {
@@ -565,41 +567,41 @@
     }
 
     .pssr-site-breakdown__count {
-      font-size:28px;
-      font-weight:800;
+      font-size:20px;
+      font-weight:760;
       line-height:1;
       color:currentColor;
     }
 
     .pssr-site-breakdown__label {
-      font-size:13px;
-      font-weight:650;
+      font-size:10.5px;
+      font-weight:610;
       text-transform:capitalize;
-      color:color-mix(in srgb,currentColor 80%,var(--muted));
+      color:color-mix(in srgb,currentColor 78%,var(--muted));
     }
 
     .pssr-metrics {
       margin:0;
       display:flex;
-      gap:10px;
+      gap:8px;
       overflow-x:auto;
-      padding-bottom:6px;
+      padding-bottom:4px;
       scrollbar-width:thin;
       scrollbar-color:color-mix(in srgb,var(--als-blue) 45%,transparent) color-mix(in srgb,var(--als-blue) 10%,transparent);
     }
 
     .pssr-metrics__item {
-      padding:12px 14px;
-      border-radius:12px;
+      padding:10px 12px;
+      border-radius:10px;
       border:1px solid color-mix(in srgb,var(--als-blue) 12%,var(--grid));
       background:color-mix(in srgb,var(--paper) 96%,var(--als-blue) 1%);
-      box-shadow:0 4px 10px rgba(15,23,42,0.05);
+      box-shadow:0 3px 9px rgba(15,23,42,0.06);
       display:flex;
       flex-direction:column;
       gap:4px;
-      min-height:96px;
+      min-height:82px;
       transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease;
-      flex:1 0 160px;
+      flex:1 0 140px;
     }
 
     .pssr-metrics::-webkit-scrollbar {
@@ -641,7 +643,7 @@
     }
 
     .pssr-metrics__value {
-      font-size:24px;
+      font-size:20px;
       font-weight:800;
       line-height:1.1;
     }
@@ -649,7 +651,7 @@
     .pssr-metrics__note {
       margin:0;
       color:var(--muted);
-      font-size:11.5px;
+      font-size:11px;
       line-height:1.4;
     }
 
@@ -684,17 +686,17 @@
 
     @media (max-width: 640px){
       .pssr-overview {
-        padding:16px;
-        gap:14px;
+        padding:14px;
+        gap:12px;
       }
       .pssr-signal {
-        padding:16px;
+        padding:12px 14px;
       }
       .pssr-risk-panel {
-        padding:16px;
+        padding:12px 14px;
       }
       .pssr-site-panel {
-        padding:14px 16px;
+        padding:12px 14px;
       }
     }
 
