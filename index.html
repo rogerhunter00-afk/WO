@@ -785,6 +785,16 @@ tbody td{padding:8px 6px;box-sizing:border-box}
   opacity:1; transform:none; pointer-events:auto;
 }
 
+/* Theme the legend overlays without changing the transparent controls bar */
+.legend-popover__panel,
+.legend-inline__panel{
+  background-color: var(--paper);
+}
+.legend-popover__panel::before,
+.legend-inline__panel::before{
+  background-color: var(--paper);
+}
+
 /* Keep the print legend visible on hardcopy only (optional) */
 .legend--full{ display:none; }
 @media print{ .legend--full{ display:block; } }
