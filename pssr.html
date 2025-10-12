@@ -624,6 +624,13 @@
       border-top-right-radius:12px;
     }
 
+    .table-scroll thead th[data-col="Asset"] {
+      position:sticky;
+      left:0;
+      z-index:3;
+      border-right:1px solid color-mix(in srgb, var(--grid) 85%, transparent);
+    }
+
     .table-scroll thead th .sort-arrow {
       display:inline-block;
       margin-left:8px;
@@ -688,6 +695,28 @@
     .table-scroll thead th[data-col="Comments"],
     .table-scroll tbody td[data-col="Comments"] {
       width:360px;
+    }
+
+    .table-scroll tbody td[data-col="Asset"] {
+      position:sticky;
+      left:0;
+      z-index:1;
+      font-weight:700;
+      background:var(--zebra);
+      border-right:1px solid var(--grid);
+    }
+
+    tbody tr:nth-child(even) td[data-col="Asset"] {
+      background:color-mix(in srgb,var(--grid) 12%,var(--zebra));
+    }
+
+    tbody tr.row-overdue td[data-col="Asset"] {
+      background:color-mix(in srgb,#dc2626 16%,var(--zebra));
+      color:color-mix(in srgb,#1f2937 15%,var(--ink));
+    }
+
+    tbody tr.is-active td[data-col="Asset"] {
+      box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--als-blue) 45%, transparent);
     }
 
     tbody td[data-col="Comments"] {
