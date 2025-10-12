@@ -1433,6 +1433,67 @@
       return sanitizeSheetUrl(p.get('sheetUrl') || p.get('sheet') || document.body?.dataset?.sheetUrl || DEFAULT_PSSR_SHEET_URL);
     }
 
+    function normalizeGoogleDocumentUrl(url){
+      if(!url) return '';
+      const host = (url.hostname || '').toLowerCase();
+      const path = (url.pathname || '').replace(/\/+$/, '');
+      const encodeId = (id) => encodeURIComponent(id || '');
+
+      if(host === 'drive.google.com'){
+        const folderMatch = path.match(/^\/drive\/folders\/([^/]+)/i);
+        if(folderMatch){
+          const id = encodeId(folderMatch[1]);
+          return new URL(`https://drive.google.com/embeddedfolderview?id=${id}#grid`);
+        }
+        const fileMatch = path.match(/^\/file\/d\/([^/]+)/i);
+        if(fileMatch){
+          const id = encodeId(fileMatch[1]);
+          return new URL(`https://drive.google.com/file/d/${id}/preview`);
+        }
+        const genericId = url.searchParams?.get('id');
+        if(genericId){
+          const id = encodeId(genericId);
+          return new URL(`https://drive.google.com/file/d/${id}/preview`);
+        }
+      }
+
+      if(host === 'docs.google.com'){
+        const docMatch = path.match(/^\/(document|spreadsheets|presentation|forms)\/d\/([^/]+)/i);
+        if(docMatch){
+          const type = docMatch[1].toLowerCase();
+          const id = encodeId(docMatch[2]);
+          if(type === 'forms'){
+            return new URL(`https://docs.google.com/forms/d/${id}/viewform?embedded=true`);
+          }
+          return new URL(`https://docs.google.com/${type}/d/${id}/preview`);
+        }
+      }
+
+      return url;
+    }
+
+    function normalizeDocumentUrl(raw){
+      if(!raw) return '';
+      const value = String(raw).trim();
+      if(!value) return '';
+      if(value.startsWith('data:') || value.startsWith('about:')){
+        return value;
+      }
+      try {
+        const url = new URL(value, location.href);
+        if(url.protocol === 'http:'){
+          url.protocol = 'https:';
+        }
+        if(url.protocol !== 'https:'){
+          return '';
+        }
+        const normalized = normalizeGoogleDocumentUrl(url);
+        return normalized ? normalized.toString() : '';
+      } catch {
+        return '';
+      }
+    }
+
     function resolveSiteLabel(siteKey){
       if(!siteKey) return SITE_LABELS.all;
       const normalized = String(siteKey).trim().toLowerCase();
@@ -1908,11 +1969,65 @@
       return { headers, rows: data };
     }
 
-    function pickField(row, keys){
+    function normalizeFieldKeyName(name){
+      return String(name ?? '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+    }
+
+    function pickField(row, keys, options={}){
+      const { fuzzy=[], fallbackUrl=false } = options;
       for(const key of keys){
         if(key in row && row[key] !== undefined){
           const value = row[key];
           if(String(value).trim().length) return value;
+        }
+      }
+      const entries = row && typeof row === 'object' ? Object.entries(row) : [];
+      if(fuzzy.length && entries.length){
+        const tokenized = entries.map(([key, value]) => {
+          const normalized = normalizeFieldKeyName(key);
+          return {
+            key,
+            value,
+            normalized,
+            tokens: normalized.split(/\s+/).filter(Boolean)
+          };
+        });
+        for(const descriptor of fuzzy){
+          const match = tokenized.find(({ tokens, normalized }) => {
+            if(!tokens.length) return false;
+            if(typeof descriptor === 'function'){
+              try {
+                return !!descriptor({ tokens, normalized });
+              } catch { return false; }
+            }
+            const all = Array.isArray(descriptor?.all) ? descriptor.all : null;
+            const any = Array.isArray(descriptor?.any) ? descriptor.any : null;
+            const includesAll = all ? all.every(token => tokens.some(t => t === token || t.startsWith(token))) : true;
+            const includesAny = any ? any.some(token => tokens.some(t => t === token || t.startsWith(token))) : true;
+            return includesAll && includesAny;
+          });
+          if(match && String(match.value ?? '').trim().length){
+            return match.value;
+          }
+        }
+      }
+      if(fallbackUrl && entries.length){
+        const urlLike = entries.find(([key, value]) => {
+          if(value == null) return false;
+          const text = String(value).trim();
+          if(!text) return false;
+          if(/^https?:\/\//i.test(text)) return true;
+          if(/^www\./i.test(text)) return true;
+          if(/drive\.google\.com|docs\.google\.com/i.test(text)) return true;
+          return false;
+        });
+        if(urlLike){
+          return urlLike[1];
         }
       }
       return '';
@@ -1966,7 +2081,21 @@
       const lastRaw = pickField(raw, ['Last Inspection Date','Last Inspection','Previous Inspection']);
       const nextRaw = pickField(raw, ['Next Inspection Date','Next Inspection','Inspection Due']);
       const comments = pickField(raw, ['Comments','Notes','Remarks']);
-      const documentUrl = pickField(raw, ['Document URL','Document','Link','Document Link','Attachment','Attachment URL']);
+      const documentUrl = pickField(
+        raw,
+        ['Document URL','Document','Link','Document Link','Attachment','Attachment URL'],
+        {
+          fuzzy:[
+            { all:['document'], any:['link','url','hyperlink','href'] },
+            { all:['doc'], any:['link','url'] },
+            { all:['certificate'], any:['link','url'] },
+            { all:['inspection','report'], any:['link','url'] },
+            { all:['record'], any:['link','url'] }
+          ],
+          fallbackUrl:true
+        }
+      );
+      const normalizedDocumentUrl = normalizeDocumentUrl(documentUrl);
       const lastDate = parseDateLoose(lastRaw);
       const nextDate = parseDateLoose(nextRaw);
       const countdown = normalizeCountdown(nextDate instanceof Date ? new Date(nextDate) : nextDate);
@@ -1983,7 +2112,7 @@
         __countdownDays: countdown.diffDays,
         __overdue: countdown.overdue,
         __siteName: primarySite || '',
-        __docUrl: documentUrl || '',
+        __docUrl: normalizedDocumentUrl,
         __raw: raw
       };
     }
@@ -2043,8 +2172,7 @@
           return;
         }
         const raw = typeof url === 'string' ? url.trim() : '';
-        const sanitized = sanitizeSheetUrl(raw);
-        const safeUrl = sanitized || (raw.startsWith('data:') || raw.startsWith('about:') ? raw : '');
+        const safeUrl = normalizeDocumentUrl(raw);
         if(!safeUrl){
           setViewerPlaceholder('No document link on this row.', { reveal:true });
           return;
