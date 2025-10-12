@@ -1217,7 +1217,7 @@
     body[data-table-mode="mobile"] .mobile-cards {
       display:flex;
       flex-direction:column;
-      align-items:center;
+      align-items:stretch;
       gap:10px;
     }
 
@@ -1281,7 +1281,7 @@
       flex-direction:column;
       gap:8px;
       box-shadow:0 2px 6px rgba(15,23,42,.08);
-      width:min(260px,100%);
+      width:100%;
     }
 
     .mobile-card__header {
@@ -1401,7 +1401,6 @@
 
     @media (min-width: 560px) {
       .mobile-card {
-        width:min(300px,100%);
         padding:14px 16px;
         gap:9px;
       }
@@ -1409,7 +1408,6 @@
 
     @media (max-width:540px) {
       .mobile-card {
-        width:min(240px,100%);
         padding:11px 12px;
       }
 
@@ -1449,7 +1447,7 @@
     @media (max-width:1248px) {
       .page { --page-pad-top:16px; --page-pad-inline:clamp(16px,6vw,24px); --page-pad-bottom:40px; }
       .table-wrapper { display:none; }
-      .mobile-cards { display:flex; flex-direction:column; align-items:center; gap:10px; padding-bottom:24px; }
+      .mobile-cards { display:flex; flex-direction:column; align-items:stretch; gap:10px; padding-bottom:24px; }
       .sticky-top__content { flex-direction:column; align-items:flex-start; }
       .sticky-controls { width:100%; flex-direction:column; align-items:stretch; gap:12px; }
       .refresh-btn { width:100%; justify-content:center; }
