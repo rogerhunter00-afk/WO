@@ -975,11 +975,36 @@ tbody td{padding:8px 6px;box-sizing:border-box}
       </div>
 
 <section class="dashboards">
-  <section id="dash-all" class="dash dash-table" data-site="all" data-active="true"></section>
-  <section id="dash-ek" class="dash dash-table" data-site="ek" hidden></section>
-  <section id="dash-mm" class="dash dash-table" data-site="mm" hidden></section>
-  <section id="dash-keith" class="dash dash-table" data-site="keith" hidden></section>
-  <section id="dash-by" class="dash dash-table" data-site="by" hidden></section>
+  <section id="dash-all" class="dash dash-table" data-site="all" data-active="true">
+    <div class="table-scroll" data-role="table-scroll"></div>
+    <div class="mobile-sort" data-role="mobile-sort"></div>
+    <div class="mobile-cards" data-role="mobile-cards" role="list" aria-live="polite" hidden></div>
+    <div class="dash-empty" data-role="empty-state" hidden>No work orders match the current filters.</div>
+  </section>
+  <section id="dash-ek" class="dash dash-table" data-site="ek" hidden>
+    <div class="table-scroll" data-role="table-scroll"></div>
+    <div class="mobile-sort" data-role="mobile-sort"></div>
+    <div class="mobile-cards" data-role="mobile-cards" role="list" aria-live="polite" hidden></div>
+    <div class="dash-empty" data-role="empty-state" hidden>No work orders match the current filters.</div>
+  </section>
+  <section id="dash-mm" class="dash dash-table" data-site="mm" hidden>
+    <div class="table-scroll" data-role="table-scroll"></div>
+    <div class="mobile-sort" data-role="mobile-sort"></div>
+    <div class="mobile-cards" data-role="mobile-cards" role="list" aria-live="polite" hidden></div>
+    <div class="dash-empty" data-role="empty-state" hidden>No work orders match the current filters.</div>
+  </section>
+  <section id="dash-keith" class="dash dash-table" data-site="keith" hidden>
+    <div class="table-scroll" data-role="table-scroll"></div>
+    <div class="mobile-sort" data-role="mobile-sort"></div>
+    <div class="mobile-cards" data-role="mobile-cards" role="list" aria-live="polite" hidden></div>
+    <div class="dash-empty" data-role="empty-state" hidden>No work orders match the current filters.</div>
+  </section>
+  <section id="dash-by" class="dash dash-table" data-site="by" hidden>
+    <div class="table-scroll" data-role="table-scroll"></div>
+    <div class="mobile-sort" data-role="mobile-sort"></div>
+    <div class="mobile-cards" data-role="mobile-cards" role="list" aria-live="polite" hidden></div>
+    <div class="dash-empty" data-role="empty-state" hidden>No work orders match the current filters.</div>
+  </section>
 </section>
     </main>
   </div>
@@ -2548,6 +2573,11 @@ function renderDashboard(container, headers, rows){
   const prevSort = container.__currentSort;
   const prevDir  = container.__mobileSortDirection || (prevSort?.direction ?? 'desc');
 
+  const presetTableWrap  = container.querySelector('[data-role="table-scroll"], .table-scroll');
+  const presetMobileSort = container.querySelector('[data-role="mobile-sort"], .mobile-sort');
+  const presetMobileCards = container.querySelector('[data-role="mobile-cards"], .mobile-cards');
+  const presetEmptyState = container.querySelector('[data-role="empty-state"], .dash-empty');
+
   container.innerHTML='';
 
   const siteKey = container.dataset.site || container.id.replace(/^dash-/, '');
@@ -2675,8 +2705,9 @@ kpiWrap.appendChild(prioCard);
   if(kpiContainer){ kpiContainer.innerHTML=''; kpiContainer.appendChild(kpiWrap); }
 
 // --- shell: table + mobile containers (both exist; CSS decides visibility) ---
-const tableWrap = document.createElement('div');
+const tableWrap = presetTableWrap || document.createElement('div');
 tableWrap.className = 'table-scroll';
+tableWrap.innerHTML = '';
 
 const table  = document.createElement('table');
 const thead  = document.createElement('thead');
@@ -2687,8 +2718,9 @@ table.append(thead, tbody);
 
 tableWrap.append(table);
 
-const mobileSortWrap = document.createElement('div');
+const mobileSortWrap = presetMobileSort || document.createElement('div');
 mobileSortWrap.className = 'mobile-sort';
+mobileSortWrap.innerHTML = '';
 
 const selectId = `${container.id || siteKey || 'dash'}-mobile-sort`;
 const mobileSortLabel = document.createElement('label');
@@ -2715,12 +2747,18 @@ mobileSortDirBtn.type = 'button';
 mobileSortDirBtn.className = 'mobile-sort__direction';
 mobileSortWrap.append(mobileSortLabel, mobileSortSelect, mobileSortDirBtn);
 
-const mobileCards = document.createElement('div');
+const mobileCards = presetMobileCards || document.createElement('div');
 mobileCards.className = 'mobile-cards';
+mobileCards.setAttribute('role', 'list');
+mobileCards.setAttribute('aria-live', 'polite');
+mobileCards.innerHTML = '';
+mobileCards.hidden = true;
 
-const emptyState = document.createElement('div');
+const emptyState = presetEmptyState || document.createElement('div');
 emptyState.className = 'dash-empty';
-emptyState.textContent = 'No work orders match the current filters.';
+if(!presetEmptyState || !presetEmptyState.textContent?.trim()){
+  emptyState.textContent = 'No work orders match the current filters.';
+}
 emptyState.hidden = true;
 
 container.append(tableWrap, mobileSortWrap, mobileCards, emptyState);
