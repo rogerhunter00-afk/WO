@@ -610,6 +610,10 @@
     }
 
     .pssr-site-breakdown__badge {
+      appearance:none;
+      border:1px solid color-mix(in srgb,var(--grid) 74%,transparent);
+      background:color-mix(in srgb,var(--als-blue) 8%,var(--paper));
+      color:color-mix(in srgb,var(--muted) 52%,var(--ink));
       display:flex;
       flex-direction:column;
       justify-content:center;
@@ -619,13 +623,29 @@
       padding:10px 8px;
       min-height:76px;
       text-align:center;
+      font:inherit;
       font-size:10.5px;
       font-weight:630;
       letter-spacing:-0.01em;
-      background:color-mix(in srgb,var(--als-blue) 8%,var(--paper));
-      color:color-mix(in srgb,var(--muted) 52%,var(--ink));
-      border:1px solid color-mix(in srgb,var(--grid) 74%,transparent);
       box-shadow:0 3px 10px rgba(15,23,42,0.08);
+      cursor:pointer;
+      transition:transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+      width:100%;
+    }
+
+    .pssr-site-breakdown__badge:focus-visible {
+      outline:2px solid var(--ctrl-ring);
+      outline-offset:3px;
+    }
+
+    .pssr-site-breakdown__badge:active {
+      transform:translateY(1px) scale(0.995);
+    }
+
+    .pssr-site-breakdown__badge[aria-pressed="true"],
+    .pssr-site-breakdown__badge.is-active {
+      box-shadow:0 6px 18px rgba(15,23,42,0.16);
+      border-color:color-mix(in srgb,currentColor 65%,transparent);
     }
 
     .pssr-site-breakdown__badge[data-empty="true"] {
@@ -1837,6 +1857,19 @@
       return normalized.split(/[\s_-]+/).map(part => part ? (part[0].toUpperCase() + part.slice(1)) : '').join(' ').trim() || SITE_LABELS.all;
     }
 
+    function normalizeSiteKey(value){
+      if(!value) return '';
+      return String(value)
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g,'')
+        .trim()
+        .toLowerCase()
+        .replace(/&/g,' and ')
+        .replace(/[^a-z0-9]+/g,'-')
+        .replace(/-{2,}/g,'-')
+        .replace(/^-+|-+$/g,'');
+    }
+
     const SAMPLE = [
       { Asset:'Keith Steam Boiler 2', Site:'Keith', Location:'Keith – Energy Centre', 'Last Inspection Date':'12/03/2024', 'Next Inspection Date':'12/09/2024', Comments:'Internal and external statutory inspection booked for September.', 'Document URL':'about:blank' },
       { Asset:'Byron Compressed Air Receiver', Site:'Byron', Location:'Byron – Maintenance Bay', 'Last Inspection Date':'05/01/2024', 'Next Inspection Date':'05/07/2024', Comments:'Requalification due alongside dryer swap.', 'Document URL':'about:blank' },
@@ -2148,6 +2181,7 @@
         row?.Location,
         resolveSiteLabel(siteKey)
       ];
+      const targetSpaced = target.replace(/-/g,' ');
       return values.some(value => {
         if(!value) return false;
         const variants = createSiteVariants(value);
@@ -2162,6 +2196,22 @@
       const list = Array.isArray(rows) ? rows.slice() : [];
       if(!siteKey || siteKey === 'all') return list;
       return list.filter(row => matchesSite(row, siteKey));
+    }
+
+    function applyStatusFilter(rows, statusKey){
+      const list = Array.isArray(rows) ? rows.slice() : [];
+      const key = statusKey || 'all';
+      if(key === 'all' || key === 'total') return list;
+      if(key === 'overdue'){
+        return list.filter(row => row?.__overdue);
+      }
+      if(key === 'dueSoon'){
+        return list.filter(row => !row?.__overdue && typeof row?.__countdownDays === 'number' && row.__countdownDays >= 0 && row.__countdownDays <= DUE_SOON_THRESHOLD_DAYS);
+      }
+      if(key === 'clear'){
+        return list.filter(row => !row?.__overdue && (typeof row?.__countdownDays === 'number' ? row.__countdownDays > DUE_SOON_THRESHOLD_DAYS : true));
+      }
+      return list;
     }
 
     function applyFilters(rows){
@@ -2252,6 +2302,7 @@
       if(!currentAvailable){
         current = 'all';
         container.__siteFilter = current;
+        container.__statusFilter = 'all';
       }
       updateSiteFilterControls(container);
     }
@@ -2259,8 +2310,9 @@
     function refreshView(container){
       if(!container) return;
       const state = container.__currentSort || { column:'Next Inspection Date', direction:'asc' };
-      const filtered = applySiteFilter(container.__rows, container.__siteFilter);
-      const sorted = applySort(filtered, state.column, state.direction);
+      const siteFiltered = applySiteFilter(container.__rows, container.__siteFilter);
+      const statusFiltered = applyStatusFilter(siteFiltered, container.__statusFilter);
+      const sorted = applySort(statusFiltered, state.column, state.direction);
       container.__viewRows = sorted;
       renderTable(container, sorted);
       if(container.__selectedDocUrl){
@@ -2274,9 +2326,11 @@
         }
       }
       renderMobileCards(container, sorted);
-      updateSummaryMetrics(filtered, {
+      updateSummaryMetrics(statusFiltered, {
         siteFilter: container.__siteFilter,
-        totalRowCount: Array.isArray(container.__rows) ? container.__rows.length : 0
+        statusFilter: container.__statusFilter,
+        totalRowCount: Array.isArray(container.__rows) ? container.__rows.length : 0,
+        siteRowsForSummary: siteFiltered
       });
     }
 
@@ -2289,9 +2343,38 @@
           const key = btn.dataset.siteKey || 'all';
           if(container.__siteFilter === key) return;
           container.__siteFilter = key;
+          container.__statusFilter = 'all';
           updateSiteFilterControls(container);
           refreshView(container);
         });
+      });
+    }
+
+    function attachSiteKpiHandlers(container){
+      const root = document.querySelector('[data-role="pssr-site-breakdown"]');
+      if(!root) return;
+      root.addEventListener('click', (event) => {
+        const button = event.target?.closest('.pssr-site-breakdown__badge');
+        if(!button || button.disabled) return;
+        const targetSiteKey = button.dataset.siteKey || 'all';
+        const targetStatusKey = button.dataset.statusKey || 'all';
+        const normalizedTargetSite = targetSiteKey && targetSiteKey !== 'all' ? normalizeSiteKey(targetSiteKey) : 'all';
+        const normalizedTargetStatus = targetStatusKey && targetStatusKey !== 'total' ? targetStatusKey : 'all';
+        const currentSite = container.__siteFilter || 'all';
+        const currentStatus = container.__statusFilter || 'all';
+        const normalizedCurrentSite = currentSite && currentSite !== 'all' ? normalizeSiteKey(currentSite) : 'all';
+        const currentStatusKey = currentStatus && currentStatus !== 'total' ? currentStatus : 'all';
+        const sameSite = normalizedCurrentSite === normalizedTargetSite;
+        const sameStatus = currentStatusKey === normalizedTargetStatus;
+        if(sameSite && sameStatus){
+          container.__siteFilter = 'all';
+          container.__statusFilter = 'all';
+        }else{
+          container.__siteFilter = normalizedTargetSite || 'all';
+          container.__statusFilter = normalizedTargetStatus || 'all';
+        }
+        updateSiteFilterControls(container);
+        refreshView(container);
       });
     }
 
@@ -2517,6 +2600,7 @@
       const locationValue = pickField(raw, ['Location','Site','Area']);
       const siteNameRaw = pickField(raw, ['Site']);
       const primarySite = siteNameRaw || (typeof locationValue === 'string' ? locationValue.split(/[–—-]/)[0].trim() : locationValue);
+      const siteKey = normalizeSiteKey(siteNameRaw || primarySite || '');
       const location = locationValue;
       const lastRaw = pickField(raw, ['Last Inspection Date','Last Inspection','Previous Inspection']);
       const nextRaw = pickField(raw, ['Next Inspection Date','Next Inspection','Inspection Due']);
@@ -2552,6 +2636,7 @@
         __countdownDays: countdown.diffDays,
         __overdue: countdown.overdue,
         __siteName: primarySite || '',
+        __siteKey: siteKey,
         __docUrl: normalizedDocumentUrl,
         __raw: raw
       };
@@ -2728,8 +2813,20 @@
       const total = list.length;
       const dueSoonThreshold = DUE_SOON_THRESHOLD_DAYS;
       const siteFilter = context.siteFilter || 'all';
+      const statusFilter = context.statusFilter || 'all';
+      const summaryRows = Array.isArray(context.siteRowsForSummary) ? context.siteRowsForSummary : list;
       const overallCount = typeof context.totalRowCount === 'number' ? context.totalRowCount : total;
-      const isFiltered = siteFilter !== 'all';
+      const isSiteFiltered = siteFilter !== 'all';
+      const isStatusFiltered = statusFilter !== 'all' && statusFilter !== 'total';
+      const isFiltered = isSiteFiltered || isStatusFiltered;
+      const statusFilterLabel = (() => {
+        switch(statusFilter){
+          case 'overdue': return 'that are overdue';
+          case 'dueSoon': return `that are due within the next ${dueSoonThreshold} days`;
+          case 'clear': return 'that are on track';
+          default: return '';
+        }
+      })();
       const dueSoonRows = list.filter(row => typeof row?.__countdownDays === 'number' && row.__countdownDays >= 0 && row.__countdownDays <= dueSoonThreshold);
       const overdueRows = list.filter(row => row?.__overdue);
       const compliantCount = Math.max(total - overdueRows.length - dueSoonRows.length, 0);
@@ -2740,9 +2837,8 @@
 
       if(signalRoot){
         let signalValue = '—';
-        let signalNote = isFiltered && overallCount > 0
-          ? `No inspections currently match the ${resolveSiteLabel(siteFilter)} filter.`
-          : 'Awaiting data from the published schedule.';
+        let signalNote = 'Awaiting data from the published schedule.';
+        const siteLabel = resolveSiteLabel(siteFilter);
 
         if(total > 0){
           if(riskState === 'critical'){
@@ -2758,6 +2854,26 @@
           }else{
             signalValue = 'Stable';
             signalNote = 'All inspections are currently outside the next 60 days.';
+          }
+
+          if(isFiltered){
+            const clauses = [];
+            if(isStatusFiltered && statusFilterLabel){
+              clauses.push(statusFilterLabel);
+            }
+            if(isSiteFiltered){
+              clauses.push(`for ${siteLabel}`);
+            }
+            if(clauses.length){
+              signalNote = `${signalNote} Currently showing inspections ${clauses.join(' ')}.`;
+            }
+          }
+        }else if(isFiltered && overallCount > 0){
+          if(isStatusFiltered && statusFilterLabel){
+            const clause = isSiteFiltered ? `${statusFilterLabel} for ${siteLabel}` : statusFilterLabel;
+            signalNote = `No inspections ${clause}.`;
+          }else if(isSiteFiltered){
+            signalNote = `No inspections currently match the ${siteLabel} filter.`;
           }
         }
 
@@ -2779,10 +2895,16 @@
 
       if(riskMessageNode){
         let message = 'Awaiting inspection data.';
+        const siteLabel = resolveSiteLabel(siteFilter);
         if(total === 0){
-          message = isFiltered && overallCount > 0
-            ? `No inspections fall under the ${resolveSiteLabel(siteFilter)} filter.`
-            : 'Awaiting inspection data.';
+          if(isFiltered && overallCount > 0){
+            if(isStatusFiltered && statusFilterLabel){
+              const clause = isSiteFiltered ? `${statusFilterLabel} for ${siteLabel}` : statusFilterLabel;
+              message = `No inspections ${clause}.`;
+            }else if(isSiteFiltered){
+              message = `No inspections fall under the ${siteLabel} filter.`;
+            }
+          }
         }else if(riskState === 'critical'){
           message = overdueRows.length === 1
             ? '1 inspection is overdue and needs immediate action.'
@@ -2793,6 +2915,18 @@
             : `${dueSoonRows.length} inspections are due within the next ${dueSoonThreshold} days.`;
         }else if(riskState === 'stable'){
           message = 'All inspections are currently outside the next 60 days.';
+        }
+        if(total > 0 && isFiltered){
+          const clauses = [];
+          if(isStatusFiltered && statusFilterLabel){
+            clauses.push(statusFilterLabel);
+          }
+          if(isSiteFiltered){
+            clauses.push(`for ${siteLabel}`);
+          }
+          if(clauses.length){
+            message = `${message} (Filtered to inspections ${clauses.join(' ')}.)`;
+          }
         }
         riskMessageNode.textContent = message;
       }
@@ -2841,32 +2975,46 @@
       }
 
       if(siteHintNode){
-        if(total === 0){
-          siteHintNode.textContent = isFiltered && overallCount > 0
-            ? `No inspections currently align with ${resolveSiteLabel(siteFilter)}.`
-            : 'Awaiting data from the published schedule.';
-        }else if(isFiltered){
-          siteHintNode.textContent = `Status for ${resolveSiteLabel(siteFilter)}.`;
+        const siteLabel = resolveSiteLabel(siteFilter);
+        if(!summaryRows.length){
+          siteHintNode.textContent = 'Awaiting data from the published schedule.';
+        }else if(total === 0 && isFiltered){
+          if(isStatusFiltered && statusFilterLabel){
+            const clause = isSiteFiltered ? `${statusFilterLabel} for ${siteLabel}` : statusFilterLabel;
+            siteHintNode.textContent = `No inspections ${clause}.`;
+          }else if(isSiteFiltered){
+            siteHintNode.textContent = `No inspections currently align with ${siteLabel}.`;
+          }else{
+            siteHintNode.textContent = 'Awaiting inspection data.';
+          }
+        }else if(isSiteFiltered && isStatusFiltered && statusFilterLabel){
+          siteHintNode.textContent = `Status for ${siteLabel} (showing inspections ${statusFilterLabel}).`;
+        }else if(isSiteFiltered){
+          siteHintNode.textContent = `Status for ${siteLabel}.`;
+        }else if(isStatusFiltered && statusFilterLabel){
+          siteHintNode.textContent = `Sites ordered by highest risk first (filtered to inspections ${statusFilterLabel}).`;
         }else{
           siteHintNode.textContent = 'Sites ordered by highest risk first.';
         }
       }
 
       if(siteListRoot){
-        if(!list.length){
+        if(!summaryRows.length){
           const message = isFiltered && overallCount > 0
             ? `No inspections match ${resolveSiteLabel(siteFilter)}.`
             : 'Awaiting inspection data.';
           siteListRoot.innerHTML = `<li class="pssr-site-breakdown__item is-empty">${esc(message)}</li>`;
         }else{
           const siteStats = new Map();
-          list.forEach(row => {
+          summaryRows.forEach(row => {
             const rawValue = String(row?.__siteName || '').trim();
             const normalizedName = rawValue && rawValue !== '—' ? rawValue : '';
             const name = normalizedName || FALLBACK_SITE_LABEL;
-            const key = name.toLowerCase();
+            const slugFromRow = row?.__siteKey ? normalizeSiteKey(row.__siteKey) : '';
+            const slugFromName = normalizeSiteKey(name);
+            const key = slugFromRow || slugFromName || 'site';
             if(!siteStats.has(key)){
-              siteStats.set(key, { name, total:0, overdue:0, dueSoon:0, clear:0 });
+              siteStats.set(key, { key, name, total:0, overdue:0, dueSoon:0, clear:0 });
             }
             const stat = siteStats.get(key);
             stat.total += 1;
@@ -2886,21 +3034,34 @@
             return a.name.localeCompare(b.name);
           });
 
-          const limit = isFiltered ? 1 : Math.min(4, ordered.length);
-          const visible = ordered.slice(0, limit);
-          const siteHtml = visible.map(stat => {
-            const buildBadge = (count, className, label, { isEmpty = count === 0 } = {}) => `
-              <span class="pssr-site-breakdown__badge ${className}" data-empty="${isEmpty}" aria-label="${esc(`${count} ${label}`)}">
-                <span class="pssr-site-breakdown__count">${esc(count)}</span>
-                <span class="pssr-site-breakdown__label">${esc(label)}</span>
-              </span>
-            `;
-            const totalBadge = buildBadge(stat.total, 'is-total', 'total', { isEmpty: false });
-            const overdueBadge = buildBadge(stat.overdue, 'is-alert', 'overdue');
-            const dueBadge = buildBadge(stat.dueSoon, 'is-warning', 'due soon');
-            const clearBadge = buildBadge(stat.clear, 'is-ok', 'on track');
+          const limit = isSiteFiltered ? 1 : Math.min(4, ordered.length);
+          const activeSiteKey = isSiteFiltered ? normalizeSiteKey(siteFilter) : '';
+          const activeStatusKey = (statusFilter === 'total' || statusFilter === 'all') ? 'all' : statusFilter;
+          const siteHtml = ordered.slice(0, limit).map(stat => {
+            const siteKey = stat.key || '';
+            const isSiteActive = activeSiteKey && siteKey === activeSiteKey;
+            const buildBadge = ({ count, className, label, statusKey, isEmpty = count === 0 }) => {
+              const normalizedStatus = statusKey || 'all';
+              const isStatusActive = isSiteActive && (
+                (normalizedStatus === 'all' && (activeStatusKey === 'all' || activeStatusKey === 'total' || activeStatusKey === ''))
+                || normalizedStatus === activeStatusKey
+              );
+              const actionLabel = normalizedStatus === 'all'
+                ? `Show all inspections for ${stat.name}`
+                : `Show ${label} inspections for ${stat.name}`;
+              return `
+                <button type="button" class="pssr-site-breakdown__badge ${className}${isStatusActive ? ' is-active' : ''}" data-empty="${isEmpty}" data-site-key="${esc(siteKey)}" data-site-name="${esc(stat.name)}" data-status-key="${esc(normalizedStatus)}" aria-pressed="${isStatusActive ? 'true' : 'false'}" aria-label="${esc(actionLabel)}" title="${esc(actionLabel)}">
+                  <span class="pssr-site-breakdown__count">${esc(count)}</span>
+                  <span class="pssr-site-breakdown__label">${esc(label)}</span>
+                </button>
+              `;
+            };
+            const totalBadge = buildBadge({ count:stat.total, className:'is-total', label:'total', statusKey:'all', isEmpty:false });
+            const overdueBadge = buildBadge({ count:stat.overdue, className:'is-alert', label:'overdue', statusKey:'overdue' });
+            const dueBadge = buildBadge({ count:stat.dueSoon, className:'is-warning', label:'due soon', statusKey:'dueSoon' });
+            const clearBadge = buildBadge({ count:stat.clear, className:'is-ok', label:'on track', statusKey:'clear' });
             return `
-              <li class="pssr-site-breakdown__item">
+              <li class="pssr-site-breakdown__item" data-site-entry="${esc(siteKey)}">
                 <div class="pssr-site-breakdown__header">
                   <span class="pssr-site-breakdown__name">${esc(stat.name)}</span>
                 </div>
@@ -2998,6 +3159,7 @@
       container.__viewRows = [];
       container.__currentSort = { column:'Next Inspection Date', direction:'asc' };
       container.__siteFilter = 'all';
+      container.__statusFilter = 'all';
       container.__selectedDocUrl = '';
 
       setViewerPlaceholder('Select an inspection to preview documentation.');
@@ -3008,6 +3170,7 @@
       attachSortControlHandlers(container);
       updateSiteFilterControls(container);
       attachSiteFilterHandlers(container);
+      attachSiteKpiHandlers(container);
 
       async function loadData(){
         banner('', 'Fetching latest inspections…');
