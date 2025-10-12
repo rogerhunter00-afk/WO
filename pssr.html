@@ -1665,12 +1665,12 @@
           </table>
         </div>
       </section>
-      <section class="document-viewer" id="viewer" aria-label="Inspection document preview" data-viewer-collapsed="false" hidden>
+      <section class="document-viewer" id="viewer" aria-label="Inspection document preview" data-viewer-collapsed="true" hidden>
         <div class="document-viewer__controls">
           <h3 class="document-viewer__title">Inspection document preview</h3>
-          <button type="button" class="document-viewer__toggle" data-role="viewer-toggle" aria-expanded="true" aria-controls="viewer-body" aria-label="Collapse inspection document preview">Collapse preview</button>
+          <button type="button" class="document-viewer__toggle" data-role="viewer-toggle" aria-expanded="false" aria-controls="viewer-body" aria-label="Expand inspection document preview">Expand preview</button>
         </div>
-        <div class="document-viewer__body" id="viewer-body" data-role="viewer-content">
+        <div class="document-viewer__body" id="viewer-body" data-role="viewer-content" hidden>
           <div class="placeholder">Select an inspection to preview documentation.</div>
         </div>
       </section>
@@ -1907,7 +1907,7 @@
       const { viewer, toggle } = getViewerElements();
       if(!viewer || !toggle) return;
       if(!viewer.dataset.viewerCollapsedPreference){
-        viewer.dataset.viewerCollapsedPreference = 'false';
+        viewer.dataset.viewerCollapsedPreference = 'true';
       }
       toggle.addEventListener('click', () => {
         const current = viewer.dataset.viewerCollapsed === 'true';
@@ -2923,7 +2923,7 @@
       window.addEventListener('resize', () => window.requestAnimationFrame(handleResize));
 
       initViewerToggle();
-      setViewerCollapsed(false, { respectPreference:false });
+      setViewerCollapsed(true, { respectPreference:false });
 
       if(!container) return;
       container.__thead = container.querySelector('thead');
