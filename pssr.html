@@ -626,11 +626,46 @@
       color:color-mix(in srgb,var(--muted) 52%,var(--ink));
       border:1px solid color-mix(in srgb,var(--grid) 74%,transparent);
       box-shadow:0 3px 10px rgba(15,23,42,0.08);
+      cursor:pointer;
+      appearance:none;
+      background-clip:padding-box;
+      transition:background .15s ease,color .15s ease,border-color .15s ease,box-shadow .15s ease,transform .15s ease;
+    }
+
+    .pssr-site-breakdown__badge:focus-visible {
+      outline:none;
+      border-color:color-mix(in srgb,var(--als-blue) 65%,transparent);
+      box-shadow:0 0 0 3px color-mix(in srgb,var(--als-blue) 30%,transparent);
+    }
+
+    .pssr-site-breakdown__badge:hover {
+      transform:translateY(-1px);
+      box-shadow:0 5px 14px rgba(15,23,42,0.14);
+    }
+
+    .pssr-site-breakdown__badge[aria-pressed="true"] {
+      background:color-mix(in srgb,var(--als-blue) 18%,var(--paper));
+      border-color:color-mix(in srgb,var(--als-blue) 70%,transparent);
+      color:color-mix(in srgb,var(--als-blue-strong) 85%,var(--ink));
+      box-shadow:0 7px 18px rgba(15,23,42,0.2);
+      transform:translateY(-1px);
     }
 
     .pssr-site-breakdown__badge[data-empty="true"] {
       opacity:0.55;
       border-style:dashed;
+      transform:none;
+      box-shadow:0 3px 10px rgba(15,23,42,0.08);
+    }
+
+    .pssr-site-breakdown__badge[data-empty="true"]:hover {
+      transform:none;
+      box-shadow:0 3px 10px rgba(15,23,42,0.08);
+    }
+
+    .pssr-site-breakdown__badge[data-empty="true"][aria-pressed="true"] {
+      opacity:1;
+      border-style:solid;
     }
 
     .pssr-site-breakdown__badge.is-total {
@@ -1837,6 +1872,15 @@
       return normalized.split(/[\s_-]+/).map(part => part ? (part[0].toUpperCase() + part.slice(1)) : '').join(' ').trim() || SITE_LABELS.all;
     }
 
+    function resolveRiskLabel(riskKey){
+      const normalized = normalizeRiskKey(riskKey);
+      if(!normalized || normalized === 'all') return RISK_LABELS.all;
+      if(Object.prototype.hasOwnProperty.call(RISK_LABELS, normalized)){
+        return RISK_LABELS[normalized];
+      }
+      return normalized.split(/[\s_-]+/).map(part => part ? (part[0].toUpperCase() + part.slice(1)) : '').join(' ').trim() || RISK_LABELS.all;
+    }
+
     const SAMPLE = [
       { Asset:'Keith Steam Boiler 2', Site:'Keith', Location:'Keith – Energy Centre', 'Last Inspection Date':'12/03/2024', 'Next Inspection Date':'12/09/2024', Comments:'Internal and external statutory inspection booked for September.', 'Document URL':'about:blank' },
       { Asset:'Byron Compressed Air Receiver', Site:'Byron', Location:'Byron – Maintenance Bay', 'Last Inspection Date':'05/01/2024', 'Next Inspection Date':'05/07/2024', Comments:'Requalification due alongside dryer swap.', 'Document URL':'about:blank' },
@@ -1945,6 +1989,28 @@
       mugiemoss:'Mugiemoss'
     };
     const FALLBACK_SITE_LABEL = 'Unassigned site';
+    const KNOWN_SITE_KEYS = Object.keys(SITE_LABELS).filter(key => key !== 'all');
+    const RISK_LABELS = {
+      all:'All statuses',
+      overdue:'Overdue',
+      due:'Due soon',
+      clear:'On track'
+    };
+    const RISK_KEY_ALIASES = {
+      all:'all',
+      total:'all',
+      overdue:'overdue',
+      'past-due':'overdue',
+      'past due':'overdue',
+      due:'due',
+      'due-soon':'due',
+      'due soon':'due',
+      soon:'due',
+      clear:'clear',
+      'on-track':'clear',
+      'on track':'clear',
+      'ontrack':'clear'
+    };
     let __tableMinWidthCache = null;
 
     async function safeFetch(url, {timeout=7000, retries=2} = {}){
@@ -2136,6 +2202,20 @@
       return { base, hyphenated, collapsed };
     }
 
+    function normalizeSiteKey(value){
+      const normalized = String(value ?? '').trim().toLowerCase();
+      return normalized || 'all';
+    }
+
+    function normalizeRiskKey(value){
+      const normalized = String(value ?? '').trim().toLowerCase();
+      if(!normalized) return 'all';
+      if(Object.prototype.hasOwnProperty.call(RISK_KEY_ALIASES, normalized)){
+        return RISK_KEY_ALIASES[normalized];
+      }
+      return normalized;
+    }
+
     function matchesSite(row, siteKey){
       if(!row || !siteKey || siteKey === 'all') return true;
       const target = createSiteVariants(siteKey);
@@ -2157,6 +2237,16 @@
       });
     }
 
+    function deriveKnownSiteKey(row){
+      if(!row) return '';
+      for(const key of KNOWN_SITE_KEYS){
+        if(matchesSite(row, key)){
+          return key;
+        }
+      }
+      return '';
+    }
+
     function applySiteFilter(rows, siteKey){
       const list = Array.isArray(rows) ? rows.slice() : [];
       if(!siteKey || siteKey === 'all') return list;
@@ -2165,6 +2255,29 @@
 
     function applyFilters(rows){
       return Array.isArray(rows) ? rows.slice() : [];
+    }
+
+    function applyRiskFilter(rows, riskKey){
+      const list = Array.isArray(rows) ? rows.slice() : [];
+      const normalized = normalizeRiskKey(riskKey);
+      if(!normalized || normalized === 'all') return list;
+      if(normalized === 'overdue'){
+        return list.filter(row => row?.__overdue);
+      }
+      if(normalized === 'due'){
+        return list.filter(row => !row?.__overdue && typeof row?.__countdownDays === 'number' && row.__countdownDays >= 0 && row.__countdownDays <= DUE_SOON_THRESHOLD_DAYS);
+      }
+      if(normalized === 'clear'){
+        return list.filter(row => {
+          if(row?.__overdue) return false;
+          const days = row?.__countdownDays;
+          if(typeof days === 'number' && days >= 0 && days <= DUE_SOON_THRESHOLD_DAYS){
+            return false;
+          }
+          return true;
+        });
+      }
+      return list;
     }
 
     function syncDesktopSortIndicators(container, column, direction){
@@ -2219,8 +2332,13 @@
       if(activeLabel){
         const buttons = nav ? Array.from(nav.querySelectorAll('[data-site-key]')) : [];
         const activeBtn = buttons.find(btn => (btn.dataset.siteKey || 'all') === activeKey);
-        const text = activeBtn?.textContent?.trim() || 'All sites';
-        activeLabel.textContent = text;
+        const siteText = activeBtn?.textContent?.trim() || resolveSiteLabel(activeKey);
+        const riskKey = normalizeRiskKey(container.__riskFilter);
+        if(riskKey === 'all'){
+          activeLabel.textContent = siteText;
+        }else{
+          activeLabel.textContent = `${siteText} – ${resolveRiskLabel(riskKey)}`;
+        }
       }
     }
 
@@ -2251,6 +2369,7 @@
       if(!currentAvailable){
         current = 'all';
         container.__siteFilter = current;
+        container.__riskFilter = 'all';
       }
       updateSiteFilterControls(container);
     }
@@ -2258,8 +2377,9 @@
     function refreshView(container){
       if(!container) return;
       const state = container.__currentSort || { column:'Asset', direction:'asc' };
-      const filtered = applySiteFilter(container.__rows, container.__siteFilter);
-      const sorted = applySort(filtered, state.column, state.direction);
+      const siteFiltered = applySiteFilter(container.__rows, container.__siteFilter);
+      const riskFiltered = applyRiskFilter(siteFiltered, container.__riskFilter);
+      const sorted = applySort(riskFiltered, state.column, state.direction);
       container.__viewRows = sorted;
       renderTable(container, sorted);
       if(container.__selectedDocUrl){
@@ -2273,8 +2393,9 @@
         }
       }
       renderMobileCards(container, sorted);
-      updateSummaryMetrics(filtered, {
+      updateSummaryMetrics(siteFiltered, {
         siteFilter: container.__siteFilter,
+        riskFilter: container.__riskFilter,
         totalRowCount: Array.isArray(container.__rows) ? container.__rows.length : 0
       });
     }
@@ -2288,9 +2409,41 @@
           const key = btn.dataset.siteKey || 'all';
           if(container.__siteFilter === key) return;
           container.__siteFilter = key;
+          container.__riskFilter = 'all';
           updateSiteFilterControls(container);
           refreshView(container);
         });
+      });
+    }
+
+    function attachSiteKpiHandlers(container){
+      const list = document.querySelector('[data-role="pssr-site-breakdown"]');
+      if(!list) return;
+      list.addEventListener('click', event => {
+        const button = event.target.closest('[data-role="pssr-site-kpi"]');
+        if(!button) return;
+        const siteKey = normalizeSiteKey(button.dataset.siteKey);
+        const riskKey = normalizeRiskKey(button.dataset.riskKey);
+        const currentSite = normalizeSiteKey(container.__siteFilter);
+        const currentRisk = normalizeRiskKey(container.__riskFilter);
+        if(currentSite === siteKey && currentRisk === riskKey){
+          if(riskKey !== 'all'){
+            container.__riskFilter = 'all';
+            updateSiteFilterControls(container);
+            refreshView(container);
+            return;
+          }
+          if(siteKey !== 'all'){
+            container.__siteFilter = 'all';
+            updateSiteFilterControls(container);
+            refreshView(container);
+          }
+          return;
+        }
+        container.__siteFilter = siteKey;
+        container.__riskFilter = riskKey;
+        updateSiteFilterControls(container);
+        refreshView(container);
       });
     }
 
@@ -2726,9 +2879,11 @@
       const list = Array.isArray(rows) ? rows : [];
       const total = list.length;
       const dueSoonThreshold = DUE_SOON_THRESHOLD_DAYS;
-      const siteFilter = context.siteFilter || 'all';
+      const siteFilter = normalizeSiteKey(context.siteFilter);
+      const riskFilter = normalizeRiskKey(context.riskFilter);
       const overallCount = typeof context.totalRowCount === 'number' ? context.totalRowCount : total;
       const isFiltered = siteFilter !== 'all';
+      const isRiskFiltered = riskFilter !== 'all';
       const dueSoonRows = list.filter(row => typeof row?.__countdownDays === 'number' && row.__countdownDays >= 0 && row.__countdownDays <= dueSoonThreshold);
       const overdueRows = list.filter(row => row?.__overdue);
       const compliantCount = Math.max(total - overdueRows.length - dueSoonRows.length, 0);
@@ -2739,8 +2894,8 @@
 
       if(signalRoot){
         let signalValue = '—';
-        let signalNote = isFiltered && overallCount > 0
-          ? `No inspections currently match the ${resolveSiteLabel(siteFilter)} filter.`
+        let signalNote = (isFiltered || isRiskFiltered) && overallCount > 0
+          ? `No inspections currently match the ${resolveSiteLabel(siteFilter)}${isRiskFiltered ? ` – ${resolveRiskLabel(riskFilter).toLowerCase()}` : ''} filter.`
           : 'Awaiting data from the published schedule.';
 
         if(total > 0){
@@ -2779,8 +2934,8 @@
       if(riskMessageNode){
         let message = 'Awaiting inspection data.';
         if(total === 0){
-          message = isFiltered && overallCount > 0
-            ? `No inspections fall under the ${resolveSiteLabel(siteFilter)} filter.`
+          message = (isFiltered || isRiskFiltered) && overallCount > 0
+            ? `No inspections fall under the ${resolveSiteLabel(siteFilter)}${isRiskFiltered ? ` – ${resolveRiskLabel(riskFilter).toLowerCase()}` : ''} filter.`
             : 'Awaiting inspection data.';
         }else if(riskState === 'critical'){
           message = overdueRows.length === 1
@@ -2841,11 +2996,15 @@
 
       if(siteHintNode){
         if(total === 0){
-          siteHintNode.textContent = isFiltered && overallCount > 0
-            ? `No inspections currently align with ${resolveSiteLabel(siteFilter)}.`
+          siteHintNode.textContent = (isFiltered || isRiskFiltered) && overallCount > 0
+            ? `No inspections currently align with ${resolveSiteLabel(siteFilter)}${isRiskFiltered ? ` – ${resolveRiskLabel(riskFilter).toLowerCase()}` : ''}.`
             : 'Awaiting data from the published schedule.';
+        }else if(isFiltered && isRiskFiltered){
+          siteHintNode.textContent = `Viewing ${resolveRiskLabel(riskFilter).toLowerCase()} inspections for ${resolveSiteLabel(siteFilter)}.`;
         }else if(isFiltered){
           siteHintNode.textContent = `Status for ${resolveSiteLabel(siteFilter)}.`;
+        }else if(isRiskFiltered){
+          siteHintNode.textContent = `${resolveRiskLabel(riskFilter)} inspections across all sites.`;
         }else{
           siteHintNode.textContent = 'Sites ordered by highest risk first.';
         }
@@ -2863,45 +3022,86 @@
             const rawValue = String(row?.__siteName || '').trim();
             const normalizedName = rawValue && rawValue !== '—' ? rawValue : '';
             const name = normalizedName || FALLBACK_SITE_LABEL;
-            const key = name.toLowerCase();
-            if(!siteStats.has(key)){
-              siteStats.set(key, { name, total:0, overdue:0, dueSoon:0, clear:0 });
+            const knownKey = deriveKnownSiteKey(row);
+            const variants = createSiteVariants(name);
+            const fallbackKey = variants.hyphenated || variants.base || name.toLowerCase();
+            const mapKey = (knownKey || fallbackKey || name).toLowerCase();
+            if(!siteStats.has(mapKey)){
+              siteStats.set(mapKey, {
+                name,
+                displayName: name,
+                total:0,
+                overdue:0,
+                dueSoon:0,
+                clear:0,
+                siteKey: knownKey || fallbackKey || mapKey,
+                fallbackKey,
+                knownKey: knownKey || ''
+              });
             }
-            const stat = siteStats.get(key);
-            stat.total += 1;
-            if(row?.__overdue){
-              stat.overdue += 1;
-            }else if(typeof row?.__countdownDays === 'number' && row.__countdownDays >= 0 && row.__countdownDays <= dueSoonThreshold){
-              stat.dueSoon += 1;
-            }else{
-              stat.clear += 1;
+            const stat = siteStats.get(mapKey);
+            if(stat){
+              if(name && name !== FALLBACK_SITE_LABEL && stat.displayName === FALLBACK_SITE_LABEL){
+                stat.displayName = name;
+              }
+              if(stat.name === FALLBACK_SITE_LABEL && name !== FALLBACK_SITE_LABEL){
+                stat.name = name;
+              }
+              if(!stat.knownKey && knownKey){
+                stat.knownKey = knownKey;
+                stat.siteKey = knownKey;
+              }
+              stat.total += 1;
+              if(row?.__overdue){
+                stat.overdue += 1;
+              }else if(typeof row?.__countdownDays === 'number' && row.__countdownDays >= 0 && row.__countdownDays <= dueSoonThreshold){
+                stat.dueSoon += 1;
+              }else{
+                stat.clear += 1;
+              }
             }
           });
 
-          const ordered = Array.from(siteStats.values()).sort((a,b) => {
+          const ordered = Array.from(siteStats.values()).map(stat => {
+            const siteKey = normalizeSiteKey(stat.siteKey || stat.fallbackKey || stat.name);
+            const displayName = stat.displayName || stat.name || FALLBACK_SITE_LABEL;
+            return {
+              ...stat,
+              siteKey,
+              displayName
+            };
+          }).sort((a,b) => {
             if(b.overdue !== a.overdue) return b.overdue - a.overdue;
             if(b.dueSoon !== a.dueSoon) return b.dueSoon - a.dueSoon;
             if(b.total !== a.total) return b.total - a.total;
-            return a.name.localeCompare(b.name);
+            return a.displayName.localeCompare(b.displayName);
           });
 
           const limit = isFiltered ? 1 : Math.min(4, ordered.length);
           const visible = ordered.slice(0, limit);
+          const activeSiteKey = siteFilter;
+          const activeRiskKey = riskFilter;
           const siteHtml = visible.map(stat => {
-            const buildBadge = (count, className, label, { isEmpty = count === 0 } = {}) => `
-              <span class="pssr-site-breakdown__badge ${className}" data-empty="${isEmpty}" aria-label="${esc(`${count} ${label}`)}">
-                <span class="pssr-site-breakdown__count">${esc(count)}</span>
-                <span class="pssr-site-breakdown__label">${esc(label)}</span>
-              </span>
-            `;
-            const totalBadge = buildBadge(stat.total, 'is-total', 'total', { isEmpty: false });
-            const overdueBadge = buildBadge(stat.overdue, 'is-alert', 'overdue');
-            const dueBadge = buildBadge(stat.dueSoon, 'is-warning', 'due soon');
-            const clearBadge = buildBadge(stat.clear, 'is-ok', 'on track');
+            const buildBadge = (count, className, label, { isEmpty = count === 0, riskKey = 'all' } = {}) => {
+              const normalizedSite = normalizeSiteKey(stat.siteKey);
+              const normalizedRisk = normalizeRiskKey(riskKey);
+              const isActive = activeSiteKey === normalizedSite && activeRiskKey === normalizedRisk;
+              const ariaLabel = `${stat.displayName}: ${count} ${label}`;
+              return `
+                <button type="button" class="pssr-site-breakdown__badge ${className}" data-role="pssr-site-kpi" data-site-key="${esc(normalizedSite)}" data-risk-key="${esc(normalizedRisk)}" data-empty="${isEmpty}" aria-label="${esc(ariaLabel)}" title="${esc(ariaLabel)}" aria-pressed="${isActive ? 'true' : 'false'}">
+                  <span class="pssr-site-breakdown__count">${esc(count)}</span>
+                  <span class="pssr-site-breakdown__label">${esc(label)}</span>
+                </button>
+              `;
+            };
+            const totalBadge = buildBadge(stat.total, 'is-total', 'total', { isEmpty: false, riskKey:'all' });
+            const overdueBadge = buildBadge(stat.overdue, 'is-alert', 'overdue', { riskKey:'overdue' });
+            const dueBadge = buildBadge(stat.dueSoon, 'is-warning', 'due soon', { riskKey:'due' });
+            const clearBadge = buildBadge(stat.clear, 'is-ok', 'on track', { riskKey:'clear' });
             return `
               <li class="pssr-site-breakdown__item">
                 <div class="pssr-site-breakdown__header">
-                  <span class="pssr-site-breakdown__name">${esc(stat.name)}</span>
+                  <span class="pssr-site-breakdown__name">${esc(stat.displayName)}</span>
                 </div>
                 <div class="pssr-site-breakdown__status">
                   ${totalBadge}
@@ -2997,6 +3197,7 @@
       container.__viewRows = [];
       container.__currentSort = { column:'Asset', direction:'asc' };
       container.__siteFilter = 'all';
+      container.__riskFilter = 'all';
       container.__selectedDocUrl = '';
 
       setViewerPlaceholder('Select an inspection to preview documentation.');
@@ -3007,6 +3208,7 @@
       attachSortControlHandlers(container);
       updateSiteFilterControls(container);
       attachSiteFilterHandlers(container);
+      attachSiteKpiHandlers(container);
 
       async function loadData(){
         banner('', 'Fetching latest inspections…');
