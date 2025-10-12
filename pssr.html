@@ -2116,19 +2116,45 @@
       return applySort(Array.isArray(rows) ? rows.slice() : [], column, direction);
     }
 
+    const SITE_SEPARATOR_PATTERN = /[\s/_\u2010-\u2015-]+/g;
+
+    function normalizeSiteBase(value){
+      if(!value) return '';
+      return String(value).toLowerCase().replace(/[\u2010-\u2015]/g, '-').trim();
+    }
+
+    function createSiteVariants(value){
+      const base = normalizeSiteBase(value);
+      if(!base){
+        return { base:'', hyphenated:'', collapsed:'' };
+      }
+      const hyphenated = base
+        .replace(SITE_SEPARATOR_PATTERN, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+      const collapsed = base.replace(SITE_SEPARATOR_PATTERN, '');
+      return { base, hyphenated, collapsed };
+    }
+
     function matchesSite(row, siteKey){
       if(!row || !siteKey || siteKey === 'all') return true;
-      const target = siteKey.toLowerCase();
+      const target = createSiteVariants(siteKey);
+      if(!target.base && !target.hyphenated && !target.collapsed) return true;
       const values = [
         row?.__raw?.Site,
         row?.__raw?.Location,
         row?.__raw?.Area,
         row?.__siteName,
-        row?.Location
+        row?.Location,
+        resolveSiteLabel(siteKey)
       ];
       return values.some(value => {
         if(!value) return false;
-        return String(value).toLowerCase().includes(target);
+        const variants = createSiteVariants(value);
+        if(target.base && variants.base.includes(target.base)) return true;
+        if(target.hyphenated && variants.hyphenated.includes(target.hyphenated)) return true;
+        if(target.collapsed && variants.collapsed.includes(target.collapsed)) return true;
+        return false;
       });
     }
 
