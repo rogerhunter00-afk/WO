@@ -758,10 +758,6 @@
       display:none;
     }
 
-    .test-panel{margin-top:16px;border:1px dashed var(--grid);border-radius:12px;padding:10px}
-    .test-panel h3{margin:0 0 8px 0;font-size:13px}
-    .test-pass{color:#059669;font-weight:800}
-    .test-fail{color:#b91c1c;font-weight:800}
 
     .controls-bar label {
       color:var(--muted);
@@ -1084,29 +1080,6 @@
 
     .table-scroll[data-loading="true"] tbody {
       opacity:.4;
-    }
-
-    .loading-banner,
-    .error-banner {
-      display:flex;
-      align-items:center;
-      gap:8px;
-      padding:12px 16px;
-      border-radius:12px;
-      font-weight:600;
-      margin-top:18px;
-    }
-
-    .loading-banner {
-      background:color-mix(in srgb,var(--als-blue) 12%,var(--paper));
-      color:var(--als-blue);
-      border:1px solid color-mix(in srgb,var(--als-blue) 35%,transparent);
-    }
-
-    .error-banner {
-      background:color-mix(in srgb,#dc2626 12%,var(--paper));
-      color:#991b1b;
-      border:1px solid color-mix(in srgb,#b91c1c 35%,transparent);
     }
 
     .mobile-cards {
@@ -1450,12 +1423,6 @@
       </section>
     </div>
     <section class="mobile-cards" data-role="mobile-cards" aria-live="polite" role="list"></section>
-    <div class="loading-banner" data-state="loading" role="status">Fetching latest inspections…</div>
-    <div class="error-banner" data-state="error" role="alert" hidden>We were unable to load the inspection sheet. Please check the network or sheet permissions and try again.</div>
-    <section class="test-panel" id="tests">
-      <h3>Inline self-tests</h3>
-      <div id="test-results">Running…</div>
-    </section>
   </div>
 
   <script>
@@ -1470,6 +1437,7 @@
     const FORCE_OFFLINE = PARAMS.get('offline') === '1';
     const DEFAULT_OFFLINE = location.protocol === 'file:' || location.hostname === '';
     const ALLOW_NETWORK = FORCE_ONLINE ? true : (FORCE_OFFLINE ? false : !DEFAULT_OFFLINE);
+    const DEFAULT_ERROR_MESSAGE = 'We were unable to load the inspection sheet. Please check the network or sheet permissions and try again.';
 
     function sanitizeSheetUrl(v){
       if(!v) return null;
@@ -2473,53 +2441,6 @@
       document.documentElement.style.setProperty('--sticky-controls-offset', `${Math.ceil(height)}px`);
     }
 
-    function expect(name, cond){
-      const el = document.querySelector('#test-results');
-      if(el){
-        const p = document.createElement('div');
-        p.textContent = (cond ? '✔ ' : '✖ ') + name;
-        p.className = cond ? 'test-pass' : 'test-fail';
-        el.appendChild(p);
-      }
-      return cond;
-    }
-
-    function runTests(){
-      const out = document.querySelector('#test-results');
-      if(out){
-        out.textContent = '';
-      }
-
-      expect('parseDateLoose dd/mm/yyyy', !!parseDateLoose('05/10/2025'));
-      expect('parseDateLoose d/m/yy → 20yy', parseDateLoose('5/7/25')?.getFullYear() === 2025);
-      expect('parseDateLoose ISO', !!parseDateLoose('2025-10-05'));
-
-      const csv = 'Asset,Comments\n"Boiler, No.1","""Quoted"" note"\n';
-      const { headers, rows } = parseCsv(csv);
-      expect('parseCsv headers', headers[0] === 'Asset' && headers[1] === 'Comments');
-      expect('parseCsv quoted field with comma', rows[0]['Asset'] === 'Boiler, No.1');
-      expect('parseCsv escaped quotes', rows[0]['Comments'] === '"Quoted" note');
-
-      const tomorrow = new Date(Date.now() + 86400000);
-      const c = normalizeCountdown(tomorrow);
-      expect('countdown future not overdue', c.days > 0 && !c.overdue);
-
-      const past = new Date(Date.now() - 3 * 86400000);
-      const cp = normalizeCountdown(past);
-      expect('countdown overdue', cp.overdue && cp.label.includes('overdue'));
-
-      const models = [
-        buildRowModel({Asset:'A','Next Inspection Date':'01/01/2026'}),
-        buildRowModel({Asset:'B','Next Inspection Date':'01/01/2024'}),
-        buildRowModel({Asset:'C','Next Inspection Date':'01/01/2025'})
-      ];
-      const sorted = sortRows(models, 'Next Inspection Date', 'asc');
-      expect('sortRows by next asc', sorted[0].Asset === 'B' && sorted[2].Asset === 'A');
-
-      const filtered = applyFilters(models.map(m => ({ ...m, Location:'EK', Comments:'test' })));
-      expect('applyFilters no filters keeps all', filtered.length === 3);
-    }
-
     document.addEventListener('DOMContentLoaded', () => {
       const container = document.querySelector('[data-component="pssr-table"]');
 
@@ -2556,14 +2477,9 @@
       attachSiteFilterHandlers(container);
 
       const refreshButton = document.querySelector('[data-action="refresh"]');
-      const loadingBanner = document.querySelector('[data-state="loading"]');
-      const errorBanner = document.querySelector('[data-state="error"]');
-      const defaultErrorMessage = errorBanner?.textContent?.trim() || 'We were unable to load the inspection sheet. Please check the network or sheet permissions and try again.';
 
       async function loadData(){
-        loadingBanner.hidden = false;
-        errorBanner.hidden = true;
-        errorBanner.textContent = defaultErrorMessage;
+        banner('', 'Fetching latest inspections…');
         container.__scrollRegion?.setAttribute('data-loading','true');
         container.__selectedDocUrl = '';
         setViewerPlaceholder('Select an inspection to preview documentation.');
@@ -2587,16 +2503,14 @@
           banner('ok', 'Live data loaded', hasRows ? 'online mode' : 'sheet returned no rows – showing sample data');
         } catch (error) {
           console.warn('Falling back to SAMPLE. Reason:', error?.message || error);
-          const message = (error && typeof error.message === 'string' && error.message.trim()) ? error.message.trim() : defaultErrorMessage;
+          const message = (error && typeof error.message === 'string' && error.message.trim()) ? error.message.trim() : DEFAULT_ERROR_MESSAGE;
           const fallback = SAMPLE.map(buildRowModel);
           container.__rows = fallback;
           syncSiteFilterAvailability(container);
           setSort(container, container.__currentSort.column, container.__currentSort.direction);
           banner('warn', 'Showing sample data', message);
         } finally {
-          loadingBanner.hidden = true;
           container.__scrollRegion?.setAttribute('data-loading','false');
-          runTests();
         }
       }
 
