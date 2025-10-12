@@ -1042,6 +1042,21 @@ const hideLoading = () => {
   if (overlay) overlay.style.display = 'none';
 };
 
+function friendlyFetchError(err){
+  if(!err) return 'Unknown error.';
+  if(typeof err === 'string') return err;
+  const name = err?.name;
+  const msg = String(err?.message || '').trim();
+
+  if(name === 'AbortError') return 'Request was cancelled.';
+
+  if(name === 'TypeError' || /network/i.test(msg) || /failed to fetch/i.test(msg)){
+    return 'Network error – check your connection and confirm the Google Sheet is still published to the web.';
+  }
+
+  return msg || 'Unknown error.';
+}
+
 async function loadChosenGid(meta, { bust=false } = {}){
   if (__loadController) __loadController.abort();
   __loadController = new AbortController();
@@ -1097,7 +1112,8 @@ const url  = bust ? withBust(base) : base;
   } catch (e){
     if (e.name !== 'AbortError') {
       console.error('[loadChosenGid] error:', e);
-      alert('Could not load the selected week. ' + (e?.message || ''));
+      const friendly = friendlyFetchError(e);
+      alert('Could not load the selected week. ' + friendly);
     }
   } finally {
     __loadController = null;
@@ -1210,7 +1226,7 @@ async function loadSingleSheetData({ bust=false } = {}){
 
   const res = await fetch(url);
   if(!res.ok){
-    throw new Error('Sheet load failed: ' + res.status);
+    throw new Error(`Sheet load failed: ${res.status} ${res.statusText || ''}`.trim());
   }
 
   const text = await res.text();
@@ -1542,12 +1558,14 @@ await loadChosenGid(chosen, { bust: forceBust });
         return;
       }catch(singleErr){
         console.error(singleErr);
-        alert('Could not load the live sheet. ' + (singleErr?.message || ''));
+        const friendly = friendlyFetchError(singleErr);
+        alert('Could not load the live sheet. ' + friendly);
         return;
       }
     }
     console.error(err);
-    alert('Could not load the latest dashboard. Check the Index publish URL and columns (label, week_end, gid).');
+    const friendly = friendlyFetchError(err);
+    alert('Could not load the latest dashboard. ' + friendly + ' Check the Index publish URL and columns (label, week_end, gid).');
   }
 }
   
@@ -2016,7 +2034,7 @@ async function loadWeeksIndex(){
 async function loadWeeksIndexFrom(url){
     console.log('Index CSV URL:', url);   // 👈 add here
   const res = await fetch(url);
-  if(!res.ok) throw new Error('Index load failed: ' + res.status);
+  if(!res.ok) throw new Error(`Index load failed: ${res.status} ${res.statusText || ''}`.trim());
 
   const text = await res.text();
   const { headers, rows } = parseDelimited(text);
