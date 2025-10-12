@@ -643,28 +643,29 @@ body.mobile-layout .mobile-sort{display:flex;flex-wrap:wrap;align-items:flex-end
 body.mobile-layout .mobile-sort__label{flex:1 1 100%;margin:0}
 body.mobile-layout .mobile-sort__select{flex:1 1 220px}
 body.mobile-layout .dash-table .table-scroll{display:none}
-body.mobile-layout .mobile-cards{display:block}
+body.mobile-layout .mobile-cards{display:flex;flex-direction:column;gap:8px;align-items:center}
 body.mobile-layout .page{--page-pad-inline:16px}
 body.mobile-layout .columns-bar{display:none}
-.mobile-card{border:1px solid var(--grid);border-radius:14px;padding:10px 12px;background:var(--paper);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:start}
-.mobile-card+.mobile-card{margin-top:10px}
-.mobile-card__title{font-weight:800;line-height:1.3;display:flex;flex-wrap:wrap;gap:6px;align-items:baseline;min-width:0}
-.mobile-card__name{font-weight:800;min-width:0;flex:1 1 auto;word-break:break-word}
-.mobile-card__badge{justify-self:end;align-self:start}
-.mobile-card__id{font-weight:900;opacity:.7}
-.mobile-card__meta{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:4px 12px;font-size:12px;color:var(--muted)}
-.mobile-card__row{display:flex;align-items:center;gap:6px;min-width:0}
-.mobile-card__row strong{font-weight:700;white-space:nowrap}
-.mobile-card__row span{min-width:0}
-.mobile-card__categories{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px}
-.mobile-card .status-chip{font-size:12px}
-.mobile-card .chip-cat{padding:3px 8px;font-size:11px;margin:2px 6px 0 0}
+.mobile-card{border:1px solid var(--grid);border-radius:12px;padding:10px;background:var(--paper);display:flex;flex-direction:column;gap:10px;box-shadow:0 2px 6px rgba(15,20,34,.05);width:min(100%,420px);margin:0 auto}
+.mobile-card__header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.mobile-card__title{display:flex;flex-direction:column;gap:2px;min-width:0}
+.mobile-card__name{font-weight:800;font-size:14px;line-height:1.3;word-break:break-word}
+.mobile-card__id{font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.mobile-card__badge{flex-shrink:0}
+.mobile-card__badge .status-chip{font-size:11px;padding:3px 8px}
+.mobile-card__meta{margin:0;display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}
+.mobile-card__item{display:flex;justify-content:space-between;gap:12px}
+.mobile-card__item dt{margin:0;font-weight:600}
+.mobile-card__item dd{margin:0;font-weight:700;color:var(--ink);text-align:right;flex:1 1 auto;min-width:0;display:flex;justify-content:flex-end;align-items:center;gap:6px}
+.mobile-card__item dd .age-chip{font-size:11px;padding:3px 8px}
+.mobile-card__categories{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-start}
+.mobile-card__categories .chip-cat{padding:2px 6px;font-size:10px;margin:0}
 @media(max-width:910px){
   .mobile-sort{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;margin:12px 0 16px;padding:12px;border:1px solid var(--grid);border-radius:14px;background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));box-shadow:0 10px 24px rgba(11,103,194,.08)}
   .mobile-sort__label{flex:1 1 100%;margin:0}
   .mobile-sort__select{flex:1 1 220px}
   .dash-table .table-scroll{display:none}
-  .mobile-cards{display:block}
+  .mobile-cards{display:flex;flex-direction:column;gap:8px;align-items:center}
   .page{--page-pad-inline:16px}
   .columns-bar{display:none} /* hide static bar on small screens */
 }
@@ -3269,26 +3270,26 @@ function cardHTML(row){
 
   return `
   <article class="mobile-card" role="listitem" aria-label="WO ${esc(row['ID'])}">
-    <div class="mobile-card__title">
-      <span class="mobile-card__id">#${esc(row['ID'])}</span>
-      <span class="mobile-card__name">${esc(row['Title'])}</span>
-    </div>
-    <div class="mobile-card__badge">
-      <span class="status-chip ${statusCls}">${esc(row['Status'])}</span>
+    <div class="mobile-card__header">
+      <div class="mobile-card__title">
+        <span class="mobile-card__id">#${esc(row['ID'])}</span>
+        <span class="mobile-card__name">${esc(row['Title'])}</span>
+      </div>
+      <div class="mobile-card__badge">
+        <span class="status-chip ${statusCls}">${esc(row['Status'])}</span>
+      </div>
     </div>
 
-    <div class="mobile-card__meta">
-      <div class="mobile-card__row">
-        <strong>Priority:</strong>
-        <span>${esc(row['Priority']||'—')}</span>
+    <dl class="mobile-card__meta">
+      <div class="mobile-card__item">
+        <dt>Priority</dt>
+        <dd>${esc(row['Priority']||'—')}</dd>
       </div>
-      <div class="mobile-card__row">
-        <strong>Age:</strong>
-        <span class="${ageCls}"${ageStyle}${ageTtl ? ` title="${esc(ageTtl)}" aria-label="Planned for Winter"` : ''}>
-          ${esc(ageLbl)}
-        </span>
+      <div class="mobile-card__item">
+        <dt>Age</dt>
+        <dd><span class="${ageCls}"${ageStyle}${ageTtl ? ` title="${esc(ageTtl)}" aria-label="Planned for Winter"` : ''}>${esc(ageLbl)}</span></dd>
       </div>
-    </div>
+    </dl>
 
     ${shown || more ? `<div class="mobile-card__categories">${shown}${more}</div>` : ''}
   </article>`;
