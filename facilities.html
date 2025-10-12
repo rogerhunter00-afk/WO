@@ -3119,11 +3119,24 @@ function pageAvailableWidth(){
 
 function viewportWidth(){
   if (typeof window === 'undefined') return 0;
-  return Math.max(
-    window.innerWidth || 0,
-    document.documentElement?.clientWidth || 0,
-    document.body?.clientWidth || 0
-  );
+
+  // Prefer the visual viewport width. If the layout overflows (e.g. table with
+  // a large min-width), `clientWidth` can report the larger scrollable width,
+  // which incorrectly keeps us in “desktop” mode. Stick to the actual viewport
+  // measurement when available and only fall back to the other measures when
+  // needed.
+  const visualViewport = window.visualViewport?.width;
+  if (visualViewport && visualViewport > 0) return visualViewport;
+
+  if (window.innerWidth && window.innerWidth > 0) return window.innerWidth;
+
+  const docWidth = document.documentElement?.clientWidth;
+  if (docWidth && docWidth > 0) return docWidth;
+
+  const bodyWidth = document.body?.clientWidth;
+  if (bodyWidth && bodyWidth > 0) return bodyWidth;
+
+  return 0;
 }
 
 function needsMobileLayout(){
