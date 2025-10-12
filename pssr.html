@@ -509,60 +509,83 @@
       font-size:15px;
     }
 
-    .pssr-site-breakdown__total {
-      font-size:12px;
-      color:color-mix(in srgb,var(--muted) 72%,var(--ink));
-      font-weight:600;
-      white-space:nowrap;
-    }
-
     .pssr-site-breakdown__status {
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+      gap:12px;
+      align-items:stretch;
     }
 
     .pssr-site-breakdown__badge {
-      display:inline-flex;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
       align-items:center;
       gap:6px;
-      border-radius:999px;
-      padding:5px 10px;
-      font-size:12px;
-      font-weight:700;
-      background:color-mix(in srgb,var(--als-blue) 8%,var(--paper));
+      border-radius:18px;
+      padding:18px 12px;
+      min-height:120px;
+      text-align:center;
+      font-size:13px;
+      font-weight:650;
+      letter-spacing:-0.01em;
+      background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));
       color:color-mix(in srgb,var(--muted) 55%,var(--ink));
       border:1px solid color-mix(in srgb,var(--grid) 75%,transparent);
+      box-shadow:0 6px 18px rgba(15,23,42,0.08);
     }
 
     .pssr-site-breakdown__badge[data-empty="true"] {
-      opacity:0.6;
+      opacity:0.55;
       border-style:dashed;
     }
 
+    .pssr-site-breakdown__badge.is-total {
+      background:color-mix(in srgb,var(--als-blue) 16%,var(--paper));
+      border-color:color-mix(in srgb,var(--als-blue) 55%,transparent);
+      color:color-mix(in srgb,var(--ink) 85%,var(--als-blue));
+    }
+
     .pssr-site-breakdown__badge.is-alert {
-      background:color-mix(in srgb,var(--risk-critical) 18%,var(--paper));
+      background:color-mix(in srgb,var(--risk-critical) 20%,var(--paper));
       border-color:color-mix(in srgb,var(--risk-critical) 65%,transparent);
       color:var(--risk-critical);
     }
 
     .pssr-site-breakdown__badge.is-warning {
-      background:color-mix(in srgb,var(--risk-warning) 18%,var(--paper));
+      background:color-mix(in srgb,var(--risk-warning) 22%,var(--paper));
       border-color:color-mix(in srgb,var(--risk-warning) 65%,transparent);
       color:var(--risk-warning);
     }
 
     .pssr-site-breakdown__badge.is-ok {
-      background:color-mix(in srgb,var(--risk-ok) 18%,var(--paper));
+      background:color-mix(in srgb,var(--risk-ok) 22%,var(--paper));
       border-color:color-mix(in srgb,var(--risk-ok) 55%,transparent);
       color:var(--risk-ok);
     }
 
+    .pssr-site-breakdown__count {
+      font-size:28px;
+      font-weight:800;
+      line-height:1;
+      color:currentColor;
+    }
+
+    .pssr-site-breakdown__label {
+      font-size:13px;
+      font-weight:650;
+      text-transform:capitalize;
+      color:color-mix(in srgb,currentColor 80%,var(--muted));
+    }
+
     .pssr-metrics {
       margin:0;
-      display:grid;
+      display:flex;
       gap:10px;
-      grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+      overflow-x:auto;
+      padding-bottom:6px;
+      scrollbar-width:thin;
+      scrollbar-color:color-mix(in srgb,var(--als-blue) 45%,transparent) color-mix(in srgb,var(--als-blue) 10%,transparent);
     }
 
     .pssr-metrics__item {
@@ -576,6 +599,21 @@
       gap:4px;
       min-height:96px;
       transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+      flex:1 0 160px;
+    }
+
+    .pssr-metrics::-webkit-scrollbar {
+      height:6px;
+    }
+
+    .pssr-metrics::-webkit-scrollbar-track {
+      background:color-mix(in srgb,var(--als-blue) 10%,transparent);
+      border-radius:999px;
+    }
+
+    .pssr-metrics::-webkit-scrollbar-thumb {
+      background:color-mix(in srgb,var(--als-blue) 45%,transparent);
+      border-radius:999px;
     }
 
     .pssr-metrics__item:hover,
@@ -2369,7 +2407,13 @@
           const limit = isFiltered ? 1 : Math.min(4, ordered.length);
           const visible = ordered.slice(0, limit);
           const siteHtml = visible.map(stat => {
-            const buildBadge = (count, className, label) => `<span class="pssr-site-breakdown__badge ${className}" data-empty="${count === 0}">${esc(`${count} ${label}`)}</span>`;
+            const buildBadge = (count, className, label, { isEmpty = count === 0 } = {}) => `
+              <span class="pssr-site-breakdown__badge ${className}" data-empty="${isEmpty}" aria-label="${esc(`${count} ${label}`)}">
+                <span class="pssr-site-breakdown__count">${esc(count)}</span>
+                <span class="pssr-site-breakdown__label">${esc(label)}</span>
+              </span>
+            `;
+            const totalBadge = buildBadge(stat.total, 'is-total', 'total', { isEmpty: false });
             const overdueBadge = buildBadge(stat.overdue, 'is-alert', 'overdue');
             const dueBadge = buildBadge(stat.dueSoon, 'is-warning', 'due soon');
             const clearBadge = buildBadge(stat.clear, 'is-ok', 'on track');
@@ -2377,9 +2421,9 @@
               <li class="pssr-site-breakdown__item">
                 <div class="pssr-site-breakdown__header">
                   <span class="pssr-site-breakdown__name">${esc(stat.name)}</span>
-                  <span class="pssr-site-breakdown__total">${esc(`${stat.total} total`)}</span>
                 </div>
                 <div class="pssr-site-breakdown__status">
+                  ${totalBadge}
                   ${overdueBadge}
                   ${dueBadge}
                   ${clearBadge}
