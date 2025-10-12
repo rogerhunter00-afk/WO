@@ -2181,7 +2181,6 @@
         row?.Location,
         resolveSiteLabel(siteKey)
       ];
-      const targetSpaced = target.replace(/-/g,' ');
       return values.some(value => {
         if(!value) return false;
         const variants = createSiteVariants(value);
