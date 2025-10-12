@@ -710,17 +710,11 @@
     .banner [data-msg]{font-weight:700}
 
     .pssr-content {
-      display:grid;
-      grid-template-columns:minmax(0,1fr);
+      display:flex;
+      flex-direction:column;
       gap:18px;
-      align-items:start;
+      align-items:stretch;
       margin-top:18px;
-    }
-
-    @media (min-width: 1080px){
-      .pssr-content {
-        grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);
-      }
     }
 
     .document-viewer {
@@ -1445,7 +1439,7 @@
           </table>
         </div>
       </section>
-      <section class="document-viewer" id="viewer" aria-label="Inspection document preview">
+      <section class="document-viewer" id="viewer" aria-label="Inspection document preview" hidden>
         <div class="placeholder">Select an inspection to preview documentation.</div>
       </section>
     </div>
@@ -1525,7 +1519,7 @@
       if(detailNode) detailNode.textContent = detail ? ' – ' + detail : '';
     }
 
-    function setViewerPlaceholder(message){
+    function setViewerPlaceholder(message, { reveal = false } = {}){
       const viewer = document.querySelector('#viewer');
       if(!viewer) return;
       viewer.innerHTML = '';
@@ -1533,6 +1527,13 @@
       div.className = 'placeholder';
       div.textContent = message;
       viewer.appendChild(div);
+      if(reveal){
+        viewer.hidden = false;
+        viewer.dataset.viewerState = 'visible';
+      }else{
+        viewer.dataset.viewerState = 'hidden';
+        viewer.hidden = true;
+      }
     }
 
     const TABLE_WIDTH_TOLERANCE = 1;
@@ -2076,19 +2077,19 @@
       };
       const open = (url) => {
         if(!url){
-          setViewerPlaceholder('No document link on this row.');
+          setViewerPlaceholder('No document link on this row.', { reveal:true });
           return;
         }
         const raw = typeof url === 'string' ? url.trim() : '';
         const sanitized = sanitizeSheetUrl(raw);
         const safeUrl = sanitized || (raw.startsWith('data:') || raw.startsWith('about:') ? raw : '');
         if(!safeUrl){
-          setViewerPlaceholder('No document link on this row.');
+          setViewerPlaceholder('No document link on this row.', { reveal:true });
           return;
         }
         const offline = !ALLOW_NETWORK && !safeUrl.startsWith('data:') && !safeUrl.startsWith('about:');
         if(offline){
-          setViewerPlaceholder('Document preview disabled offline.');
+          setViewerPlaceholder('Document preview disabled offline.', { reveal:true });
           return;
         }
         viewer.innerHTML = '';
@@ -2097,6 +2098,8 @@
         frame.loading = 'lazy';
         frame.title = 'Inspection document preview';
         viewer.appendChild(frame);
+        viewer.hidden = false;
+        viewer.dataset.viewerState = 'visible';
       };
       const selectRow = (tr) => {
         if(!tr) return;
