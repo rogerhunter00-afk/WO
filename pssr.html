@@ -281,7 +281,7 @@
     .site-filter {
       display:flex;
       align-items:center;
-      gap:8px;
+      gap:4px;
       flex-wrap:wrap;
     }
 
@@ -298,12 +298,12 @@
 
     .site-filter__tabs {
       display:flex;
-      gap:6px;
+      gap:4px;
       flex-wrap:wrap;
     }
 
     .site-filter__tab {
-      padding:7px 12px;
+      padding:5px 10px;
       border-radius:999px;
       border:1px solid var(--grid);
       background:transparent;
@@ -730,9 +730,9 @@
       background:transparent;
       border:0;
       box-shadow:none;
-      padding:8px 0;
+      padding:4px 0;
       display:flex;
-      gap:10px;
+      gap:6px;
       flex-wrap:wrap;
       align-items:center;
     }
@@ -743,8 +743,8 @@
 
     .sticky-controls {
       display:flex;
-      gap:10px;
-      row-gap:8px;
+      gap:6px;
+      row-gap:4px;
       align-items:center;
       flex-wrap:wrap;
     }
@@ -799,27 +799,46 @@
     }
 
 
-    .controls-bar label {
+    .sort-control {
+      display:flex;
+      align-items:center;
+      gap:6px;
+      font-size:12px;
+    }
+
+    .sort-control__label {
       color:var(--muted);
       font-weight:600;
     }
 
-    .controls-bar select {
+    .sort-control__inputs {
+      display:flex;
+      align-items:center;
+      gap:4px;
+    }
+
+    .sort-control select,
+    .mobile-sort select {
       background:var(--input-bg);
       color:var(--input-fg);
       border:1px solid var(--input-bd);
       border-radius:10px;
-      padding:8px 10px;
+      padding:6px 10px;
       font:inherit;
       transition:border-color .18s ease,box-shadow .18s ease,background-color .18s ease;
-      flex:1 1 auto;
       min-width:0;
     }
 
-    .controls-bar select:focus {
+    .sort-control select:focus,
+    .mobile-sort select:focus {
       outline:0;
       border-color:var(--input-bd-focus);
-      box-shadow:0 0 0 3px color-mix(in oklab,var(--input-bd-focus) 30%,transparent);
+      box-shadow:0 0 0 2px color-mix(in oklab,var(--input-bd-focus) 28%,transparent);
+    }
+
+    .sort-control__direction {
+      --pad-x:10px;
+      --pad-y:5px;
     }
 
     .mobile-sort {
@@ -828,6 +847,11 @@
       gap:8px;
       font-size:12px;
       color:var(--ink);
+    }
+
+    .mobile-sort label {
+      color:var(--muted);
+      font-weight:600;
     }
 
     .btn {
@@ -1230,9 +1254,8 @@
       gap:12px;
     }
 
-    body[data-table-mode="mobile"] .refresh-btn {
-      width:100%;
-      justify-content:center;
+    body[data-table-mode="mobile"] .sort-control {
+      display:none;
     }
 
     body[data-table-mode="mobile"] .mobile-sort {
@@ -1450,7 +1473,6 @@
       .mobile-cards { display:flex; flex-direction:column; align-items:center; gap:10px; padding-bottom:24px; }
       .sticky-top__content { flex-direction:column; align-items:flex-start; }
       .sticky-controls { width:100%; flex-direction:column; align-items:stretch; gap:12px; }
-      .refresh-btn { width:100%; justify-content:center; }
       .mobile-sort { display:grid; width:100%; gap:8px; }
       .mobile-sort label { font-weight:600; }
       .mobile-sort select { width:100%; }
@@ -1507,7 +1529,6 @@
       </div>
       <section class="pssr-site-panel" aria-label="Site health overview">
         <h3 class="pssr-site-panel__title">Site health</h3>
-        <p class="pssr-site-panel__hint" data-role="pssr-site-hint">Top sites driving current PSSR risk across the portfolio.</p>
         <ul class="pssr-site-breakdown" data-role="pssr-site-breakdown">
           <li class="pssr-site-breakdown__item is-empty">Awaiting inspection data.</li>
         </ul>
@@ -1528,6 +1549,20 @@
               <button type="button" class="site-filter__tab" data-site-key="byron" aria-pressed="false">Byron</button>
               <button type="button" class="site-filter__tab" data-site-key="keith" aria-pressed="false">Keith</button>
               <button type="button" class="site-filter__tab" data-site-key="mugiemoss" aria-pressed="false">Mugiemoss</button>
+            </div>
+          </div>
+          <div class="sort-control" data-role="sort-control">
+            <label class="sort-control__label" for="desktop-sort-select">Sort by</label>
+            <div class="sort-control__inputs">
+              <select id="desktop-sort-select" data-role="sort-select" aria-label="Select column to sort">
+                <option value="Asset">Asset</option>
+                <option value="Location">Location</option>
+                <option value="Last Inspection Date">Last Inspection Date</option>
+                <option value="Next Inspection Date" selected>Next Inspection Date</option>
+                <option value="Countdown">Countdown</option>
+                <option value="Comments">Comments</option>
+              </select>
+              <button type="button" class="sort-control__direction btn btn--ghost btn--sm" data-role="sort-direction" data-direction="asc" aria-label="Toggle sort direction (currently ascending)">Ascending</button>
             </div>
           </div>
           <div class="mobile-sort" data-role="mobile-sort">
@@ -2013,19 +2048,22 @@
       });
     }
 
-    function updateMobileSortControls(container){
-      const select = container.__mobileSortSelect;
-      const dirBtn = container.__mobileSortDirectionBtn;
-      const state = container.__currentSort;
-      if(select && state){
-        select.value = state.column;
-      }
-      if(dirBtn){
-        const dir = state ? state.direction : 'asc';
-        dirBtn.dataset.direction = dir;
-        dirBtn.textContent = dir === 'asc' ? 'Ascending' : 'Descending';
-        dirBtn.setAttribute('aria-label', `Toggle sort direction (currently ${dirBtn.textContent.toLowerCase()})`);
-      }
+    function updateSortControls(container){
+      const state = container.__currentSort || { column:'Next Inspection Date', direction:'asc' };
+      const selects = Array.isArray(container.__sortSelects) ? container.__sortSelects : [];
+      selects.forEach(select => {
+        if(select){
+          select.value = state.column;
+        }
+      });
+      const buttons = Array.isArray(container.__sortDirectionButtons) ? container.__sortDirectionButtons : [];
+      buttons.forEach(button => {
+        if(!button) return;
+        const dir = state.direction === 'desc' ? 'desc' : 'asc';
+        button.dataset.direction = dir;
+        button.textContent = dir === 'asc' ? 'Ascending' : 'Descending';
+        button.setAttribute('aria-label', `Toggle sort direction (currently ${button.textContent.toLowerCase()})`);
+      });
     }
 
     function updateSiteFilterControls(container){
@@ -2715,7 +2753,7 @@
       const dir = direction === 'asc' ? 'asc' : 'desc';
       container.__currentSort = { column, direction: dir };
       syncDesktopSortIndicators(container, column, dir);
-      updateMobileSortControls(container);
+      updateSortControls(container);
       refreshView(container);
     }
 
@@ -2732,24 +2770,27 @@
       });
     }
 
-    function handleMobileSort(container){
-      const select = container.__mobileSortSelect;
-      const button = container.__mobileSortDirectionBtn;
-      if(select){
+    function attachSortControlHandlers(container){
+      const selects = Array.isArray(container.__sortSelects) ? container.__sortSelects : [];
+      selects.forEach(select => {
+        if(!select) return;
         select.addEventListener('change', () => {
           const column = select.value;
           const current = container.__currentSort;
           const direction = current && current.column === column ? current.direction : 'asc';
           setSort(container, column, direction);
         });
-      }
-      if(button){
+      });
+      const buttons = Array.isArray(container.__sortDirectionButtons) ? container.__sortDirectionButtons : [];
+      buttons.forEach(button => {
+        if(!button) return;
         button.addEventListener('click', () => {
-          const current = container.__currentSort || { column: select?.value || 'Next Inspection Date', direction:'asc' };
+          const fallbackColumn = container.__currentSort?.column || container.__sortSelects?.[0]?.value || 'Next Inspection Date';
+          const current = container.__currentSort || { column:fallbackColumn, direction:'asc' };
           const direction = current.direction === 'asc' ? 'desc' : 'asc';
-          setSort(container, current.column, direction);
+          setSort(container, current.column || fallbackColumn, direction);
         });
-      }
+      });
     }
 
     function updateStickyOffsets(){
@@ -2776,8 +2817,8 @@
       container.__tbody = container.querySelector('tbody');
       container.__scrollRegion = container.querySelector('[data-role="scroll-region"]');
       container.__mobileCards = document.querySelector('[data-role="mobile-cards"]');
-      container.__mobileSortSelect = document.querySelector('[data-role="mobile-sort-select"]');
-      container.__mobileSortDirectionBtn = document.querySelector('[data-role="mobile-sort-direction"]');
+      container.__sortSelects = Array.from(document.querySelectorAll('[data-role="sort-select"], [data-role="mobile-sort-select"]'));
+      container.__sortDirectionButtons = Array.from(document.querySelectorAll('[data-role="sort-direction"], [data-role="mobile-sort-direction"]'));
       container.__siteFilterNav = document.querySelector('[data-role="site-nav"]');
       container.__siteFilterActiveLabel = document.querySelector('[data-role="site-filter-active"]');
       container.__rows = [];
@@ -2790,11 +2831,10 @@
       wireViewer(container);
 
       attachSortHandlers(container);
-      handleMobileSort(container);
+      updateSortControls(container);
+      attachSortControlHandlers(container);
       updateSiteFilterControls(container);
       attachSiteFilterHandlers(container);
-
-      const refreshButton = document.querySelector('[data-action="refresh"]');
 
       async function loadData(){
         banner('', 'Fetching latest inspections…');
@@ -2835,8 +2875,6 @@
           container.__scrollRegion?.setAttribute('data-loading','false');
         }
       }
-
-      refreshButton?.addEventListener('click', () => loadData());
 
       loadData();
     });
