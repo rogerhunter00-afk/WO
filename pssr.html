@@ -2145,8 +2145,7 @@
         row?.__raw?.Location,
         row?.__raw?.Area,
         row?.__siteName,
-        row?.Location,
-        resolveSiteLabel(siteKey)
+        row?.Location
       ];
       return values.some(value => {
         if(!value) return false;
