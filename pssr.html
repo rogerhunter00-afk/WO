@@ -38,6 +38,7 @@
       --zebra:var(--paper);
       --sticky-controls-offset:0px;
       --table-min-width:720px;
+      --ui-offset:0px;
       color-scheme:light;
     }
 
@@ -79,7 +80,7 @@
       content:"";
       position:fixed;
       inset:0 0 auto 0;
-      height:var(--sticky-controls-offset);
+      height:var(--ui-offset, var(--sticky-controls-offset, 0px));
       background:var(--bg);
       pointer-events:none;
       z-index:180;
@@ -87,10 +88,10 @@
 
     .page {
       --page-pad-top:12px;
-      --page-pad-inline:clamp(20px,4vw,32px);
-      --page-pad-bottom:28px;
+      --page-pad-inline:clamp(20px,4vw,36px);
+      --page-pad-bottom:48px;
       padding:var(--page-pad-top) var(--page-pad-inline) var(--page-pad-bottom);
-      max-width:clamp(920px,94vw,1320px);
+      max-width:clamp(960px,96vw,1680px);
       margin-inline:auto;
       box-sizing:border-box;
     }
@@ -112,11 +113,12 @@
     .page-head {
       display:flex;
       align-items:center;
-      gap:16px;
       justify-content:space-between;
-      margin-bottom:8px;
+      padding-bottom:12px;
+      margin-bottom:0;
       position:relative;
       z-index:260;
+      gap:16px;
     }
 
     .page-head__title {
@@ -141,7 +143,7 @@
     }
 
     .logo {
-      height:38px;
+      height:50px;
       margin-left:auto;
       flex-shrink:0;
     }
@@ -235,6 +237,8 @@
       background:var(--als-blue);
       border-bottom:1px solid var(--als-blue-strong);
       margin:0;
+      position:relative;
+      z-index:320;
     }
 
     .pssr-overview {
@@ -364,7 +368,8 @@
       z-index:300;
       background:color-mix(in srgb,var(--bg) 20%,transparent);
       border-bottom:1px solid color-mix(in srgb,var(--border) 55%,transparent);
-      padding:8px 0;
+      padding:10px 0;
+      margin:0;
       backdrop-filter:blur(12px);
     }
 
@@ -918,6 +923,7 @@
     }
 
     @media (max-width:1248px) {
+      .page { --page-pad-top:16px; --page-pad-inline:clamp(16px,6vw,24px); --page-pad-bottom:40px; }
       .table-wrapper { display:none; }
       .mobile-cards { display:block; }
       .sticky-top__content { flex-direction:column; align-items:flex-start; }
