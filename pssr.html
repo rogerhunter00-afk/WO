@@ -768,26 +768,84 @@
       border-radius:14px;
       background:color-mix(in srgb,var(--paper) 96%,var(--als-blue) 1%);
       box-shadow:0 4px 10px rgba(15,23,42,0.05);
-      min-height:320px;
+      min-height:clamp(420px, 50vh, 640px);
       overflow:hidden;
       position:relative;
       display:flex;
       flex-direction:column;
     }
 
-    .document-viewer iframe {
+    .document-viewer__controls {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px 18px;
+      background:color-mix(in srgb,var(--paper) 94%,var(--als-blue) 4%);
+      border-bottom:1px solid color-mix(in srgb,var(--grid) 70%,transparent);
+    }
+
+    .document-viewer__title {
+      margin:0;
+      font-size:14px;
+      font-weight:600;
+      color:var(--ink);
+    }
+
+    .document-viewer__toggle {
+      appearance:none;
+      border:1px solid color-mix(in srgb,var(--btn-outline-bd) 80%,transparent);
+      background:var(--btn-ghost-bg);
+      color:var(--btn-ghost-fg);
+      border-radius:999px;
+      font-weight:600;
+      font-size:12px;
+      padding:6px 12px;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      cursor:pointer;
+      transition:background .18s ease,border-color .18s ease,color .18s ease;
+    }
+
+    .document-viewer__toggle:hover {
+      background:var(--btn-ghost-bg-hover);
+    }
+
+    .document-viewer__toggle:focus {
+      outline:0;
+      border-color:var(--btn-outline-bd);
+      box-shadow:0 0 0 3px color-mix(in oklab,var(--btn-outline-bd) 30%,transparent);
+    }
+
+    .document-viewer__body {
+      flex:1 1 auto;
+      display:flex;
+      flex-direction:column;
+      min-height:0;
+    }
+
+    .document-viewer__body iframe {
       border:0;
       flex:1 1 auto;
       width:100%;
-      min-height:320px;
+      min-height:inherit;
       background:var(--paper);
     }
 
-    .document-viewer .placeholder {
+    .document-viewer__body .placeholder {
       padding:18px;
       color:var(--muted);
       font-size:13px;
       line-height:1.5;
+    }
+
+    .document-viewer[data-viewer-collapsed="true"] {
+      min-height:auto;
+    }
+
+    .document-viewer[data-viewer-collapsed="true"] .document-viewer__controls {
+      border-bottom:0;
     }
 
     body[data-table-mode="mobile"] .document-viewer {
@@ -1571,8 +1629,14 @@
           </table>
         </div>
       </section>
-      <section class="document-viewer" id="viewer" aria-label="Inspection document preview" hidden>
-        <div class="placeholder">Select an inspection to preview documentation.</div>
+      <section class="document-viewer" id="viewer" aria-label="Inspection document preview" data-viewer-collapsed="false" hidden>
+        <div class="document-viewer__controls">
+          <h3 class="document-viewer__title">Inspection document preview</h3>
+          <button type="button" class="document-viewer__toggle" data-role="viewer-toggle" aria-expanded="true" aria-controls="viewer-body" aria-label="Collapse inspection document preview">Collapse preview</button>
+        </div>
+        <div class="document-viewer__body" id="viewer-body" data-role="viewer-content">
+          <div class="placeholder">Select an inspection to preview documentation.</div>
+        </div>
       </section>
     </div>
     <section class="mobile-cards" data-role="mobile-cards" aria-live="polite" role="list"></section>
@@ -1775,17 +1839,59 @@
       if(detailNode) detailNode.textContent = '';
     }
 
-    function setViewerPlaceholder(message, { reveal = false } = {}){
+    function getViewerElements(){
       const viewer = document.querySelector('#viewer');
-      if(!viewer) return;
-      viewer.innerHTML = '';
+      if(!viewer) return { viewer:null, body:null, toggle:null };
+      const body = viewer.querySelector('[data-role="viewer-content"]') || viewer;
+      const toggle = viewer.querySelector('[data-role="viewer-toggle"]');
+      return { viewer, body, toggle };
+    }
+
+    function setViewerCollapsed(collapsed, { respectPreference = true } = {}){
+      const { viewer, body, toggle } = getViewerElements();
+      if(!viewer || !body) return;
+      let next = !!collapsed;
+      if(respectPreference){
+        const pref = viewer.dataset.viewerCollapsedPreference;
+        if(pref === 'true') next = true;
+        if(pref === 'false') next = false;
+      }
+      viewer.dataset.viewerCollapsed = next ? 'true' : 'false';
+      if(toggle){
+        const expanded = next ? 'false' : 'true';
+        toggle.setAttribute('aria-expanded', expanded);
+        toggle.setAttribute('aria-label', next ? 'Expand inspection document preview' : 'Collapse inspection document preview');
+        toggle.textContent = next ? 'Expand preview' : 'Collapse preview';
+      }
+      body.hidden = next;
+    }
+
+    function initViewerToggle(){
+      const { viewer, toggle } = getViewerElements();
+      if(!viewer || !toggle) return;
+      if(!viewer.dataset.viewerCollapsedPreference){
+        viewer.dataset.viewerCollapsedPreference = 'false';
+      }
+      toggle.addEventListener('click', () => {
+        const current = viewer.dataset.viewerCollapsed === 'true';
+        const next = !current;
+        viewer.dataset.viewerCollapsedPreference = next ? 'true' : 'false';
+        setViewerCollapsed(next, { respectPreference:false });
+      });
+    }
+
+    function setViewerPlaceholder(message, { reveal = false } = {}){
+      const { viewer, body } = getViewerElements();
+      if(!viewer || !body) return;
+      body.innerHTML = '';
       const div = document.createElement('div');
       div.className = 'placeholder';
       div.textContent = message;
-      viewer.appendChild(div);
+      body.appendChild(div);
       if(reveal){
         viewer.hidden = false;
         viewer.dataset.viewerState = 'visible';
+        setViewerCollapsed(false);
       }else{
         viewer.dataset.viewerState = 'hidden';
         viewer.hidden = true;
@@ -2391,8 +2497,8 @@
     }
 
     function wireViewer(container){
-      const viewer = document.querySelector('#viewer');
-      if(!viewer || !container?.__tbody) return;
+      const { viewer, body } = getViewerElements();
+      if(!viewer || !body || !container?.__tbody) return;
       const tbody = container.__tbody;
       const highlight = (tr) => {
         if(!tbody) return;
@@ -2415,14 +2521,15 @@
           setViewerPlaceholder('Document preview disabled offline.', { reveal:true });
           return;
         }
-        viewer.innerHTML = '';
+        body.innerHTML = '';
         const frame = document.createElement('iframe');
         frame.src = safeUrl;
         frame.loading = 'lazy';
         frame.title = 'Inspection document preview';
-        viewer.appendChild(frame);
+        body.appendChild(frame);
         viewer.hidden = false;
         viewer.dataset.viewerState = 'visible';
+        setViewerCollapsed(false);
       };
       const selectRow = (tr) => {
         if(!tr) return;
@@ -2770,6 +2877,9 @@
       updateStickyOffsets();
       updateResponsiveMode(container);
       window.addEventListener('resize', () => window.requestAnimationFrame(handleResize));
+
+      initViewerToggle();
+      setViewerCollapsed(false, { respectPreference:false });
 
       if(!container) return;
       container.__thead = container.querySelector('thead');
