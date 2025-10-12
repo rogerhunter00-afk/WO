@@ -580,91 +580,6 @@
       color:color-mix(in srgb,currentColor 78%,var(--muted));
     }
 
-    .pssr-metrics {
-      margin:0;
-      display:flex;
-      gap:8px;
-      overflow-x:auto;
-      padding-bottom:4px;
-      scrollbar-width:thin;
-      scrollbar-color:color-mix(in srgb,var(--als-blue) 45%,transparent) color-mix(in srgb,var(--als-blue) 10%,transparent);
-    }
-
-    .pssr-metrics__item {
-      padding:10px 12px;
-      border-radius:10px;
-      border:1px solid color-mix(in srgb,var(--als-blue) 12%,var(--grid));
-      background:color-mix(in srgb,var(--paper) 96%,var(--als-blue) 1%);
-      box-shadow:0 3px 9px rgba(15,23,42,0.06);
-      display:flex;
-      flex-direction:column;
-      gap:4px;
-      min-height:82px;
-      transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease;
-      flex:1 0 140px;
-    }
-
-    .pssr-metrics::-webkit-scrollbar {
-      height:6px;
-    }
-
-    .pssr-metrics::-webkit-scrollbar-track {
-      background:color-mix(in srgb,var(--als-blue) 10%,transparent);
-      border-radius:999px;
-    }
-
-    .pssr-metrics::-webkit-scrollbar-thumb {
-      background:color-mix(in srgb,var(--als-blue) 45%,transparent);
-      border-radius:999px;
-    }
-
-    .pssr-metrics__item:hover,
-    .pssr-metrics__item:focus-within {
-      transform:translateY(-1px);
-      box-shadow:0 8px 16px rgba(15,23,42,0.08);
-    }
-
-    .pssr-metrics__item.is-alert {
-      border-color:color-mix(in srgb,#dc2626 45%,transparent);
-      box-shadow:0 12px 24px rgba(220,38,38,0.18);
-    }
-
-    .pssr-metrics__item.is-warning {
-      border-color:color-mix(in srgb,#b45309 45%,transparent);
-      box-shadow:0 12px 24px rgba(180,83,9,0.18);
-    }
-
-    .pssr-metrics__label {
-      margin:0;
-      font-size:11px;
-      text-transform:uppercase;
-      letter-spacing:0.08em;
-      color:color-mix(in srgb,var(--muted) 82%,var(--ink));
-    }
-
-    .pssr-metrics__value {
-      font-size:20px;
-      font-weight:800;
-      line-height:1.1;
-    }
-
-    .pssr-metrics__note {
-      margin:0;
-      color:var(--muted);
-      font-size:11px;
-      line-height:1.4;
-    }
-
-    @media (prefers-reduced-motion: reduce){
-      .pssr-metrics__item,
-      .pssr-metrics__item:hover,
-      .pssr-metrics__item:focus-within {
-        transition:none;
-        transform:none;
-        box-shadow:0 6px 14px rgba(15,23,42,0.06);
-      }
-    }
-
     @media (min-width: 960px){
       .pssr-overview {
         grid-template-columns:minmax(0,1.35fr) minmax(0,1.05fr);
@@ -1401,28 +1316,6 @@
         </div>
       </div>
       <div class="pssr-overview__insights">
-        <dl class="pssr-metrics" data-role="pssr-metrics">
-          <div class="pssr-metrics__item" data-metric="total">
-            <dt class="pssr-metrics__label">Total inspections</dt>
-            <dd class="pssr-metrics__value" data-metric-value>—</dd>
-            <dd class="pssr-metrics__note" data-metric-note>Awaiting data</dd>
-          </div>
-          <div class="pssr-metrics__item" data-metric="due-soon">
-            <dt class="pssr-metrics__label">Due soon</dt>
-            <dd class="pssr-metrics__value" data-metric-value>—</dd>
-            <dd class="pssr-metrics__note" data-metric-note>Due within 60 days</dd>
-          </div>
-          <div class="pssr-metrics__item" data-metric="overdue">
-            <dt class="pssr-metrics__label">Overdue</dt>
-            <dd class="pssr-metrics__value" data-metric-value>—</dd>
-            <dd class="pssr-metrics__note" data-metric-note>Requires immediate action</dd>
-          </div>
-          <div class="pssr-metrics__item" data-metric="next">
-            <dt class="pssr-metrics__label">Next scheduled</dt>
-            <dd class="pssr-metrics__value" data-metric-value>—</dd>
-            <dd class="pssr-metrics__note" data-metric-note>Awaiting schedule</dd>
-          </div>
-        </dl>
         <section class="pssr-risk-panel" aria-label="Risk snapshot" data-role="pssr-risk">
           <h3 class="pssr-risk-panel__title">Risk snapshot</h3>
           <p class="pssr-risk-panel__message" data-role="pssr-risk-message">Awaiting inspection data.</p>
@@ -2230,7 +2123,6 @@
     }
 
     function updateSummaryMetrics(rows, context={}){
-      const metricsRoot = document.querySelector('[data-role="pssr-metrics"]');
       const signalRoot = document.querySelector('[data-role="pssr-signal"]');
       const signalValueNode = document.querySelector('[data-role="pssr-signal-value"]');
       const signalNoteNode = document.querySelector('[data-role="pssr-signal-note"]');
@@ -2249,8 +2141,6 @@
       const siteListRoot = document.querySelector('[data-role="pssr-site-breakdown"]');
       const siteHintNode = document.querySelector('[data-role="pssr-site-hint"]');
 
-      if(!metricsRoot && !signalRoot && !riskPanel && !siteListRoot) return;
-
       const list = Array.isArray(rows) ? rows : [];
       const total = list.length;
       const dueSoonThreshold = DUE_SOON_THRESHOLD_DAYS;
@@ -2260,74 +2150,10 @@
       const dueSoonRows = list.filter(row => typeof row?.__countdownDays === 'number' && row.__countdownDays >= 0 && row.__countdownDays <= dueSoonThreshold);
       const overdueRows = list.filter(row => row?.__overdue);
       const compliantCount = Math.max(total - overdueRows.length - dueSoonRows.length, 0);
-      const upcomingRows = list
-        .filter(row => typeof row?.__countdownDays === 'number')
-        .sort((a,b) => a.__countdownDays - b.__countdownDays);
-      const nextDue = upcomingRows.length ? upcomingRows[0] : null;
 
       const riskState = total === 0
         ? 'empty'
         : (overdueRows.length > 0 ? 'critical' : (dueSoonRows.length > 0 ? 'warning' : 'stable'));
-
-      const setMetric = (key, value, note, state=null) => {
-        if(!metricsRoot) return;
-        const item = metricsRoot.querySelector(`[data-metric="${key}"]`);
-        if(!item) return;
-        const valueNode = item.querySelector('[data-metric-value]');
-        const noteNode = item.querySelector('[data-metric-note]');
-        if(valueNode){
-          valueNode.textContent = value;
-        }
-        if(noteNode){
-          noteNode.textContent = note;
-        }
-        item.classList.remove('is-alert','is-warning');
-        if(state === 'alert'){
-          item.classList.add('is-alert');
-        }else if(state === 'warning'){
-          item.classList.add('is-warning');
-        }
-      };
-
-      setMetric(
-        'total',
-        total.toString(),
-        total === 0
-          ? (isFiltered && overallCount > 0 ? 'No inspections for this site' : 'Awaiting published data')
-          : total === 1
-            ? 'Asset currently on the schedule'
-            : 'Assets currently on the schedule'
-      );
-
-      setMetric(
-        'due-soon',
-        dueSoonRows.length.toString(),
-        dueSoonRows.length ? `Due within ${dueSoonThreshold} days` : `All inspections beyond ${dueSoonThreshold} days`,
-        dueSoonRows.length ? 'warning' : null
-      );
-
-      setMetric(
-        'overdue',
-        overdueRows.length.toString(),
-        overdueRows.length ? 'Requires immediate action' : 'All inspections in compliance',
-        overdueRows.length ? 'alert' : null
-      );
-
-      if(nextDue){
-        const nextDate = nextDue['Next Inspection Date'];
-        const hasKnownDate = nextDate && nextDate !== '—';
-        const headline = hasKnownDate ? nextDate : nextDue.Countdown;
-        const pieces = [nextDue.Asset, nextDue.Location].map(v => String(v ?? '').trim()).filter(v => v && v !== '—');
-        const note = pieces.length ? pieces.join(' • ') : 'Scheduled item';
-        const state = nextDue.__overdue ? 'alert' : (typeof nextDue.__countdownDays === 'number' && nextDue.__countdownDays <= dueSoonThreshold ? 'warning' : null);
-        setMetric('next', headline, note, state);
-      }else if(list.length){
-        setMetric('next', '—', 'No inspections with a scheduled date');
-      }else if(isFiltered && overallCount > 0){
-        setMetric('next', '—', 'No inspections scheduled for this site');
-      }else{
-        setMetric('next', '—', 'Awaiting schedule');
-      }
 
       if(signalRoot){
         let signalValue = '—';
