@@ -1626,6 +1626,7 @@ function renderRowsScoped(tbodyEl, headers, rows, container){
   if (!tbodyEl) return;
 
   if (!mobile){
+    // DESKTOP: render table rows
     tbodyEl.innerHTML = safeRows.map(row => {
       const rowCls = hasPriorityCategory(row) ? 'row-priority' : '';
       return `<tr class="${rowCls}">` + headers.map(h => {
@@ -1647,7 +1648,7 @@ function renderRowsScoped(tbodyEl, headers, rows, container){
           const pwp     = categoryColors['planned-winter-project'] || { background:'#E7F3FE', foreground:'#1887FC' };
           const style   = frozen ? ` style="--bg:${pwp.background}; --ring: color-mix(in srgb, ${pwp.foreground} 50%, transparent); color:${pwp.foreground}"` : '';
           const cls     = `age-chip age-${bucket}` + (frozen ? ' frozen' : '');
-const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
+          const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
           const aria    = frozen ? ' aria-label="Planned for Winter"' : '';
           return `<td data-col="Age"><span class="${cls}"${style} title="${esc(title)}"${aria}>${label}</span></td>`;
         }
@@ -1656,18 +1657,19 @@ const title   = frozen ? `Planned for Winter • ${baseT}` : baseT;
     }).join('\n');
 
     const hasRows = safeRows.length > 0;
-    container?.__tableWrap && (container.__tableWrap.hidden = mobile || !hasRows);
-    container?.__mobileSortWrap && (container.__mobileSortWrap.hidden = !mobile || !hasRows);
+    container?.__tableWrap && (container.__tableWrap.hidden = !hasRows);
+    container?.__mobileSortWrap && (container.__mobileSortWrap.hidden = true);
     container?.__mobileCards && (container.__mobileCards.hidden = true);
     container?.__emptyState && (container.__emptyState.hidden = hasRows);
     updateTheadHeight();
     return;
   }
 
+  // MOBILE: render cards
   tbodyEl.innerHTML = '';
   if (container?.__mobileCards){
-    container.__mobileCards.innerHTML = (Array.isArray(rows) ? rows : []).map(cardHTML).join('');
-    const hasRows = (rows?.length ?? 0) > 0;
+    container.__mobileCards.innerHTML = safeRows.map(cardHTML).join('');
+    const hasRows = safeRows.length > 0;
     container.__tableWrap && (container.__tableWrap.hidden = true);
     container.__mobileSortWrap && (container.__mobileSortWrap.hidden = !hasRows);
     container.__mobileCards.hidden = !hasRows;
