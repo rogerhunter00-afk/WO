@@ -1577,6 +1577,17 @@
       if(detailNode) detailNode.textContent = detail ? ' – ' + detail : '';
     }
 
+    function hideBanner(){
+      const el = document.querySelector('#banner');
+      if(!el) return;
+      el.hidden = true;
+      el.className = 'banner';
+      const msgNode = el.querySelector('[data-msg]');
+      const detailNode = el.querySelector('[data-detail]');
+      if(msgNode) msgNode.textContent = '';
+      if(detailNode) detailNode.textContent = '';
+    }
+
     function setViewerPlaceholder(message, { reveal = false } = {}){
       const viewer = document.querySelector('#viewer');
       if(!viewer) return;
@@ -2617,7 +2628,11 @@
           container.__rows = mapped;
           syncSiteFilterAvailability(container);
           setSort(container, container.__currentSort.column, container.__currentSort.direction);
-          banner('ok', 'Live data loaded', hasRows ? 'online mode' : 'sheet returned no rows – showing sample data');
+          if(hasRows){
+            hideBanner();
+          }else{
+            banner('warn', 'Showing sample data', 'sheet returned no rows');
+          }
         } catch (error) {
           console.warn('Falling back to SAMPLE. Reason:', error?.message || error);
           const message = (error && typeof error.message === 'string' && error.message.trim()) ? error.message.trim() : DEFAULT_ERROR_MESSAGE;
