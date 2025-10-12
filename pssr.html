@@ -1685,12 +1685,12 @@
           </table>
         </div>
       </section>
-      <section class="document-viewer" id="viewer" aria-label="Inspection document preview" data-viewer-collapsed="false" hidden>
+      <section class="document-viewer" id="viewer" aria-label="Inspection document preview" data-viewer-collapsed="true" hidden>
         <div class="document-viewer__controls">
           <h3 class="document-viewer__title">Inspection document preview</h3>
-          <button type="button" class="document-viewer__toggle" data-role="viewer-toggle" aria-expanded="true" aria-controls="viewer-body" aria-label="Collapse inspection document preview">Collapse preview</button>
+          <button type="button" class="document-viewer__toggle" data-role="viewer-toggle" aria-expanded="false" aria-controls="viewer-body" aria-label="Expand inspection document preview">Expand preview</button>
         </div>
-        <div class="document-viewer__body" id="viewer-body" data-role="viewer-content">
+        <div class="document-viewer__body" id="viewer-body" data-role="viewer-content" hidden>
           <div class="placeholder">Select an inspection to preview documentation.</div>
         </div>
       </section>
@@ -1940,7 +1940,7 @@
       const { viewer, toggle } = getViewerElements();
       if(!viewer || !toggle) return;
       if(!viewer.dataset.viewerCollapsedPreference){
-        viewer.dataset.viewerCollapsedPreference = 'false';
+        viewer.dataset.viewerCollapsedPreference = 'true';
       }
       toggle.addEventListener('click', () => {
         const current = viewer.dataset.viewerCollapsed === 'true';
@@ -2149,28 +2149,46 @@
       return applySort(Array.isArray(rows) ? rows.slice() : [], column, direction);
     }
 
+    const SITE_SEPARATOR_PATTERN = /[\s/_\u2010-\u2015-]+/g;
+
+    function normalizeSiteBase(value){
+      if(!value) return '';
+      return String(value).toLowerCase().replace(/[\u2010-\u2015]/g, '-').trim();
+    }
+
+    function createSiteVariants(value){
+      const base = normalizeSiteBase(value);
+      if(!base){
+        return { base:'', hyphenated:'', collapsed:'' };
+      }
+      const hyphenated = base
+        .replace(SITE_SEPARATOR_PATTERN, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+      const collapsed = base.replace(SITE_SEPARATOR_PATTERN, '');
+      return { base, hyphenated, collapsed };
+    }
+
     function matchesSite(row, siteKey){
       if(!row || !siteKey || siteKey === 'all') return true;
-      const target = normalizeSiteKey(siteKey);
-      if(!target || target === 'all') return true;
-      if(row?.__siteKey && normalizeSiteKey(row.__siteKey) === target){
-        return true;
-      }
+      const target = createSiteVariants(siteKey);
+      if(!target.base && !target.hyphenated && !target.collapsed) return true;
       const values = [
         row?.__raw?.Site,
         row?.__raw?.Location,
         row?.__raw?.Area,
         row?.__siteName,
-        row?.Location
+        row?.Location,
+        resolveSiteLabel(siteKey)
       ];
       const targetSpaced = target.replace(/-/g,' ');
       return values.some(value => {
         if(!value) return false;
-        const normalizedValue = normalizeSiteKey(value);
-        if(normalizedValue && normalizedValue === target) return true;
-        const plain = String(value).toLowerCase();
-        if(targetSpaced && plain.includes(targetSpaced)) return true;
-        return plain.includes(target);
+        const variants = createSiteVariants(value);
+        if(target.base && variants.base.includes(target.base)) return true;
+        if(target.hyphenated && variants.hyphenated.includes(target.hyphenated)) return true;
+        if(target.collapsed && variants.collapsed.includes(target.collapsed)) return true;
+        return false;
       });
     }
 
@@ -3092,7 +3110,7 @@
       window.addEventListener('resize', () => window.requestAnimationFrame(handleResize));
 
       initViewerToggle();
-      setViewerCollapsed(false, { respectPreference:false });
+      setViewerCollapsed(true, { respectPreference:false });
 
       if(!container) return;
       container.__thead = container.querySelector('thead');

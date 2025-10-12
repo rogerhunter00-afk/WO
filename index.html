@@ -1228,6 +1228,8 @@ tbody td{padding:8px 6px;box-sizing:border-box}
     transform-origin:top center;
     animation:lightSway 2.8s ease-in-out infinite;
     animation-delay:var(--twinkle-delay,0s);
+    will-change:transform;
+    contain:layout paint;
   }
   #christmasLights .light-bulb::before{
     content:"";
@@ -1238,14 +1240,13 @@ tbody td{padding:8px 6px;box-sizing:border-box}
     background:radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--bulb-color,#f87171) 92%, #fff) 0%, color-mix(in srgb, var(--bulb-color,#f87171) 88%, transparent) 46%, color-mix(in srgb, var(--bulb-color,#f87171) 48%, transparent) 100%);
     border-radius:50% 50% 55% 55%;
     box-shadow:
-      0 0 18px color-mix(in srgb,var(--bulb-color,#f87171) 70%,transparent),
-      0 0 42px color-mix(in srgb,var(--bulb-color,#f87171) 55%,transparent),
-      0 0 78px color-mix(in srgb,var(--bulb-color,#f87171) 45%,transparent),
-      0 0 120px color-mix(in srgb,var(--bulb-color,#f87171) 38%,transparent);
-    filter:drop-shadow(0 0 12px color-mix(in srgb,var(--bulb-color,#f87171) 78%,transparent)) drop-shadow(0 0 34px color-mix(in srgb,var(--bulb-color,#f87171) 58%,transparent));
+      0 0 26px color-mix(in srgb,var(--bulb-color,#f87171) 75%,transparent),
+      0 0 84px color-mix(in srgb,var(--bulb-color,#f87171) 52%,transparent);
     mix-blend-mode:screen;
-    animation:lightTwinkle 1.9s ease-in-out infinite;
+    animation:lightPulse 2.6s ease-in-out infinite;
     animation-delay:var(--twinkle-delay,0s);
+    transform-origin:50% 38%;
+    will-change:opacity,transform;
   }
   #christmasLights .light-bulb::after{
     content:"";
@@ -1267,24 +1268,14 @@ tbody td{padding:8px 6px;box-sizing:border-box}
     50%{transform:rotate(4deg);}
     100%{transform:rotate(-4deg);}
   }
-  @keyframes lightTwinkle{
+  @keyframes lightPulse{
     0%,100%{
-      opacity:.9;
-      box-shadow:
-        0 0 20px color-mix(in srgb,var(--bulb-color,#f87171) 68%,transparent),
-        0 0 46px color-mix(in srgb,var(--bulb-color,#f87171) 52%,transparent),
-        0 0 86px color-mix(in srgb,var(--bulb-color,#f87171) 42%,transparent),
-        0 0 130px color-mix(in srgb,var(--bulb-color,#f87171) 34%,transparent);
-      filter:drop-shadow(0 0 14px color-mix(in srgb,var(--bulb-color,#f87171) 80%,transparent)) drop-shadow(0 0 38px color-mix(in srgb,var(--bulb-color,#f87171) 60%,transparent));
+      opacity:.85;
+      transform:scale(.96);
     }
     50%{
       opacity:1;
-      box-shadow:
-        0 0 28px color-mix(in srgb,var(--bulb-color,#f87171) 82%,transparent),
-        0 0 62px color-mix(in srgb,var(--bulb-color,#f87171) 62%,transparent),
-        0 0 120px color-mix(in srgb,var(--bulb-color,#f87171) 50%,transparent),
-        0 0 170px color-mix(in srgb,var(--bulb-color,#f87171) 42%,transparent);
-      filter:drop-shadow(0 0 18px color-mix(in srgb,var(--bulb-color,#f87171) 86%,transparent)) drop-shadow(0 0 52px color-mix(in srgb,var(--bulb-color,#f87171) 65%,transparent));
+      transform:scale(1.02);
     }
   }
   @media (prefers-reduced-motion: reduce){
