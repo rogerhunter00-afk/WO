@@ -281,7 +281,7 @@
     .site-filter {
       display:flex;
       align-items:center;
-      gap:8px;
+      gap:6px;
       flex-wrap:wrap;
     }
 
@@ -303,7 +303,7 @@
     }
 
     .site-filter__tab {
-      padding:7px 12px;
+      padding:6px 11px;
       border-radius:999px;
       border:1px solid var(--grid);
       background:transparent;
@@ -730,9 +730,9 @@
       background:transparent;
       border:0;
       box-shadow:none;
-      padding:8px 0;
+      padding:6px 0;
       display:flex;
-      gap:10px;
+      gap:8px;
       flex-wrap:wrap;
       align-items:center;
     }
@@ -743,8 +743,8 @@
 
     .sticky-controls {
       display:flex;
-      gap:10px;
-      row-gap:8px;
+      gap:8px;
+      row-gap:6px;
       align-items:center;
       flex-wrap:wrap;
     }
@@ -1230,11 +1230,6 @@
       gap:12px;
     }
 
-    body[data-table-mode="mobile"] .refresh-btn {
-      width:100%;
-      justify-content:center;
-    }
-
     body[data-table-mode="mobile"] .mobile-sort {
       display:grid;
       width:100%;
@@ -1450,7 +1445,6 @@
       .mobile-cards { display:flex; flex-direction:column; align-items:center; gap:10px; padding-bottom:24px; }
       .sticky-top__content { flex-direction:column; align-items:flex-start; }
       .sticky-controls { width:100%; flex-direction:column; align-items:stretch; gap:12px; }
-      .refresh-btn { width:100%; justify-content:center; }
       .mobile-sort { display:grid; width:100%; gap:8px; }
       .mobile-sort label { font-weight:600; }
       .mobile-sort select { width:100%; }
@@ -2794,8 +2788,6 @@
       updateSiteFilterControls(container);
       attachSiteFilterHandlers(container);
 
-      const refreshButton = document.querySelector('[data-action="refresh"]');
-
       async function loadData(){
         banner('', 'Fetching latest inspections…');
         container.__scrollRegion?.setAttribute('data-loading','true');
@@ -2835,8 +2827,6 @@
           container.__scrollRegion?.setAttribute('data-loading','false');
         }
       }
-
-      refreshButton?.addEventListener('click', () => loadData());
 
       loadData();
     });
