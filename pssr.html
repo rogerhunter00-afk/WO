@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light" />
   <title>PSSR Inspection Tracker – ALS Engineering Dashboard</title>
   <style>
     :root {
@@ -44,6 +45,15 @@
       --sticky-controls-offset:0px;
       --table-min-width:720px;
       --ui-offset:0px;
+      --ctrl-bg:#ffffff;
+      --ctrl-fg:#0b0f1a;
+      --ctrl-muted:#6b7280;
+      --ctrl-ring:#3b82f6;
+      --ctrl-pill:#f3f6fb;
+      --ctrl-pill-border:#dfe6ef;
+      --ctrl-shadow:0 1px 2px rgba(0,0,0,.05);
+      --ctrl-hover:rgba(11,103,194,.08);
+      --ctrl-on:#0b67c2;
       color-scheme:light;
     }
 
@@ -73,7 +83,88 @@
         --thead:#1e3a8a;
         --grid:#233150;
         --zebra:#1c2438;
+        --ctrl-bg:#0d1117;
+        --ctrl-fg:#e8edf5;
+        --ctrl-muted:#9aa7b7;
+        --ctrl-ring:#60a5fa;
+        --ctrl-pill:#111827;
+        --ctrl-pill-border:#1f2937;
+        --ctrl-shadow:0 1px 0 rgba(255,255,255,.06) inset;
+        --ctrl-hover:rgba(96,165,250,.15);
+        --ctrl-on:#60a5fa;
       }
+    }
+
+    .dark {
+      color-scheme:dark;
+      --bg:#0f1422;
+      --paper:#131a2b;
+      --ink:#f3f4f6;
+      --muted:#9ca3af;
+      --border:#233150;
+      --brand:#3b82f6;
+      --brand-strong:#2563eb;
+      --btn-outline-bd:#2b3a63;
+      --btn-ghost-bg-hover:rgba(11,103,194,.18);
+      --input-bg:#0f1422;
+      --input-fg:#f3f4f6;
+      --input-bd:#233150;
+      --input-bd-focus:#3b82f6;
+      --als-blue:var(--brand);
+      --als-blue-strong:var(--brand-strong);
+      --risk-critical:#f87171;
+      --risk-warning:#fbbf24;
+      --risk-ok:#34d399;
+      --surface-subtle:color-mix(in srgb,var(--als-blue) 14%,var(--paper));
+      --surface-strong:color-mix(in srgb,var(--als-blue) 20%,var(--paper));
+      --thead:#1e3a8a;
+      --grid:#233150;
+      --zebra:#1c2438;
+      --ctrl-bg:#0d1117;
+      --ctrl-fg:#e8edf5;
+      --ctrl-muted:#9aa7b7;
+      --ctrl-ring:#60a5fa;
+      --ctrl-pill:#111827;
+      --ctrl-pill-border:#1f2937;
+      --ctrl-shadow:0 1px 0 rgba(255,255,255,.06) inset;
+      --ctrl-hover:rgba(96,165,250,.15);
+      --ctrl-on:#60a5fa;
+    }
+
+    .light {
+      color-scheme:light;
+      --bg:#f3f5f9;
+      --paper:#ffffff;
+      --ink:#0b0f1a;
+      --muted:#6b7280;
+      --border:#e5e9f2;
+      --brand:#0b67c2;
+      --brand-strong:#0a5cb0;
+      --btn-outline-bd:#bcd7f4;
+      --btn-ghost-bg-hover:rgba(11,103,194,.10);
+      --input-bg:#ffffff;
+      --input-fg:var(--ink);
+      --input-bd:var(--border);
+      --input-bd-focus:var(--brand);
+      --als-blue:var(--brand);
+      --als-blue-strong:var(--brand-strong);
+      --risk-critical:#dc2626;
+      --risk-warning:#b45309;
+      --risk-ok:#059669;
+      --surface-subtle:color-mix(in srgb,var(--als-blue) 4%,var(--paper));
+      --surface-strong:color-mix(in srgb,var(--als-blue) 9%,var(--paper));
+      --thead:var(--brand);
+      --grid:var(--border);
+      --zebra:var(--paper);
+      --ctrl-bg:#ffffff;
+      --ctrl-fg:#0b0f1a;
+      --ctrl-muted:#6b7280;
+      --ctrl-ring:#3b82f6;
+      --ctrl-pill:#f3f6fb;
+      --ctrl-pill-border:#dfe6ef;
+      --ctrl-shadow:0 1px 2px rgba(0,0,0,.05);
+      --ctrl-hover:rgba(11,103,194,.08);
+      --ctrl-on:#0b67c2;
     }
 
     body {
@@ -795,6 +886,87 @@
       font-size:12px;
     }
 
+    .ctrl-pill {
+      display:inline-flex;
+      align-items:center;
+      gap:.5rem;
+      height:36px;
+      padding:0 .75rem;
+      border-radius:9999px;
+      border:1px solid var(--ctrl-pill-border);
+      background:var(--ctrl-pill);
+      color:var(--ctrl-fg);
+      box-shadow:var(--ctrl-shadow);
+      font:inherit;
+      font-weight:600;
+      letter-spacing:.1px;
+      cursor:pointer;
+      user-select:none;
+      transition:background .2s ease,border-color .2s ease,color .2s ease,transform .06s ease;
+    }
+
+    .ctrl-pill:hover {
+      background:var(--ctrl-hover);
+    }
+
+    .ctrl-pill:active {
+      transform:translateY(1px);
+    }
+
+    .ctrl-pill:focus-visible {
+      outline:2px solid var(--ctrl-ring);
+      outline-offset:2px;
+    }
+
+    .ctrl-pill:disabled {
+      opacity:.6;
+      cursor:not-allowed;
+      box-shadow:none;
+    }
+
+    .switch-wrap {
+      display:inline-flex;
+      align-items:center;
+      gap:.5rem;
+    }
+
+    .switch {
+      position:relative;
+      width:56px;
+      height:28px;
+      border-radius:9999px;
+      background:color-mix(in oklab,var(--ctrl-fg) 12%,transparent);
+      border:1px solid var(--ctrl-pill-border);
+      transition:background .2s ease,border-color .2s ease;
+    }
+
+    .switch__thumb {
+      position:absolute;
+      top:3px;
+      left:3px;
+      width:22px;
+      height:22px;
+      border-radius:50%;
+      background:var(--ctrl-bg);
+      box-shadow:var(--ctrl-shadow);
+      transition:left .2s ease,background .2s ease;
+    }
+
+    [role="switch"][aria-checked="true"] .switch {
+      background:color-mix(in oklab,var(--ctrl-on) 40%,transparent);
+      border-color:color-mix(in oklab,var(--ctrl-on) 55%,var(--ctrl-pill-border));
+    }
+
+    [role="switch"][aria-checked="true"] .switch__thumb {
+      left:31px;
+      background:var(--ctrl-bg);
+    }
+
+    .switch-label {
+      color:var(--ctrl-fg);
+      font-weight:600;
+    }
+
     .refresh-btn {
       margin-right:auto;
     }
@@ -1347,6 +1519,10 @@
       <div class="sticky-top__content">
         <div class="sticky-controls controls-bar">
           <button type="button" class="refresh-btn btn btn--outline" data-action="refresh">Refresh data</button>
+          <button class="ctrl-pill switch-wrap" id="dark-toggle" type="button" role="switch" aria-checked="false" aria-label="Toggle dark theme">
+            <span class="switch" aria-hidden="true"><span class="switch__thumb"></span></span>
+            <span class="switch-label">Dark</span>
+          </button>
           <div class="site-filter" data-role="site-filter">
             <span class="site-filter__label">Site: <span data-role="site-filter-active">All sites</span></span>
             <div class="site-filter__tabs" role="group" aria-label="Filter inspections by site" data-role="site-nav">
@@ -1417,6 +1593,63 @@
     const DEFAULT_OFFLINE = location.protocol === 'file:' || location.hostname === '';
     const ALLOW_NETWORK = FORCE_ONLINE ? true : (FORCE_OFFLINE ? false : !DEFAULT_OFFLINE);
     const DEFAULT_ERROR_MESSAGE = 'We were unable to load the inspection sheet. Please check the network or sheet permissions and try again.';
+
+    const themeBtn = document.getElementById('dark-toggle');
+    const themeBtnLabel = themeBtn?.querySelector('.switch-label') || themeBtn?.querySelector('.label');
+    const metaColorScheme = document.querySelector('meta[name="color-scheme"]');
+    const THEME_STORAGE_KEY = 'theme';
+
+    function setThemeButtonLabel(text){
+      if(!themeBtn) return;
+      if(themeBtnLabel){
+        themeBtnLabel.textContent = text;
+      }else{
+        themeBtn.textContent = text;
+      }
+    }
+
+    function applyTheme(theme){
+      const normalized = theme === 'dark' ? 'dark' : 'light';
+      const isDark = normalized === 'dark';
+      document.body.classList.toggle('dark', isDark);
+      document.body.classList.toggle('light', !isDark);
+      document.body.classList.toggle('theme-dark', isDark);
+      document.documentElement.setAttribute('color-scheme', normalized);
+      metaColorScheme?.setAttribute('content', normalized);
+      setThemeButtonLabel(isDark ? 'Light' : 'Dark');
+      const label = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+      themeBtn?.setAttribute('aria-checked', isDark ? 'true' : 'false');
+      themeBtn?.setAttribute('aria-label', label);
+      themeBtn?.setAttribute('title', label);
+    }
+
+    const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    let hasStoredTheme = storedTheme === 'dark' || storedTheme === 'light';
+    let activeTheme = hasStoredTheme ? storedTheme : (prefersDark ? 'dark' : 'light');
+    applyTheme(activeTheme);
+
+    const colorSchemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+    if(colorSchemeQuery && typeof colorSchemeQuery.addEventListener === 'function'){
+      colorSchemeQuery.addEventListener('change', (event) => {
+        if(hasStoredTheme) return;
+        activeTheme = event.matches ? 'dark' : 'light';
+        applyTheme(activeTheme);
+      });
+    }else if(colorSchemeQuery && typeof colorSchemeQuery.addListener === 'function'){
+      colorSchemeQuery.addListener((event) => {
+        if(hasStoredTheme) return;
+        activeTheme = event.matches ? 'dark' : 'light';
+        applyTheme(activeTheme);
+      });
+    }
+
+    themeBtn?.addEventListener('click', () => {
+      activeTheme = document.body.classList.contains('theme-dark') ? 'light' : 'dark';
+      applyTheme(activeTheme);
+      localStorage.setItem(THEME_STORAGE_KEY, activeTheme);
+      hasStoredTheme = true;
+    });
 
     function sanitizeSheetUrl(v){
       if(!v) return null;
