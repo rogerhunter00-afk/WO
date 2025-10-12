@@ -107,6 +107,15 @@ html, body{
     --surface-glass:color-mix(in srgb,var(--brand) 20%,color-mix(in srgb,var(--paper) 62%,transparent));
     --surface-glass-strong:color-mix(in srgb,var(--brand) 30%,color-mix(in srgb,var(--paper) 56%,transparent));
     --surface-border:color-mix(in srgb,var(--brand) 38%,transparent);
+    --ctrl-bg:#0d1117;
+    --ctrl-fg:#e8edf5;
+    --ctrl-muted:#9aa7b7;
+    --ctrl-ring:#60a5fa;
+    --ctrl-pill:#111827;
+    --ctrl-pill-border:#1f2937;
+    --ctrl-shadow:0 1px 0 rgba(255,255,255,.06) inset;
+    --ctrl-hover:rgba(96,165,250,.15);
+    --ctrl-on:#60a5fa;
   }
 }
 
@@ -171,6 +180,85 @@ html, body{
   --surface-border:color-mix(in srgb,var(--brand) 45%,transparent);
 }
 
+:root{
+  --ctrl-bg:#ffffff;
+  --ctrl-fg:#0b0f1a;
+  --ctrl-muted:#6b7280;
+  --ctrl-ring:#3b82f6;
+  --ctrl-pill:#f3f6fb;
+  --ctrl-pill-border:#dfe6ef;
+  --ctrl-shadow:0 1px 2px rgba(0,0,0,.05);
+  --ctrl-hover:rgba(11,103,194,.08);
+  --ctrl-on:#0b67c2;
+}
+:root[color-scheme="dark"],
+.theme-dark,
+.dark,
+body.dark{
+  --ctrl-bg:#0d1117;
+  --ctrl-fg:#e8edf5;
+  --ctrl-muted:#9aa7b7;
+  --ctrl-ring:#60a5fa;
+  --ctrl-pill:#111827;
+  --ctrl-pill-border:#1f2937;
+  --ctrl-shadow:0 1px 0 rgba(255,255,255,.06) inset;
+  --ctrl-hover:rgba(96,165,250,.15);
+  --ctrl-on:#60a5fa;
+}
+
+.control-bar,
+.controls,
+.header-controls{background:transparent;}
+
+.controls-bar{
+  background:transparent;
+  box-shadow:none;
+}
+
+.ctrl-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:.5rem;
+  height:36px;
+  padding:0 .75rem;
+  border-radius:9999px;
+  border:1px solid var(--ctrl-pill-border);
+  background:var(--ctrl-pill);
+  color:var(--ctrl-fg);
+  box-shadow:var(--ctrl-shadow);
+  font:inherit;
+  font-weight:600;
+  letter-spacing:.1px;
+  cursor:pointer;
+  user-select:none;
+  transition:background .2s ease, border-color .2s ease, color .2s ease, transform .06s ease;
+}
+.ctrl-pill:hover{background:var(--ctrl-hover);}
+.ctrl-pill:active{transform:translateY(1px);}
+.ctrl-pill:focus-visible{outline:2px solid var(--ctrl-ring);outline-offset:2px;}
+.ctrl-pill:disabled{
+  opacity:.6;
+  cursor:not-allowed;
+  box-shadow:none;
+}
+
+.switch-wrap{display:inline-flex;align-items:center;gap:.5rem;}
+.switch{position:relative;width:56px;height:28px;border-radius:9999px;background:color-mix(in oklab,var(--ctrl-fg) 12%,transparent);border:1px solid var(--ctrl-pill-border);transition:background .2s ease,border-color .2s ease;}
+.switch__thumb{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--ctrl-bg);box-shadow:var(--ctrl-shadow);transition:left .2s ease,background .2s ease;}
+[role="switch"][aria-checked="true"] .switch{background:color-mix(in oklab,var(--ctrl-on) 40%,transparent);border-color:color-mix(in oklab,var(--ctrl-on) 55%,var(--ctrl-pill-border));}
+[role="switch"][aria-checked="true"] .switch__thumb{left:31px;background:var(--ctrl-bg);}
+.switch-label{color:var(--ctrl-fg);font-weight:600;}
+
+.btn-eye{position:relative;}
+.btn-eye[aria-pressed="true"]{border-color:var(--ctrl-on);box-shadow:0 0 0 2px color-mix(in oklab,var(--ctrl-on) 25%,transparent);}
+.btn-eye .icon{width:18px;height:18px;display:inline-flex;}
+.btn-eye .icon svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5;}
+.btn-eye [data-eye="off"]{display:none;}
+.btn-eye[aria-pressed="true"] [data-eye="on"]{display:none;}
+.btn-eye[aria-pressed="true"] [data-eye="off"]{display:inline-flex;}
+
+.icon{width:16px;height:16px;display:inline-block;fill:currentColor;}
+
 body.dark{
   background:linear-gradient(180deg,
     var(--winter-night-start) 0%,
@@ -228,7 +316,7 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
 .sticky-top[data-collapsed="true"] .sticky-content{display:none!important;opacity:0}
 .sticky-top[data-collapsed="true"] .controls{display:none!important}
 .sticky-top[data-collapsed="true"] .sticky-top__bar{gap:0}
-.sticky-top[data-collapsed="true"] #collapseBtn{margin-left:0}
+.sticky-top[data-collapsed="true"] #hide-controls{margin-left:0}
 
 .controls{display:flex;gap:10px;row-gap:8px;align-items:center;font-size:12px;flex-wrap:wrap}
 .controls--primary{gap:8px;flex:1 1 auto}
@@ -293,7 +381,7 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
 .controls-bar .week-picker{gap:6px}
 .controls-bar .week-picker button{flex:0 0 auto}
 .controls-bar #exportCsvBtn{margin-left:auto}
-.sticky-top__bar>#collapseBtn{margin-left:auto}
+.sticky-top__bar>#hide-controls{margin-left:auto}
 
 .filter-group{display:flex;align-items:center;gap:6px;font-weight:600;color:var(--ink)}
 
@@ -809,7 +897,7 @@ tbody td{padding:8px 6px;box-sizing:border-box}
 
       <div class="sticky-top" data-collapsed="false">
         <div class="sticky-top__bar">
-          <div class="controls controls--primary controls-bar" role="group" aria-label="Dashboard controls">
+        <div class="controls controls--primary controls-bar" id="controls-bar" role="group" aria-label="Dashboard controls">
             <input id="globalSearch" class="search-input" type="search" placeholder="Search work orders…" aria-label="Search work orders" />
             <div class="legend-inline">
               <button type="button" class="btn btn--ghost btn--sm legend-inline__btn">Legend</button>
@@ -869,11 +957,29 @@ tbody td{padding:8px 6px;box-sizing:border-box}
 
             <button id="refreshBtn" class="btn btn--outline" type="button">Refresh data</button>
             <button id="exportCsvBtn" class="btn btn--primary" type="button" disabled>Export CSV</button>
-            <button id="themeBtn" class="btn btn--ghost" type="button" aria-pressed="false">Dark</button>
+            <button class="ctrl-pill switch-wrap" id="dark-toggle" type="button" role="switch" aria-checked="false" aria-label="Toggle dark theme">
+              <span class="switch" aria-hidden="true"><span class="switch__thumb"></span></span>
+              <span class="switch-label">Dark</span>
+            </button>
           </div>
-          <button id="collapseBtn" class="btn btn--ghost btn--sm" type="button" aria-expanded="true">Hide controls</button>
+          <button class="ctrl-pill btn-eye" id="hide-controls" type="button" aria-pressed="false" aria-expanded="true" data-controls="controls-bar">
+            <span class="icon" data-eye="on" aria-hidden="true">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </span>
+            <span class="icon" data-eye="off" aria-hidden="true">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.8 21.8 0 0 1 5.06-6.94"></path>
+                <path d="M9.9 4.24A11 11 0 0 1 12 4c7 0 11 8 11 8a21.8 21.8 0 0 1-4.87 6.82"></path>
+                <path d="M1 1l22 22"></path>
+              </svg>
+            </span>
+            <span class="label">Hide controls</span>
+          </button>
         </div>
-        <div class="sticky-content">
+        <div class="sticky-content" data-controls-panel>
           <div id="activeFilterChips" class="active-filter-chips" hidden></div>
 
           <nav class="nav" role="tablist" aria-label="Dashboard views">
@@ -3528,14 +3634,23 @@ document.fonts?.ready?.then(()=>{ try { updateTableMaxHeight(); } catch{} });
 
   // --- collapsible sticky header ---
 const $sticky = document.querySelector('.sticky-top');
-const $collapseBtn = document.getElementById('collapseBtn');
+const $collapseBtn = document.getElementById('hide-controls');
+const $controlsPanel = document.querySelector('[data-controls-panel]') || document.getElementById('controls-panel');
+const controlsTargetId = $collapseBtn?.dataset.controls;
+const $controlsBar = controlsTargetId ? document.getElementById(controlsTargetId) : null;
 
 function setCollapsed(isCollapsed){
   if(!$sticky || !$collapseBtn) return;
   $sticky.dataset.collapsed = isCollapsed ? 'true' : 'false';
   const label = isCollapsed ? 'Show controls' : 'Hide controls';
+  const labelEl = $collapseBtn.querySelector('.label');
+  if(labelEl){
+    labelEl.textContent = label;
+  }else{
+    $collapseBtn.textContent = label;
+  }
   $collapseBtn.setAttribute('aria-expanded', String(!isCollapsed));
-  $collapseBtn.textContent = label;
+  $collapseBtn.setAttribute('aria-pressed', isCollapsed ? 'true' : 'false');
   $collapseBtn.setAttribute('aria-label', label);
   $collapseBtn.title = label;
 
@@ -3547,6 +3662,13 @@ function setCollapsed(isCollapsed){
       el.removeAttribute('aria-hidden');
     }
   });
+
+  if($controlsPanel){
+    $controlsPanel.style.display = isCollapsed ? 'none' : '';
+  }
+  if($controlsBar && $controlsBar !== $controlsPanel){
+    $controlsBar.style.display = isCollapsed ? 'none' : '';
+  }
 
   // keep layout/overlays correct
   updateStickyControlsOffset();
@@ -3598,15 +3720,33 @@ refreshBtn?.addEventListener('click', async ()=>{
 }
 
 // Theme + seasonal overlays
-const themeBtn=document.getElementById('themeBtn');
+const themeBtn=document.getElementById('dark-toggle');
 const metaColorScheme=document.querySelector('meta[name="color-scheme"]');
 const ThemeController=(()=>{
   const STORAGE_KEY='alsDesiredTheme';
   const WINTER_LIGHTS_KEY='alsWinterLights';
   const motionQuery=window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):null;
-  let desiredTheme=(localStorage.getItem(STORAGE_KEY)==='dark')?'dark':'light';
+  const storedTheme=localStorage.getItem(STORAGE_KEY);
+  let desiredTheme=storedTheme==='dark'?'dark':storedTheme==='light'?'light':null;
+  if(!desiredTheme){
+    const media=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
+    desiredTheme=media?.matches?'dark':'light';
+  }
+  if(!desiredTheme){
+    desiredTheme='light';
+  }
   let winterLock=false;
   let winterLights=localStorage.getItem(WINTER_LIGHTS_KEY)==='1';
+
+  const updateThemeButtonLabel=(text)=>{
+    if(!themeBtn) return;
+    const labelEl=themeBtn.querySelector('.switch-label') || themeBtn.querySelector('.label');
+    if(labelEl){
+      labelEl.textContent=text;
+    }else{
+      themeBtn.textContent=text;
+    }
+  };
 
   function isWinterPlanActive(){
     return winterLock;
@@ -3620,6 +3760,8 @@ const ThemeController=(()=>{
     const normalized=theme==='dark'?'dark':'light';
     document.body.classList.toggle('dark', normalized==='dark');
     document.body.classList.toggle('light', normalized!=='dark');
+    document.body.classList.toggle('theme-dark', normalized==='dark');
+    document.documentElement.setAttribute('color-scheme', normalized);
     metaColorScheme?.setAttribute('content', normalized);
     applyChristmasLights();
   }
@@ -3631,17 +3773,17 @@ const ThemeController=(()=>{
       const activeLights=winterLights && !prefersReducedMotion();
       const offTitle='Enable light mode to turn on the Christmas lights.';
       const onTitle='Light mode is on. Click to turn off the Christmas lights.';
-      themeBtn.textContent='Light';
+      updateThemeButtonLabel('Light');
       const title=activeLights?onTitle:offTitle;
       themeBtn.title=title;
       themeBtn.setAttribute('aria-label', title);
-      themeBtn.setAttribute('aria-pressed', activeLights?'true':'false');
+      themeBtn.setAttribute('aria-checked', activeLights?'true':'false');
     }else{
-      themeBtn.textContent=preferDark?'Light':'Dark';
+      updateThemeButtonLabel(preferDark?'Light':'Dark');
       const title=preferDark?'Currently dark. Click to switch to light mode.':'Currently light. Click to switch to dark mode.';
       themeBtn.title=title;
       themeBtn.setAttribute('aria-label', title);
-      themeBtn.setAttribute('aria-pressed', preferDark?'true':'false');
+      themeBtn.setAttribute('aria-checked', preferDark?'true':'false');
     }
     themeBtn.disabled=false;
     themeBtn.removeAttribute('aria-disabled');
