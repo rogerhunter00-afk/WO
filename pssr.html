@@ -468,7 +468,17 @@
       margin:0;
       padding:0;
       display:grid;
-      gap:12px;
+      grid-template-columns:repeat(auto-fit,minmax(clamp(280px,24vw,360px),1fr));
+      gap:16px;
+      align-items:stretch;
+      justify-content:stretch;
+      grid-auto-rows:1fr;
+    }
+
+    @media (max-width: 720px) {
+      .pssr-site-breakdown {
+        grid-template-columns:minmax(0,1fr);
+      }
     }
 
     .pssr-site-breakdown__item {
@@ -1445,9 +1455,12 @@
     }
 
     const SAMPLE = [
-      { Asset:'Steam Boiler 03', Location:'Aberdeen – Plant Room', 'Last Inspection Date':'15/02/2024', 'Next Inspection Date':'15/08/2024', Comments:'Six-month statutory inspection window.', 'Document URL':'about:blank' },
-      { Asset:'Air Receiver B',  Location:'ALS Keith',              'Last Inspection Date':'04/07/2023', 'Next Inspection Date':'04/01/2024', Comments:'Overhaul required before recommissioning.' },
-      { Asset:'Tunnel Washer 2', Location:'Cathkin – Wash Line',    'Last Inspection Date':'20/11/2023', 'Next Inspection Date':'20/11/2025', Comments:'PSSR inspection aligned with OEM service schedule.' }
+      { Asset:'Keith Steam Boiler 2', Site:'Keith', Location:'Keith – Energy Centre', 'Last Inspection Date':'12/03/2024', 'Next Inspection Date':'12/09/2024', Comments:'Internal and external statutory inspection booked for September.', 'Document URL':'about:blank' },
+      { Asset:'Byron Compressed Air Receiver', Site:'Byron', Location:'Byron – Maintenance Bay', 'Last Inspection Date':'05/01/2024', 'Next Inspection Date':'05/07/2024', Comments:'Requalification due alongside dryer swap.', 'Document URL':'about:blank' },
+      { Asset:'Mugiemoss Tunnel Washer 2', Site:'Mugiemoss', Location:'Mugiemoss – Wash Line', 'Last Inspection Date':'20/11/2023', 'Next Inspection Date':'20/11/2025', Comments:'Inspection aligned with OEM service interval.', 'Document URL':'about:blank' },
+      { Asset:'Byron Steam Generator 1', Site:'Byron', Location:'Byron – Plant Room', 'Last Inspection Date':'14/09/2023', 'Next Inspection Date':'14/03/2024', Comments:'Boiler house annual inspection – burner upgrade noted.', 'Document URL':'about:blank' },
+      { Asset:'Keith Air Receiver A', Site:'Keith', Location:'Keith – Compressor House', 'Last Inspection Date':'02/06/2023', 'Next Inspection Date':'02/12/2023', Comments:'Receiver drained and ready for recertification.', 'Document URL':'about:blank' },
+      { Asset:'Mugiemoss Calorifier 4', Site:'Mugiemoss', Location:'Mugiemoss – Hot Water Plant', 'Last Inspection Date':'22/08/2023', 'Next Inspection Date':'22/02/2024', Comments:'Monitor expansion vessel replacement before inspection.', 'Document URL':'about:blank' }
     ];
 
     const RESOLVED_PSSR_SHEET_URL = getSheetUrl();
