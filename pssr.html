@@ -2273,28 +2273,62 @@
       if(!(nextDate instanceof Date) || isNaN(nextDate)){
         return { label:'Unknown', className:'is-unknown', diffDays:null, days:null, overdue:false };
       }
+
       const today = new Date();
       const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
       const normalized = new Date(nextDate.getFullYear(), nextDate.getMonth(), nextDate.getDate()).getTime();
       const diffDays = Math.round((normalized - startOfToday) / (1000 * 60 * 60 * 24));
+
+      const classify = () => {
+        if(diffDays <= 30){
+          return 'is-urgent';
+        }
+        if(diffDays <= 180){
+          return 'is-warning';
+        }
+        if(diffDays <= 540){
+          return 'is-healthy';
+        }
+        return 'is-excellent';
+      };
+
+      const formatValue = (value) => {
+        if(Number.isFinite(value) && Math.abs(value - Math.round(value)) > 0){
+          return value.toFixed(1).replace(/\.0$/, '');
+        }
+        return String(value);
+      };
+
+      const describe = (days) => {
+        if(days <= 30){
+          return { value: days, unit:'d' };
+        }
+        if(days < 365){
+          const months = days / 30;
+          const rounded = months < 3 ? Math.round(months * 10) / 10 : Math.round(months);
+          return { value: rounded, unit:'mo' };
+        }
+        const years = days / 365;
+        const roundedYears = years < 5 ? Math.round(years * 10) / 10 : Math.round(years);
+        return { value: roundedYears, unit:'yr' };
+      };
+
       if(diffDays < 0){
-        const days = Math.abs(diffDays);
-        return { label: `${days}d overdue`, className:'is-urgent', diffDays, days:diffDays, overdue:true };
+        const absDays = Math.abs(diffDays);
+        const { value, unit } = describe(absDays);
+        const formattedValue = formatValue(value);
+        const label = unit === 'd' ? `${formattedValue}d overdue` : `${formattedValue}${unit} overdue`;
+        return { label, className:'is-urgent', diffDays, days:diffDays, overdue:true };
       }
+
       if(diffDays === 0){
         return { label:'Due today', className:'is-urgent', diffDays, days:diffDays, overdue:false };
       }
-      const months = diffDays / 30;
-      if(months < 2){
-        return { label:`Due in ${diffDays}d`, className:'is-urgent', diffDays, days:diffDays, overdue:false };
-      }
-      if(months < 6){
-        return { label:`Due in ${Math.round(months*10)/10}mo`, className:'is-warning', diffDays, days:diffDays, overdue:false };
-      }
-      if(months < 18){
-        return { label:`Due in ${Math.round(months)}mo`, className:'is-healthy', diffDays, days:diffDays, overdue:false };
-      }
-      return { label:`Due in ${Math.round(months)}mo`, className:'is-excellent', diffDays, days:diffDays, overdue:false };
+
+      const { value, unit } = describe(diffDays);
+      const formattedValue = formatValue(value);
+      const label = unit === 'd' ? `Due in ${formattedValue}d` : `Due in ${formattedValue}${unit}`;
+      return { label, className: classify(), diffDays, days:diffDays, overdue:false };
     }
 
     function parseCsv(text){
