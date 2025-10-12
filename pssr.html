@@ -1102,9 +1102,12 @@
     .mobile-cards {
       display:none;
       margin-top:18px;
-      grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+      grid-template-columns:minmax(0,1fr);
       gap:12px;
       align-items:stretch;
+      width:100%;
+      max-width:960px;
+      margin-inline:auto;
     }
 
     body[data-table-mode="mobile"] .table-wrapper {
@@ -1169,11 +1172,11 @@
     .mobile-card {
       border:1px solid var(--grid);
       border-radius:14px;
-      padding:14px;
+      padding:16px;
       background:var(--paper);
       display:grid;
-      grid-template-columns:1fr;
-      gap:10px;
+      grid-template-columns:minmax(0,1fr);
+      gap:12px;
       box-shadow:0 4px 12px rgba(15,23,42,.08);
       height:100%;
     }
@@ -1182,12 +1185,14 @@
       font-weight:800;
       font-size:15px;
       line-height:1.35;
+      flex:1 1 auto;
+      min-width:0;
     }
 
     .mobile-card__meta {
       display:flex;
       flex-direction:column;
-      gap:4px;
+      gap:6px;
       font-size:12px;
       color:var(--muted);
     }
@@ -1198,6 +1203,16 @@
       gap:6px;
       align-items:center;
       font-size:12px;
+      width:100%;
+    }
+
+    .mobile-card__row:first-of-type {
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    .mobile-card__row .countdown-chip {
+      margin-left:auto;
     }
 
     .mobile-card.row-overdue {
@@ -1214,6 +1229,35 @@
       font-weight:600;
       min-height:96px;
       gap:8px;
+    }
+
+    @media (min-width: 560px) {
+      .mobile-card {
+        grid-template-columns:minmax(0,1.2fr) minmax(0,0.9fr);
+        align-items:start;
+      }
+
+      .mobile-card__meta {
+        grid-column:2 / 3;
+        padding-left:16px;
+        border-left:1px solid color-mix(in srgb,var(--grid) 75%,transparent);
+      }
+
+      .mobile-card__row:first-of-type {
+        grid-column:1 / 2;
+        align-items:flex-start;
+      }
+
+      .mobile-card__row:last-of-type {
+        grid-column:1 / -1;
+        border-top:1px solid color-mix(in srgb,var(--grid) 75%,transparent);
+        padding-top:10px;
+        margin-top:4px;
+      }
+
+      .mobile-card__row:first-of-type .countdown-chip {
+        margin-left:auto;
+      }
     }
 
     @media (max-width:540px) {
