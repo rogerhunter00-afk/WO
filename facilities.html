@@ -785,6 +785,21 @@ body.mobile-layout .columns-bar{display:none}
   html, body{ overflow:auto; }
   .table-scroll{ max-height:none; }
 }
+
+@media (max-width:540px){
+  .mobile-card__header{
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .mobile-card__title{
+    flex:1 1 100%;
+  }
+  .mobile-card__badges{
+    flex:0 0 100%;
+    justify-content:flex-start;
+    padding-top:2px;
+  }
+}
 /* Legend button lives in the right-hand controls row */
 .controls { align-items: center; }
 
