@@ -3338,6 +3338,17 @@ function cardHTML(row){
     ? ` style="--bg:${pwp.background}; --ring: color-mix(in srgb, ${pwp.foreground} 50%, transparent); color:${pwp.foreground}"`
     : '';
 
+  const completedRaw = row['Completed on'];
+  const completedText = completedRaw ? String(completedRaw).trim() : '—';
+  const completedDate = parseCompleted(row);
+  const hasTime = completedRaw ? /\d{1,2}:\d{2}/.test(String(completedRaw)) : false;
+  const completedTooltip = completedDate
+    ? completedDate.toLocaleString(undefined, { dateStyle: 'medium', ...(hasTime ? { timeStyle: 'short' } : {}) })
+    : '';
+  const completedAria = completedRaw
+    ? `Completed on ${completedText}`
+    : 'Completion date not available';
+
   return `
   <article class="mobile-card" role="listitem" aria-label="WO ${esc(row['ID'])}">
     <div class="mobile-card__header">
@@ -3351,6 +3362,13 @@ function cardHTML(row){
         <span class="${ageCls}"${ageStyle} title="${esc(ageTtl || baseT)}" aria-label="${esc(ageAria)}">${esc(ageLbl)}</span>
       </div>
     </div>
+
+    <dl class="mobile-card__meta" aria-label="Key dates">
+      <div class="mobile-card__item">
+        <dt>Completed</dt>
+        <dd${completedTooltip ? ` title="${esc(completedTooltip)}"` : ''} aria-label="${esc(completedAria)}">${esc(completedText)}</dd>
+      </div>
+    </dl>
 
     ${shown || more ? `<div class="mobile-card__categories">${shown}${more}</div>` : ''}
   </article>`;
