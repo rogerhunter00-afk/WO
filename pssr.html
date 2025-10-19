@@ -1381,6 +1381,18 @@
       justify-content:center;
     }
 
+    body.force-desktop .table-wrapper {
+      display:block !important;
+    }
+
+    body.force-desktop .mobile-cards {
+      display:none !important;
+    }
+
+    body.force-desktop .mobile-sort {
+      display:none !important;
+    }
+
     .mobile-card {
       border:1px solid var(--grid);
       border-radius:14px;
@@ -1627,6 +1639,10 @@
       <div class="sticky-top__content">
         <div class="sticky-controls controls-bar">
           <button type="button" class="refresh-btn btn btn--outline" data-action="refresh">Refresh data</button>
+          <button class="ctrl-pill switch-wrap" id="layout-toggle" type="button" role="switch" aria-checked="false" aria-label="Switch to mobile view">
+            <span class="switch" aria-hidden="true"><span class="switch__thumb"></span></span>
+            <span class="switch-label">Auto</span>
+          </button>
           <button class="ctrl-pill switch-wrap" id="dark-toggle" type="button" role="switch" aria-checked="false" aria-label="Toggle dark theme">
             <span class="switch" aria-hidden="true"><span class="switch__thumb"></span></span>
             <span class="switch-label">Dark</span>
@@ -1725,6 +1741,94 @@
 
     const themeBtn = document.getElementById('dark-toggle');
     const themeBtnLabel = themeBtn?.querySelector('.switch-label') || themeBtn?.querySelector('.label');
+    const layoutToggleBtn = document.getElementById('layout-toggle');
+    const LAYOUT_MODE_STORAGE_KEY = 'alsLayoutMode';
+
+    function currentForcedLayout(){
+      if(document.body.classList.contains('force-mobile')) return 'mobile';
+      if(document.body.classList.contains('force-desktop')) return 'desktop';
+      return 'auto';
+    }
+
+    function syncLayoutToggle(){
+      if(!layoutToggleBtn) return;
+      const mode = currentForcedLayout();
+      const labelEl = layoutToggleBtn.querySelector('.switch-label') || layoutToggleBtn.querySelector('.label');
+      if(labelEl){
+        if(mode === 'mobile') labelEl.textContent = 'Mobile view';
+        else if(mode === 'desktop') labelEl.textContent = 'Desktop view';
+        else {
+          const autoMobile = document.body.getAttribute('data-table-mode') === 'mobile';
+          labelEl.textContent = autoMobile ? 'Auto · Mobile' : 'Auto · Desktop';
+        }
+      }
+      const nextAction = mode === 'mobile'
+        ? 'Switch to desktop view'
+        : mode === 'desktop'
+          ? 'Return to automatic view'
+          : 'Switch to mobile view';
+      layoutToggleBtn.setAttribute('aria-checked', mode === 'mobile' ? 'true' : 'false');
+      layoutToggleBtn.setAttribute('aria-label', nextAction);
+      layoutToggleBtn.title = nextAction;
+    }
+
+    function getLayoutContainer(){
+      return document.querySelector('[data-component="pssr-table"]');
+    }
+
+    function applyLayoutMode(mode,{ persist=true, container } = {}){
+      const desired = mode === 'mobile' ? 'mobile' : mode === 'desktop' ? 'desktop' : 'auto';
+      const target = container || getLayoutContainer();
+
+      if(desired === 'mobile'){
+        document.body.classList.add('force-mobile');
+        document.body.classList.remove('force-desktop');
+        document.body.setAttribute('data-table-mode','mobile');
+        if(persist) localStorage.setItem(LAYOUT_MODE_STORAGE_KEY,'mobile');
+      }else if(desired === 'desktop'){
+        document.body.classList.add('force-desktop');
+        document.body.classList.remove('force-mobile');
+        document.body.removeAttribute('data-table-mode');
+        if(persist) localStorage.setItem(LAYOUT_MODE_STORAGE_KEY,'desktop');
+      }else{
+        document.body.classList.remove('force-mobile','force-desktop');
+        document.body.removeAttribute('data-table-mode');
+        if(persist) localStorage.removeItem(LAYOUT_MODE_STORAGE_KEY);
+      }
+
+      if(target){
+        if(desired === 'auto'){
+          updateResponsiveMode(target);
+        }
+        if(target.__rows){
+          refreshView(target);
+        }else{
+          updateResponsiveMode(target);
+        }
+      }else if(desired !== 'mobile'){
+        updateResponsiveMode(null);
+      }
+
+      updateStickyOffsets();
+      syncLayoutToggle();
+    }
+
+    function cycleLayoutMode(){
+      const mode = currentForcedLayout();
+      const next = mode === 'mobile' ? 'desktop' : mode === 'desktop' ? 'auto' : 'mobile';
+      applyLayoutMode(next, { container: getLayoutContainer() });
+    }
+
+    function restoreStoredLayoutMode(container){
+      const stored = localStorage.getItem(LAYOUT_MODE_STORAGE_KEY);
+      if(stored === 'mobile' || stored === 'desktop'){
+        applyLayoutMode(stored, { persist:false, container });
+      }else{
+        syncLayoutToggle();
+      }
+    }
+
+    layoutToggleBtn?.addEventListener('click', cycleLayoutMode);
     const metaColorScheme = document.querySelector('meta[name="color-scheme"]');
     const THEME_STORAGE_KEY = 'theme';
 
@@ -2044,6 +2148,8 @@
     }
 
     function needsMobileLayout(container){
+      if(document.body.classList.contains('force-mobile')) return true;
+      if(document.body.classList.contains('force-desktop')) return false;
       if (window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches) return true;
 
       const minWidth = getTableMinWidth();
@@ -2064,8 +2170,21 @@
     }
 
     function updateResponsiveMode(container){
+      if(document.body.classList.contains('force-mobile')){
+        document.body.setAttribute('data-table-mode','mobile');
+        syncLayoutToggle();
+        return;
+      }
+
+      if(document.body.classList.contains('force-desktop')){
+        document.body.removeAttribute('data-table-mode');
+        syncLayoutToggle();
+        return;
+      }
+
       if (!container){
         document.body.removeAttribute('data-table-mode');
+        syncLayoutToggle();
         return;
       }
 
@@ -2074,6 +2193,7 @@
       } else {
         document.body.removeAttribute('data-table-mode');
       }
+      syncLayoutToggle();
     }
 
     function esc(str){
@@ -3170,6 +3290,8 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       const container = document.querySelector('[data-component="pssr-table"]');
+
+      restoreStoredLayoutMode(container);
 
       const handleResize = () => {
         updateStickyOffsets();

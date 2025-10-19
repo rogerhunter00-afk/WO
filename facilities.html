@@ -688,6 +688,18 @@ body.mobile-layout .columns-bar{display:none}
   .columns-bar{display:none} /* hide static bar on small screens */
 }
 
+body.force-mobile .mobile-sort{display:flex!important;flex-wrap:wrap;align-items:flex-end;gap:10px;margin:12px 0 16px;padding:12px;border:1px solid var(--grid);border-radius:14px;background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));box-shadow:0 10px 24px rgba(11,103,194,.08)}
+body.force-mobile .mobile-sort__label{flex:1 1 100%;margin:0}
+body.force-mobile .mobile-sort__select{flex:1 1 220px}
+body.force-mobile .dash-table .table-scroll{display:none!important}
+body.force-mobile .mobile-cards{display:grid!important;width:100%;gap:12px;grid-template-columns:minmax(0,1fr);align-items:stretch;justify-content:stretch}
+body.force-mobile .page{--page-pad-inline:16px}
+body.force-mobile .columns-bar{display:none!important}
+
+body.force-desktop .dash-table .table-scroll{display:block!important}
+body.force-desktop .mobile-cards{display:none!important}
+body.force-desktop .mobile-sort{display:none!important}
+
 /* Legend popover – no hover gap, opens on hover or click */
 .legend-popover{
   position:relative;
@@ -957,6 +969,10 @@ body.mobile-layout .columns-bar{display:none}
 
             <button id="refreshBtn" class="btn btn--outline" type="button">Refresh data</button>
             <button id="exportCsvBtn" class="btn btn--primary" type="button" disabled>Export CSV</button>
+            <button class="ctrl-pill switch-wrap" id="layout-toggle" type="button" role="switch" aria-checked="false" aria-label="Switch to mobile view">
+              <span class="switch" aria-hidden="true"><span class="switch__thumb"></span></span>
+              <span class="switch-label">Auto</span>
+            </button>
             <button class="ctrl-pill switch-wrap" id="dark-toggle" type="button" role="switch" aria-checked="false" aria-label="Toggle dark theme">
               <span class="switch" aria-hidden="true"><span class="switch__thumb"></span></span>
               <span class="switch-label">Dark</span>
@@ -3052,6 +3068,7 @@ const targetId =
 
 PREFERRED_ACTIVE_DASH = null;
 if (targetId) setActiveDash(targetId);
+syncLayoutToggle();
 } // closes function ingestToDashboards
 
 
@@ -3189,6 +3206,73 @@ refreshBtn?.addEventListener('click', async ()=>{
 // Theme toggle (unchanged)
 const themeBtn=document.getElementById('dark-toggle');
 const themeBtnLabel=themeBtn?.querySelector('.switch-label') || themeBtn?.querySelector('.label');
+const layoutToggleBtn=document.getElementById('layout-toggle');
+const LAYOUT_MODE_STORAGE_KEY='alsLayoutMode';
+let __wasMobile;
+
+function currentForcedLayout(){
+  if(document.body.classList.contains('force-mobile')) return 'mobile';
+  if(document.body.classList.contains('force-desktop')) return 'desktop';
+  return 'auto';
+}
+
+function syncLayoutToggle(){
+  if(!layoutToggleBtn) return;
+  const mode=currentForcedLayout();
+  const labelEl=layoutToggleBtn.querySelector('.switch-label')||layoutToggleBtn.querySelector('.label');
+  if(labelEl){
+    if(mode==='mobile') labelEl.textContent='Mobile view';
+    else if(mode==='desktop') labelEl.textContent='Desktop view';
+    else labelEl.textContent=isMobileView()?'Auto · Mobile':'Auto · Desktop';
+  }
+  const nextAction=mode==='mobile'?'Switch to desktop view':mode==='desktop'?'Return to automatic view':'Switch to mobile view';
+  layoutToggleBtn.setAttribute('aria-checked',mode==='mobile'?'true':'false');
+  layoutToggleBtn.setAttribute('aria-label',nextAction);
+  layoutToggleBtn.title=nextAction;
+}
+
+function applyLayoutMode(mode,{persist=true}={}){
+  const desired=mode==='mobile'?'mobile':mode==='desktop'?'desktop':'auto';
+  if(desired==='mobile'){
+    document.body.classList.add('force-mobile');
+    document.body.classList.remove('force-desktop');
+    if(persist) localStorage.setItem(LAYOUT_MODE_STORAGE_KEY,'mobile');
+    syncMobileLayoutClass(true);
+  }else if(desired==='desktop'){
+    document.body.classList.add('force-desktop');
+    document.body.classList.remove('force-mobile');
+    if(persist) localStorage.setItem(LAYOUT_MODE_STORAGE_KEY,'desktop');
+    syncMobileLayoutClass(false);
+  }else{
+    document.body.classList.remove('force-mobile');
+    document.body.classList.remove('force-desktop');
+    if(persist) localStorage.removeItem(LAYOUT_MODE_STORAGE_KEY);
+  }
+  __wasMobile=isMobileView();
+  syncLayoutToggle();
+  if(typeof ingestToDashboards==='function' && LAST_HEADERS && ALL_ROWS){
+    ingestToDashboards(LAST_HEADERS,ALL_ROWS);
+  }
+  if(typeof updateStickyControlsOffset==='function') updateStickyControlsOffset();
+  if(typeof updateTheadHeight==='function') updateTheadHeight();
+}
+
+function cycleLayoutMode(){
+  const mode=currentForcedLayout();
+  const next=mode==='mobile'?'desktop':mode==='desktop'?'auto':'mobile';
+  applyLayoutMode(next);
+}
+
+function restoreStoredLayoutMode(){
+  const stored=localStorage.getItem(LAYOUT_MODE_STORAGE_KEY);
+  if(stored==='mobile' || stored==='desktop'){
+    applyLayoutMode(stored,{persist:false});
+  }else{
+    syncLayoutToggle();
+  }
+}
+
+layoutToggleBtn?.addEventListener('click',cycleLayoutMode);
 const setThemeBtnLabel=(text)=>{
   if(!themeBtn) return;
   if(themeBtnLabel){
@@ -3279,6 +3363,7 @@ function needsMobileLayout(){
 // Detect mobile (also allow ?mobile=1 for desktop testing, or <body class="force-mobile">)
 function isMobileView(){
   if (document.body.classList.contains('force-mobile')) return true;
+  if (document.body.classList.contains('force-desktop')) return false;
   if (new URLSearchParams(location.search).has('mobile')) return true;
 
   const supportsMatchMedia = typeof window !== 'undefined' && typeof window.matchMedia === 'function';
@@ -3356,7 +3441,9 @@ function cardHTML(row){
   </article>`;
 }
 
-  let __wasMobile = isMobileView();
+  __wasMobile = isMobileView();
+  restoreStoredLayoutMode();
+  __wasMobile = isMobileView();
   syncMobileLayoutClass(__wasMobile);
 window.addEventListener('resize', ()=>{
   const now = isMobileView();
@@ -3364,6 +3451,7 @@ window.addEventListener('resize', ()=>{
   if (now !== __wasMobile){
     __wasMobile = now;
     if (LAST_HEADERS && ALL_ROWS) ingestToDashboards(LAST_HEADERS, ALL_ROWS);
+    syncLayoutToggle();
   }
 });
 
