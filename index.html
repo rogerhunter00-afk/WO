@@ -827,6 +827,18 @@ tbody td{padding:8px 6px;box-sizing:border-box}
   .mobile-sort__label{flex:1 1 100%;margin:0}
 }
 
+body.force-mobile .dash-table{display:none!important}
+body.force-mobile .mobile-cards{display:block!important}
+body.force-mobile .page{--page-pad-top:16px;--page-pad-inline:clamp(16px,6vw,24px);--page-pad-bottom:40px}
+body.force-mobile .columns-bar{display:none!important}
+body.force-mobile .mobile-sort{display:flex!important;flex-direction:column;gap:0;margin:12px 0 16px;padding:12px;border:1px solid var(--grid);border-radius:14px;background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));box-shadow:0 10px 24px rgba(11,103,194,.08)}
+body.force-mobile .mobile-sort__controls{flex-direction:row;flex-wrap:wrap;align-items:center;gap:10px;row-gap:8px}
+body.force-mobile .mobile-sort__label{flex:1 1 100%;margin:0}
+
+body.force-desktop .dash-table{display:block!important}
+body.force-desktop .mobile-cards{display:none!important}
+body.force-desktop .mobile-sort{display:none!important}
+
 /* Legend popover – no hover gap, opens on hover or click */
 .legend-popover{
   position:relative;
@@ -1116,6 +1128,10 @@ tbody td{padding:8px 6px;box-sizing:border-box}
 
             <button id="refreshBtn" class="btn btn--outline" type="button">Refresh data</button>
             <button id="exportCsvBtn" class="btn btn--primary" type="button" disabled>Export CSV</button>
+            <button class="ctrl-pill switch-wrap" id="layout-toggle" type="button" role="switch" aria-checked="false" aria-label="Switch to mobile view">
+              <span class="switch" aria-hidden="true"><span class="switch__thumb"></span></span>
+              <span class="switch-label">Auto</span>
+            </button>
             <button class="ctrl-pill switch-wrap" id="dark-toggle" type="button" role="switch" aria-checked="false" aria-label="Toggle dark theme">
               <span class="switch" aria-hidden="true"><span class="switch__thumb"></span></span>
               <span class="switch-label">Dark</span>
@@ -3698,6 +3714,7 @@ const targetId =
 
 PREFERRED_ACTIVE_DASH = null;
 if (targetId) setActiveDash(targetId);
+syncLayoutToggle();
 } // closes function ingestToDashboards
 
 
@@ -3857,6 +3874,72 @@ refreshBtn?.addEventListener('click', async ()=>{
 
 // Theme + seasonal overlays
 const themeBtn=document.getElementById('dark-toggle');
+const layoutToggleBtn=document.getElementById('layout-toggle');
+const LAYOUT_MODE_STORAGE_KEY='alsLayoutMode';
+let __wasMobile;
+
+function currentForcedLayout(){
+  if(document.body.classList.contains('force-mobile')) return 'mobile';
+  if(document.body.classList.contains('force-desktop')) return 'desktop';
+  return 'auto';
+}
+
+function syncLayoutToggle(){
+  if(!layoutToggleBtn) return;
+  const mode=currentForcedLayout();
+  const labelEl=layoutToggleBtn.querySelector('.switch-label')||layoutToggleBtn.querySelector('.label');
+  if(labelEl){
+    if(mode==='mobile') labelEl.textContent='Mobile view';
+    else if(mode==='desktop') labelEl.textContent='Desktop view';
+    else labelEl.textContent=isMobileView()?'Auto · Mobile':'Auto · Desktop';
+  }
+  const nextAction=mode==='mobile'?'Switch to desktop view':mode==='desktop'?'Return to automatic view':'Switch to mobile view';
+  layoutToggleBtn.setAttribute('aria-checked',mode==='mobile'?'true':'false');
+  layoutToggleBtn.setAttribute('aria-label',nextAction);
+  layoutToggleBtn.title=nextAction;
+}
+
+function applyLayoutMode(mode,{persist=true}={}){
+  const desired=mode==='mobile'?'mobile':mode==='desktop'?'desktop':'auto';
+  if(desired==='mobile'){
+    document.body.classList.add('force-mobile');
+    document.body.classList.remove('force-desktop');
+    if(persist) localStorage.setItem(LAYOUT_MODE_STORAGE_KEY,'mobile');
+  }else if(desired==='desktop'){
+    document.body.classList.add('force-desktop');
+    document.body.classList.remove('force-mobile');
+    if(persist) localStorage.setItem(LAYOUT_MODE_STORAGE_KEY,'desktop');
+  }else{
+    document.body.classList.remove('force-mobile');
+    document.body.classList.remove('force-desktop');
+    if(persist) localStorage.removeItem(LAYOUT_MODE_STORAGE_KEY);
+  }
+  syncLayoutToggle();
+  __wasMobile=isMobileView();
+  if(typeof ingestToDashboards==='function' && LAST_HEADERS && ALL_ROWS){
+    ingestToDashboards(LAST_HEADERS,ALL_ROWS);
+  }
+  if(typeof updateStickyControlsOffset==='function') updateStickyControlsOffset();
+  if(typeof updateTheadHeight==='function') updateTheadHeight();
+  if(typeof updateTableMaxHeight==='function') updateTableMaxHeight();
+}
+
+function cycleLayoutMode(){
+  const mode=currentForcedLayout();
+  const next=mode==='mobile'?'desktop':mode==='desktop'?'auto':'mobile';
+  applyLayoutMode(next);
+}
+
+function restoreStoredLayoutMode(){
+  const stored=localStorage.getItem(LAYOUT_MODE_STORAGE_KEY);
+  if(stored==='mobile' || stored==='desktop'){
+    applyLayoutMode(stored,{persist:false});
+  }else{
+    syncLayoutToggle();
+  }
+}
+
+layoutToggleBtn?.addEventListener('click',cycleLayoutMode);
 const metaColorScheme=document.querySelector('meta[name="color-scheme"]');
 const ThemeController=(()=>{
   const STORAGE_KEY='alsDesiredTheme';
@@ -4107,6 +4190,7 @@ function needsMobileLayout(){
 
 function isMobileView(){
   if (document.body.classList.contains('force-mobile')) return true;
+  if (document.body.classList.contains('force-desktop')) return false;
   if (new URLSearchParams(location.search).has('mobile')) return true;
   const supportsMatchMedia = typeof window !== 'undefined' && typeof window.matchMedia === 'function';
   if (supportsMatchMedia){
@@ -4177,12 +4261,14 @@ function cardHTML(row){
   </article>`;
 }
 
-  let __wasMobile = isMobileView();
+__wasMobile = isMobileView();
+restoreStoredLayoutMode();
 window.addEventListener('resize', ()=>{
   const now = isMobileView();
   if (now !== __wasMobile){
     __wasMobile = now;
     if (LAST_HEADERS && ALL_ROWS) ingestToDashboards(LAST_HEADERS, ALL_ROWS);
+    syncLayoutToggle();
   }
 });
 
