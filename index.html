@@ -1023,6 +1023,165 @@ body.force-desktop .mobile-sort{display:none!important}
   opacity:1; transform:none; pointer-events:auto;
 }
 
+/* --- Plan for Next Week overlay --- */
+.plan-overlay{
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:color-mix(in srgb, var(--ink) 45%, transparent);
+  backdrop-filter:blur(3px);
+  z-index:1100;
+}
+.plan-overlay[hidden]{
+  display:none;
+}
+.plan-dialog{
+  width:min(1120px, 96vw);
+  max-height:90vh;
+  background:var(--paper);
+  color:var(--ink);
+  border-radius:18px;
+  box-shadow:0 18px 42px rgba(15,21,42,.35);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  border:1px solid var(--grid);
+}
+.plan-dialog__header{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:20px 24px 16px;
+  border-bottom:1px solid var(--grid);
+}
+.plan-dialog__title{
+  font-size:1.35rem;
+  font-weight:700;
+  margin:0;
+}
+.plan-dialog__actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.plan-dialog__actions .btn{
+  white-space:nowrap;
+}
+.plan-status{
+  padding:10px 24px;
+  font-size:.92rem;
+  color:var(--muted);
+  border-bottom:1px solid var(--grid);
+}
+.plan-status[data-state="error"]{
+  color:#b91c1c;
+}
+.plan-status[data-state="loading"]{
+  color:var(--ink);
+}
+.plan-scroll{
+  flex:1 1 auto;
+  overflow:auto;
+  padding:0 24px 24px;
+}
+.plan-table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  min-width:780px;
+}
+.plan-table thead th{
+  position:sticky;
+  top:0;
+  background:color-mix(in srgb, var(--paper) 90%, var(--bg));
+  z-index:1;
+}
+.plan-table th,
+.plan-table td{
+  border:1px solid var(--grid);
+  padding:14px 16px;
+  vertical-align:top;
+  background:var(--paper);
+}
+.plan-table th[scope="row"]{
+  background:color-mix(in srgb, var(--paper) 92%, var(--bg));
+  font-weight:600;
+  width:164px;
+}
+.plan-table tbody tr:nth-child(odd) td{
+  background:color-mix(in srgb, var(--paper) 96%, var(--bg));
+}
+.plan-entry{
+  border-radius:12px;
+  padding:10px 12px;
+  background:color-mix(in srgb, var(--muted) 6%, var(--paper));
+  border:1px solid color-mix(in srgb, var(--grid) 70%, transparent);
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.plan-entry + .plan-entry{
+  margin-top:10px;
+}
+.plan-entry[data-entry-type="wo"]{
+  border-left:4px solid var(--brand);
+  background:color-mix(in srgb, var(--brand) 12%, var(--paper));
+}
+.plan-entry[data-entry-type="missing"]{
+  border-left:4px solid #f97316;
+  background:color-mix(in srgb, #f97316 14%, var(--paper));
+}
+.plan-entry__id{
+  font-size:.85rem;
+  letter-spacing:.04em;
+  font-weight:600;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+.plan-entry__title{
+  font-weight:600;
+  font-size:1rem;
+}
+.plan-entry__meta{
+  font-size:.85rem;
+  color:var(--muted);
+}
+.plan-entry__note{
+  font-size:.82rem;
+  color:var(--muted);
+  font-style:italic;
+}
+.plan-entry__text{
+  white-space:pre-line;
+}
+.plan-empty{
+  text-align:center;
+  color:var(--muted);
+  font-style:italic;
+}
+@media (max-width: 860px){
+  .plan-dialog{
+    width:96vw;
+  }
+  .plan-scroll{
+    padding:0 16px 16px;
+  }
+  .plan-dialog__header{
+    padding:16px 16px 12px;
+  }
+  .plan-status{
+    padding:8px 16px;
+  }
+  .plan-table{
+    min-width:640px;
+  }
+}
+
 /* Theme the legend overlays without changing the transparent controls bar */
 .legend-popover__panel,
 .legend-inline__panel{
@@ -1039,7 +1198,7 @@ body.force-desktop .mobile-sort{display:none!important}
 
 </style>
 </head>
-<body class="light">
+<body class="light" data-plan-gid="">
   <!-- ❄️ Winter visual effects (hidden until Winter Plan is active) -->
   <div class="fx-layer" id="fx-layer" hidden>
     <canvas id="snow-far" aria-hidden="true"></canvas>
@@ -1128,6 +1287,7 @@ body.force-desktop .mobile-sort{display:none!important}
 
             <button id="refreshBtn" class="btn btn--outline" type="button">Refresh data</button>
             <button id="exportCsvBtn" class="btn btn--primary" type="button" disabled>Export CSV</button>
+            <button id="planNextWeekBtn" class="btn btn--ghost" type="button">Plan for Next Week</button>
             <button class="ctrl-pill switch-wrap" id="layout-toggle" type="button" role="switch" aria-checked="false" aria-label="Switch to mobile view">
               <span class="switch" aria-hidden="true"><span class="switch__thumb"></span></span>
               <span class="switch-label">Auto</span>
@@ -1186,6 +1346,21 @@ body.force-desktop .mobile-sort{display:none!important}
   <section id="dash-winter" class="dash dash-table" data-site="winter" hidden></section>
 </section>
     </main>
+  </div>
+  <div id="planNextWeekOverlay" class="plan-overlay" hidden aria-hidden="true">
+    <div class="plan-dialog" id="planNextWeekDialog" role="dialog" aria-modal="true" aria-labelledby="planNextWeekTitle" tabindex="-1">
+      <header class="plan-dialog__header">
+        <h2 class="plan-dialog__title" id="planNextWeekTitle">Plan for Next Week</h2>
+        <div class="plan-dialog__actions">
+          <button id="planNextWeekRefresh" class="btn btn--ghost btn--sm" type="button">Refresh</button>
+          <button id="planNextWeekClose" class="btn btn--ghost btn--sm" type="button">Close</button>
+        </div>
+      </header>
+      <div id="planNextWeekStatus" class="plan-status" role="status" aria-live="polite"></div>
+      <div class="plan-scroll">
+        <table class="plan-table" id="planNextWeekTable" aria-describedby="planNextWeekStatus"></table>
+      </div>
+    </div>
   </div>
   <div id="loadingOverlay" style=" position:fixed; inset:0; display:none; place-items:center; background:color-mix(in srgb, var(--paper) 70%, transparent); z-index:9999;">
     <div style="padding:10px 14px;border:1px solid var(--grid);border-radius:10px;background:var(--paper);font-weight:800">
@@ -2556,8 +2731,14 @@ function parseDelimited(text){
     r.split(new RegExp(`${sep}(?=(?:[^"]*"[^"]*")*[^"]*$)`)).map(c => c.replace(/^"|"$/g,''))
   );
   const rawHeaders = rows.shift() || [];
-  const headers = rawHeaders.map((h,i)=>String(h??'').replace(/^\uFEFF/,'').trim()||`col${i}`);
-  const data = rows.map(r => Object.fromEntries(r.map((v,i)=>[headers[i]||`col${i}`, v])));
+  const seenHeaders = new Map();
+  const headers = rawHeaders.map((h,i)=>{
+    const base = String(h??'').replace(/^\uFEFF/,'').trim()||`col${i}`;
+    const count = (seenHeaders.get(base)||0)+1;
+    seenHeaders.set(base,count);
+    return count>1 ? `${base} (${count})` : base;
+  });
+  const data = rows.map(r => Object.fromEntries(r.map((v,i)=>[(headers[i]||`col${i}`), v])));
   return { headers, rows: data };
 }
 function handleJSON(text){
@@ -2667,11 +2848,702 @@ function csvUrlForGid(gid){
   u.searchParams.set('output','csv');
   return u.toString();
 }
-  
+
   function withBust(u){
   const x = new URL(u);
   x.searchParams.set('_ts', Date.now());
   return x.toString();
+}
+
+/* --- Plan for Next Week integration --- */
+const PLAN_DEFAULT_DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+const PLAN_DEFAULT_PEOPLE = ['Callum','Graeme','Shaun','Jim/Ciaren'];
+const PLAN_FOCUS_SELECTOR = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+function normalizePlanList(value){
+  if(!value) return null;
+  if(Array.isArray(value)){
+    const list = value.map(v => String(v ?? '').trim()).filter(Boolean);
+    return list.length ? list : null;
+  }
+  if(typeof value === 'string'){
+    const list = value.split(/[,;\n]+/).map(v => v.trim()).filter(Boolean);
+    return list.length ? list : null;
+  }
+  return null;
+}
+
+function sanitizePlanScalar(value){
+  if(value == null) return null;
+  if(typeof value === 'string'){
+    const trimmed = value.trim();
+    if(!trimmed || trimmed === '-' || /^null$/i.test(trimmed) || /^undefined$/i.test(trimmed)) return null;
+    return trimmed;
+  }
+  if(typeof value === 'number'){
+    return Number.isFinite(value) ? String(value) : null;
+  }
+  if(typeof value === 'boolean'){
+    return value ? '1' : null;
+  }
+  return null;
+}
+
+function pickPlanScalar(...values){
+  for(const v of values){
+    const next = sanitizePlanScalar(v);
+    if(next != null) return next;
+  }
+  return null;
+}
+
+function pickPlanList(...values){
+  for(const v of values){
+    const list = normalizePlanList(v);
+    if(list) return list;
+  }
+  return [];
+}
+
+const planConfigFromWindow = (typeof window !== 'undefined' && window.ALS_PLAN_NEXT_WEEK_SOURCE && typeof window.ALS_PLAN_NEXT_WEEK_SOURCE === 'object')
+  ? window.ALS_PLAN_NEXT_WEEK_SOURCE
+  : null;
+
+const planConfigFromBody = (() => {
+  const dataset = (document.body && document.body.dataset) || {};
+  return {
+    gid: dataset.planGid,
+    url: dataset.planUrl,
+    label: dataset.planLabel,
+    days: dataset.planDays,
+    people: dataset.planPeople,
+  };
+})();
+
+const planDays = pickPlanList(planConfigFromBody.days, planConfigFromWindow?.days, PLAN_DEFAULT_DAYS);
+const planPeople = pickPlanList(planConfigFromBody.people, planConfigFromWindow?.people, PLAN_DEFAULT_PEOPLE);
+const planLabelOverride = pickPlanScalar(planConfigFromBody.label, planConfigFromWindow?.label);
+const planGidOverride = pickPlanScalar(planConfigFromBody.gid, planConfigFromWindow?.gid);
+const planUrlOverride = pickPlanScalar(planConfigFromBody.url, planConfigFromWindow?.url);
+const PLAN_LABEL_LOCKED = Boolean(planLabelOverride);
+const PLAN_SOURCE_LOCKED = Boolean(planGidOverride || planUrlOverride);
+
+let PLAN_NEXT_WEEK_SOURCE = {
+  gid: planGidOverride,
+  url: planUrlOverride,
+  label: planLabelOverride || 'Plan for Next Week',
+  days: planDays.length ? planDays : PLAN_DEFAULT_DAYS.slice(),
+  people: planPeople.length ? planPeople : PLAN_DEFAULT_PEOPLE.slice(),
+  meta: null,
+};
+
+const PLAN_NEXT_WEEK_DAYS = PLAN_NEXT_WEEK_SOURCE.days;
+const PLAN_NEXT_WEEK_PEOPLE = PLAN_NEXT_WEEK_SOURCE.people;
+
+const PLAN_DAY_SLUG_MAP = new Map();
+PLAN_NEXT_WEEK_DAYS.forEach(day => {
+  const str = String(day || '');
+  const slug = slugify(str);
+  if(slug) PLAN_DAY_SLUG_MAP.set(slug, day);
+  const lower = str.toLowerCase();
+  if(lower) PLAN_DAY_SLUG_MAP.set(lower, day);
+});
+const PLAN_DAY_ALIAS_TARGETS = new Map([
+  ['mon','monday'], ['monday','monday'],
+  ['tue','tuesday'], ['tues','tuesday'], ['tuesday','tuesday'],
+  ['wed','wednesday'], ['weds','wednesday'], ['wednesday','wednesday'],
+  ['thu','thursday'], ['thur','thursday'], ['thurs','thursday'], ['thursday','thursday'],
+  ['fri','friday'], ['friday','friday'],
+  ['sat','saturday'], ['saturday','saturday'],
+  ['sun','sunday'], ['sunday','sunday'],
+]);
+
+const PLAN_PERSON_SLUG_MAP = new Map();
+PLAN_NEXT_WEEK_PEOPLE.forEach(person => {
+  const str = String(person || '');
+  const slug = slugify(str);
+  if(slug) PLAN_PERSON_SLUG_MAP.set(slug, person);
+  const lower = str.toLowerCase();
+  if(lower) PLAN_PERSON_SLUG_MAP.set(lower, person);
+});
+const PLAN_PERSON_ALIAS_TARGETS = new Map([
+  ['callum','Callum'],
+  ['callum keith','Callum'],
+  ['callum keith engineering team','Callum'],
+  ['graeme','Graeme'],
+  ['graham','Graeme'],
+  ['shaun','Shaun'],
+  ['sean','Shaun'],
+  ['jim','Jim/Ciaren'],
+  ['ciaren','Jim/Ciaren'],
+  ['jimciaren','Jim/Ciaren'],
+  ['jim and ciaren','Jim/Ciaren'],
+  ['jim & ciaren','Jim/Ciaren'],
+  ['jim/ciaren','Jim/Ciaren'],
+  ['jim and cieren','Jim/Ciaren'],
+]);
+
+let PLAN_NEXT_WEEK_RAW = null;
+let PLAN_NEXT_WEEK_VIEW = null;
+let PLAN_NEXT_WEEK_LAST_UPDATED = null;
+let PLAN_NEXT_WEEK_LOADING = false;
+let PLAN_NEXT_WEEK_ERROR = null;
+
+const $planButton = document.getElementById('planNextWeekBtn');
+const $planOverlay = document.getElementById('planNextWeekOverlay');
+const $planDialog = document.getElementById('planNextWeekDialog');
+const $planClose = document.getElementById('planNextWeekClose');
+const $planRefresh = document.getElementById('planNextWeekRefresh');
+const $planStatus = document.getElementById('planNextWeekStatus');
+const $planTable = document.getElementById('planNextWeekTable');
+const $planTitle = document.getElementById('planNextWeekTitle');
+
+let __planReturnFocus = null;
+let __planPrevBodyOverflow = null;
+
+function planLabel(){
+  return PLAN_NEXT_WEEK_SOURCE?.label || 'Plan for Next Week';
+}
+
+function planSourceIsConfigured(){
+  return Boolean(getPlanSourceUrl());
+}
+
+function getPlanSourceUrl(){
+  if(PLAN_NEXT_WEEK_SOURCE?.url) return PLAN_NEXT_WEEK_SOURCE.url;
+  if(PLAN_NEXT_WEEK_SOURCE?.gid != null && PLAN_NEXT_WEEK_SOURCE.gid !== ''){
+    return csvUrlForGid(PLAN_NEXT_WEEK_SOURCE.gid);
+  }
+  return null;
+}
+
+function updatePlanHeaderLabel(){
+  if($planTitle) $planTitle.textContent = planLabel();
+}
+
+function syncPlanButtons(){
+  const configured = planSourceIsConfigured();
+  if($planRefresh){
+    $planRefresh.disabled = !configured || PLAN_NEXT_WEEK_LOADING;
+    if(!configured){
+      $planRefresh.title = 'Configure the plan sheet ID/URL to refresh';
+    }else if(PLAN_NEXT_WEEK_LOADING){
+      $planRefresh.title = 'Loading plan…';
+    }else{
+      $planRefresh.removeAttribute('title');
+    }
+  }
+  if($planButton){
+    if(!configured){
+      $planButton.title = 'Configure the plan sheet ID/URL to populate this view';
+    }else{
+      $planButton.removeAttribute('title');
+    }
+  }
+}
+
+function setPlanStatus(message, state='info'){
+  if(!$planStatus) return;
+  $planStatus.textContent = message || '';
+  $planStatus.dataset.state = state;
+}
+
+function isPlanOverlayOpen(){
+  return $planOverlay && !$planOverlay.hidden;
+}
+
+function focusFirstPlanElement(){
+  if(!$planOverlay) return;
+  const focusables = Array.from($planOverlay.querySelectorAll(PLAN_FOCUS_SELECTOR))
+    .filter(el => el.offsetParent !== null && !el.disabled);
+  if(focusables.length){
+    focusables[0].focus();
+  }else if($planDialog){
+    $planDialog.focus();
+  }
+}
+
+function trapPlanFocus(e){
+  if(e.key !== 'Tab' || !isPlanOverlayOpen()) return;
+  const focusables = Array.from($planOverlay.querySelectorAll(PLAN_FOCUS_SELECTOR))
+    .filter(el => el.offsetParent !== null && !el.disabled);
+  if(!focusables.length) return;
+  const first = focusables[0];
+  const last = focusables[focusables.length - 1];
+  if(e.shiftKey && document.activeElement === first){
+    e.preventDefault();
+    last.focus();
+  }else if(!e.shiftKey && document.activeElement === last){
+    e.preventDefault();
+    first.focus();
+  }
+}
+
+function handlePlanKeydown(e){
+  if(!isPlanOverlayOpen()) return;
+  if(e.key === 'Escape'){
+    e.preventDefault();
+    closePlanOverlay();
+  }else if(e.key === 'Tab'){
+    trapPlanFocus(e);
+  }
+}
+
+function openPlanOverlay(){
+  if(!$planOverlay || isPlanOverlayOpen()) return;
+  __planReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  __planPrevBodyOverflow = document.body ? document.body.style.overflow : null;
+  if(document.body) document.body.style.overflow = 'hidden';
+  $planOverlay.hidden = false;
+  $planOverlay.setAttribute('aria-hidden','false');
+  updatePlanHeaderLabel();
+  syncPlanButtons();
+  focusFirstPlanElement();
+  ensurePlanLoaded();
+  document.addEventListener('keydown', handlePlanKeydown, true);
+}
+
+function closePlanOverlay(){
+  if(!$planOverlay || !isPlanOverlayOpen()) return;
+  $planOverlay.hidden = true;
+  $planOverlay.setAttribute('aria-hidden','true');
+  document.removeEventListener('keydown', handlePlanKeydown, true);
+  if(document.body){
+    if(__planPrevBodyOverflow != null){
+      document.body.style.overflow = __planPrevBodyOverflow;
+    }else{
+      document.body.style.removeProperty('overflow');
+    }
+  }
+  if(__planReturnFocus && typeof __planReturnFocus.focus === 'function'){
+    __planReturnFocus.focus();
+  }
+  __planReturnFocus = null;
+}
+
+if($planOverlay){
+  $planOverlay.addEventListener('click', event => {
+    if(event.target === $planOverlay){
+      closePlanOverlay();
+    }
+  });
+}
+
+if($planButton){
+  $planButton.addEventListener('click', () => {
+    openPlanOverlay();
+  });
+}
+
+$planClose?.addEventListener('click', () => closePlanOverlay());
+$planRefresh?.addEventListener('click', () => ensurePlanLoaded(true));
+updatePlanHeaderLabel();
+syncPlanButtons();
+setPlanStatus(planSourceIsConfigured() ? 'Plan data has not been loaded yet.' : 'Configure the plan sheet ID/URL to view the schedule.', 'info');
+
+function applyPlanSourceFromIndex(entry){
+  if(!entry) return;
+  PLAN_NEXT_WEEK_SOURCE.meta = entry;
+  if(!PLAN_SOURCE_LOCKED){
+    const gid = sanitizePlanScalar(entry.gid);
+    const url = sanitizePlanScalar(entry.url);
+    if(url){
+      PLAN_NEXT_WEEK_SOURCE.url = url;
+    }else if(gid){
+      PLAN_NEXT_WEEK_SOURCE.gid = gid;
+    }
+  }
+  if(!PLAN_LABEL_LOCKED){
+    const lbl = sanitizePlanScalar(entry.label);
+    if(lbl) PLAN_NEXT_WEEK_SOURCE.label = lbl;
+  }
+  updatePlanHeaderLabel();
+  syncPlanButtons();
+}
+
+function normalizePlanDay(value){
+  const raw = sanitizePlanScalar(value);
+  if(!raw) return null;
+  const slug = slugify(raw);
+  if(PLAN_DAY_SLUG_MAP.has(slug)) return PLAN_DAY_SLUG_MAP.get(slug);
+  const lower = raw.toLowerCase();
+  if(PLAN_DAY_SLUG_MAP.has(lower)) return PLAN_DAY_SLUG_MAP.get(lower);
+  const aliasTarget = PLAN_DAY_ALIAS_TARGETS.get(slug) || PLAN_DAY_ALIAS_TARGETS.get(lower);
+  if(aliasTarget){
+    const aliasSlug = slugify(aliasTarget);
+    if(PLAN_DAY_SLUG_MAP.has(aliasSlug)) return PLAN_DAY_SLUG_MAP.get(aliasSlug);
+    const aliasLower = String(aliasTarget).toLowerCase();
+    if(PLAN_DAY_SLUG_MAP.has(aliasLower)) return PLAN_DAY_SLUG_MAP.get(aliasLower);
+  }
+  const asDate = new Date(raw);
+  if(!Number.isNaN(asDate.getTime())){
+    const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const derived = dayNames[asDate.getDay()];
+    const derivedSlug = slugify(derived);
+    if(PLAN_DAY_SLUG_MAP.has(derivedSlug)) return PLAN_DAY_SLUG_MAP.get(derivedSlug);
+    const derivedLower = derived.toLowerCase();
+    if(PLAN_DAY_SLUG_MAP.has(derivedLower)) return PLAN_DAY_SLUG_MAP.get(derivedLower);
+  }
+  return null;
+}
+
+function normalizePlanPerson(value){
+  const raw = sanitizePlanScalar(value);
+  if(!raw) return null;
+  const slug = slugify(raw);
+  if(PLAN_PERSON_SLUG_MAP.has(slug)) return PLAN_PERSON_SLUG_MAP.get(slug);
+  const lower = raw.toLowerCase();
+  if(PLAN_PERSON_SLUG_MAP.has(lower)) return PLAN_PERSON_SLUG_MAP.get(lower);
+  const aliasTarget = PLAN_PERSON_ALIAS_TARGETS.get(slug) || PLAN_PERSON_ALIAS_TARGETS.get(lower);
+  if(aliasTarget){
+    const aliasSlug = slugify(aliasTarget);
+    if(PLAN_PERSON_SLUG_MAP.has(aliasSlug)) return PLAN_PERSON_SLUG_MAP.get(aliasSlug);
+    const aliasLower = String(aliasTarget).toLowerCase();
+    if(PLAN_PERSON_SLUG_MAP.has(aliasLower)) return PLAN_PERSON_SLUG_MAP.get(aliasLower);
+  }
+  return null;
+}
+
+function splitPlanEntries(value){
+  if(value == null) return [];
+  if(Array.isArray(value)) return value.filter(Boolean);
+  const str = String(value).replace(/\r/g,'\n');
+  const parts = str.split(/\n+|;;+/).map(part => part.trim()).filter(Boolean);
+  return parts.length ? parts : (str.trim() ? [str.trim()] : []);
+}
+
+function extractPlanWorkOrderId(raw){
+  if(!raw) return null;
+  const str = String(raw);
+  const match = str.match(/(?:^|\b)WO[-\s#:]*?(\d{3,})\b/i) || str.match(/(?:^|\b)(\d{3,})\b/);
+  if(!match) return null;
+  return normalizeId(match[1]);
+}
+
+function findWorkOrderById(normalizedId, workOrders){
+  if(!normalizedId || !Array.isArray(workOrders)) return null;
+  return workOrders.find(row => normalizeId(row?.ID) === normalizedId);
+}
+
+function buildPlanEntry(rawValue, noteText, context){
+  const raw = sanitizePlanScalar(rawValue);
+  if(!raw) return null;
+  const entry = { raw, note: sanitizePlanScalar(noteText) || null, type:'text', lookupId:null, workOrder:null };
+  const id = extractPlanWorkOrderId(raw);
+  if(id){
+    entry.lookupId = id;
+    const match = findWorkOrderById(id, context.workOrders);
+    if(match){
+      entry.type = 'wo';
+      entry.workOrder = match;
+    }else{
+      entry.type = 'missing';
+    }
+  }
+  return entry;
+}
+
+function buildEmptyPlanMatrix(){
+  const matrix = new Map();
+  PLAN_NEXT_WEEK_DAYS.forEach(day => {
+    const inner = new Map();
+    PLAN_NEXT_WEEK_PEOPLE.forEach(person => {
+      inner.set(person, []);
+    });
+    matrix.set(day, inner);
+  });
+  return matrix;
+}
+
+function buildPlanView(raw, context){
+  const headers = Array.isArray(raw?.headers) ? raw.headers : [];
+  const rows = Array.isArray(raw?.rows) ? raw.rows : [];
+  const stats = {
+    totalRows: rows.length,
+    appliedEntries: 0,
+    skippedRows: 0,
+    unknownDays: new Set(),
+    unknownPeople: new Set(),
+    unmatchedWorkOrders: 0,
+  };
+  const headerLookup = headers.map(h => String(h || '').trim());
+  const headerLookupLower = headerLookup.map(h => h.toLowerCase());
+  const headerLookupBase = headerLookup.map(h => h.replace(/\s*\(\d+\)$/, '').trim().toLowerCase());
+  const normalizeCandidate = value => String(value ?? '').trim().toLowerCase();
+  const matchHeader = (index, wanted) => wanted.includes(headerLookupLower[index]) || wanted.includes(headerLookupBase[index]);
+  const findHeaders = (...candidates) => {
+    const wanted = candidates.map(normalizeCandidate).filter(Boolean);
+    if(!wanted.length) return [];
+    const results = [];
+    headerLookup.forEach((_, index) => {
+      if(matchHeader(index, wanted)){
+        results.push(headers[index]);
+      }
+    });
+    return results;
+  };
+  const findHeader = (...candidates) => {
+    const matches = findHeaders(...candidates);
+    return matches.length ? matches[0] : null;
+  };
+  const H_DAY = findHeader('day', 'weekday', 'week day', 'date', 'plan day');
+  const H_PERSON = findHeader('person', 'engineer', 'name', 'assigned to', 'team', 'staff');
+  const ENTRY_HEADERS = findHeaders('entry', 'item', 'task', 'work order', 'wo', 'details', 'description', 'text');
+  const H_NOTES = findHeader('notes', 'note', 'comment', 'comments', 'extra');
+  const issues = [];
+  if(!H_DAY) issues.push('Day');
+  if(!H_PERSON) issues.push('Engineer');
+  if(!ENTRY_HEADERS.length && !H_NOTES) issues.push('Entry');
+  const matrix = buildEmptyPlanMatrix();
+  if(issues.length){
+    return { matrix, stats, issues, columns:{ day:H_DAY, person:H_PERSON, entry:ENTRY_HEADERS, notes:H_NOTES } };
+  }
+  rows.forEach(row => {
+    const rawDay = H_DAY ? row?.[H_DAY] : null;
+    const day = normalizePlanDay(rawDay);
+    if(!day){
+      if(rawDay) stats.unknownDays.add(String(rawDay));
+      stats.skippedRows += 1;
+      return;
+    }
+    const rawPerson = H_PERSON ? row?.[H_PERSON] : null;
+    const person = normalizePlanPerson(rawPerson);
+    if(!person){
+      if(rawPerson) stats.unknownPeople.add(String(rawPerson));
+      stats.skippedRows += 1;
+      return;
+    }
+    const entryValues = ENTRY_HEADERS.map(h => row?.[h]);
+    const noteValue = H_NOTES ? row?.[H_NOTES] : null;
+    const values = entryValues.flatMap(val => splitPlanEntries(val));
+    const noteText = sanitizePlanScalar(noteValue);
+    const entriesToProcess = values.length ? values : (noteText ? [noteText] : []);
+    const noteForEntries = values.length ? noteText : null;
+    let added = 0;
+    entriesToProcess.forEach(val => {
+      const entry = buildPlanEntry(val, noteForEntries, context);
+      if(!entry) return;
+      if(entry.type === 'missing') stats.unmatchedWorkOrders += 1;
+      matrix.get(day)?.get(person)?.push(entry);
+      stats.appliedEntries += 1;
+      added += 1;
+    });
+    if(!added){
+      stats.skippedRows += 1;
+    }
+  });
+  return { matrix, stats, issues, columns:{ day:H_DAY, person:H_PERSON, entry:ENTRY_HEADERS, notes:H_NOTES } };
+}
+
+function formatPlanTimestamp(date){
+  if(!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+  try{
+    return new Intl.DateTimeFormat(undefined, { dateStyle:'medium', timeStyle:'short' }).format(date);
+  }catch{
+    return date.toISOString();
+  }
+}
+
+function planStatsSummary(stats){
+  if(!stats) return '';
+  const parts = [];
+  const applied = stats.appliedEntries || 0;
+  parts.push(`${applied} entr${applied === 1 ? 'y' : 'ies'}`);
+  if(stats.unmatchedWorkOrders){
+    const label = stats.unmatchedWorkOrders === 1 ? 'WO not found' : 'WOs not found';
+    parts.push(`${stats.unmatchedWorkOrders} ${label}`);
+  }
+  const skippedDetails = [];
+  if(stats.unknownDays && stats.unknownDays.size){
+    skippedDetails.push(`unknown day: ${Array.from(stats.unknownDays).join(', ')}`);
+  }
+  if(stats.unknownPeople && stats.unknownPeople.size){
+    skippedDetails.push(`unknown engineer: ${Array.from(stats.unknownPeople).join(', ')}`);
+  }
+  if(stats.skippedRows){
+    skippedDetails.push(`${stats.skippedRows} row${stats.skippedRows === 1 ? '' : 's'} skipped`);
+  }
+  if(skippedDetails.length){
+    parts.push(`Skipped (${skippedDetails.join('; ')})`);
+  }
+  return parts.join(' • ');
+}
+
+function renderPlanEntry(entry){
+  const container = document.createElement('div');
+  container.className = 'plan-entry';
+  container.dataset.entryType = entry.type || 'text';
+  if(entry.type === 'wo'){
+    const id = document.createElement('div');
+    id.className = 'plan-entry__id';
+    const idValue = entry.workOrder?.ID || entry.lookupId || entry.raw;
+    const idText = String(idValue);
+    id.textContent = /^wo/i.test(idText) ? idText : `WO ${idText}`;
+    container.appendChild(id);
+    const title = document.createElement('div');
+    title.className = 'plan-entry__title';
+    title.textContent = entry.workOrder?.Title || entry.raw;
+    container.appendChild(title);
+    const metaParts = [];
+    if(entry.workOrder?.Location) metaParts.push(entry.workOrder.Location);
+    if(entry.workOrder?.Status) metaParts.push(entry.workOrder.Status);
+    if(entry.workOrder?.Priority) metaParts.push(`Priority: ${entry.workOrder.Priority}`);
+    if(metaParts.length){
+      const meta = document.createElement('div');
+      meta.className = 'plan-entry__meta';
+      meta.textContent = metaParts.join(' • ');
+      container.appendChild(meta);
+    }
+  }else if(entry.type === 'missing'){
+    const title = document.createElement('div');
+    title.className = 'plan-entry__title';
+    title.textContent = entry.raw;
+    container.appendChild(title);
+    const meta = document.createElement('div');
+    meta.className = 'plan-entry__meta';
+    meta.textContent = 'Work order not found';
+    container.appendChild(meta);
+  }else{
+    const text = document.createElement('div');
+    text.className = 'plan-entry__text';
+    text.textContent = entry.raw;
+    container.appendChild(text);
+  }
+  if(entry.note){
+    const note = document.createElement('div');
+    note.className = 'plan-entry__note';
+    note.textContent = entry.note;
+    container.appendChild(note);
+  }
+  return container;
+}
+
+function renderPlanTable(view){
+  if(!$planTable) return;
+  $planTable.innerHTML = '';
+  if(!planSourceIsConfigured()){
+    setPlanStatus('Configure the plan sheet ID/URL to view the schedule.', 'info');
+    return;
+  }
+  if(!view){
+    setPlanStatus('Plan data has not been loaded yet.', 'info');
+    return;
+  }
+  if(view.issues && view.issues.length){
+    setPlanStatus(`Plan sheet is missing required column(s): ${view.issues.join(', ')}`, 'error');
+    return;
+  }
+  const thead = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+  const thBlank = document.createElement('th');
+  thBlank.scope = 'col';
+  thBlank.textContent = 'Engineer';
+  headerRow.appendChild(thBlank);
+  PLAN_NEXT_WEEK_DAYS.forEach(day => {
+    const th = document.createElement('th');
+    th.scope = 'col';
+    th.textContent = day;
+    headerRow.appendChild(th);
+  });
+  thead.appendChild(headerRow);
+  const tbody = document.createElement('tbody');
+  PLAN_NEXT_WEEK_PEOPLE.forEach(person => {
+    const tr = document.createElement('tr');
+    const th = document.createElement('th');
+    th.scope = 'row';
+    th.textContent = person;
+    tr.appendChild(th);
+    PLAN_NEXT_WEEK_DAYS.forEach(day => {
+      const td = document.createElement('td');
+      const entries = view.matrix.get(day)?.get(person) || [];
+      if(entries.length){
+        entries.forEach(entry => td.appendChild(renderPlanEntry(entry)));
+      }else{
+        const empty = document.createElement('div');
+        empty.className = 'plan-empty';
+        empty.textContent = 'No plan';
+        td.appendChild(empty);
+      }
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  $planTable.appendChild(thead);
+  $planTable.appendChild(tbody);
+  const statusParts = [];
+  statusParts.push(planLabel());
+  const summary = planStatsSummary(view.stats);
+  if(summary) statusParts.push(summary);
+  if(PLAN_NEXT_WEEK_LAST_UPDATED){
+    statusParts.push(`Updated ${formatPlanTimestamp(PLAN_NEXT_WEEK_LAST_UPDATED)}`);
+  }
+  setPlanStatus(statusParts.join(' • '), 'ready');
+}
+
+function rebuildPlanView(){
+  if(!PLAN_NEXT_WEEK_RAW){
+    PLAN_NEXT_WEEK_VIEW = null;
+    return;
+  }
+  PLAN_NEXT_WEEK_VIEW = buildPlanView(PLAN_NEXT_WEEK_RAW, { workOrders: Array.isArray(ALL_ROWS) ? ALL_ROWS : [] });
+  if(isPlanOverlayOpen()){
+    renderPlanTable(PLAN_NEXT_WEEK_VIEW);
+  }
+}
+
+async function loadPlanNextWeek(force=false){
+  if(PLAN_NEXT_WEEK_LOADING && !force) return PLAN_NEXT_WEEK_RAW;
+  const urlBase = getPlanSourceUrl();
+  if(!urlBase){
+    throw new Error('Plan sheet is not configured.');
+  }
+  PLAN_NEXT_WEEK_LOADING = true;
+  PLAN_NEXT_WEEK_ERROR = null;
+  syncPlanButtons();
+  try{
+    const url = force ? withBust(urlBase) : urlBase;
+    const res = await fetch(url);
+    if(!res.ok){
+      throw new Error(`Could not load plan sheet (${res.status} ${res.statusText})`);
+    }
+    const text = await res.text();
+    if(!text || !text.trim()){
+      throw new Error('Plan sheet is empty.');
+    }
+    const parsed = parseDelimited(text);
+    PLAN_NEXT_WEEK_RAW = { headers: parsed.headers, rows: parsed.rows };
+    PLAN_NEXT_WEEK_LAST_UPDATED = new Date();
+    rebuildPlanView();
+    return PLAN_NEXT_WEEK_RAW;
+  } finally {
+    PLAN_NEXT_WEEK_LOADING = false;
+    syncPlanButtons();
+  }
+}
+
+async function ensurePlanLoaded(force=false){
+  if(!planSourceIsConfigured()){
+    setPlanStatus('Configure the plan sheet ID/URL to view the schedule.', 'info');
+    return;
+  }
+  try{
+    setPlanStatus('Loading plan…', 'loading');
+    await loadPlanNextWeek(force);
+    renderPlanTable(PLAN_NEXT_WEEK_VIEW);
+  } catch(err){
+    PLAN_NEXT_WEEK_ERROR = err;
+    if($planTable) $planTable.innerHTML = '';
+    setPlanStatus(err?.message || 'Could not load plan data.', 'error');
+  }
+}
+
+function refreshPlanWithWorkOrders(){
+  rebuildPlanView();
+}
+
+function isPlanLabel(label){
+  const slug = slugify(String(label || ''));
+  return slug === 'plan-next-week' || slug === 'next-week-plan' || slug === 'plan-for-next-week';
 }
 
 /* --- Parse the Index (label, week_end, gid) with aliases + diagnostics --- */
@@ -2733,9 +3605,23 @@ const out = rows.map(r => {
     throw new Error('Index has no rows with a gid');
   }
 
+  const planRows = [];
+  const weekRows = [];
+  out.forEach(entry => {
+    if(isPlanLabel(entry.label)){
+      planRows.push(entry);
+    }else{
+      weekRows.push(entry);
+    }
+  });
+
+  if(planRows.length){
+    applyPlanSourceFromIndex(planRows[0]);
+  }
+
   // newest first by week_end (string compare ok if YYYY-MM-DD)
-  out.sort((a,b) => String(b.weekEnd).localeCompare(String(a.weekEnd)));
-  return out;
+  weekRows.sort((a,b) => String(b.weekEnd).localeCompare(String(a.weekEnd)));
+  return weekRows;
 }
 
 /* --- Selection + persistence --- */
@@ -3715,6 +4601,7 @@ const targetId =
 PREFERRED_ACTIVE_DASH = null;
 if (targetId) setActiveDash(targetId);
 syncLayoutToggle();
+refreshPlanWithWorkOrders();
 } // closes function ingestToDashboards
 
 
