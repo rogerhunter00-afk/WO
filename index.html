@@ -3266,17 +3266,26 @@ function buildPlanView(raw, context){
     const idx = headerLookup.findIndex(h => wanted.includes(h.toLowerCase()));
     return idx >= 0 ? headers[idx] : null;
   };
+  const findHeaders = (...candidates) => {
+    const wanted = new Set(candidates.map(c => String(c).trim().toLowerCase()).filter(Boolean));
+    if(!wanted.size) return [];
+    const matches = [];
+    headerLookup.forEach((h, idx) => {
+      if(wanted.has(h.toLowerCase())) matches.push(headers[idx]);
+    });
+    return matches;
+  };
   const H_DAY = findHeader('day', 'weekday', 'week day', 'date', 'plan day');
   const H_PERSON = findHeader('person', 'engineer', 'name', 'assigned to', 'team', 'staff');
-  const H_ENTRY = findHeader('entry', 'item', 'task', 'work order', 'wo', 'details', 'description', 'text');
+  const H_ENTRY_ALL = findHeaders('entry', 'item', 'task', 'work order', 'wo', 'details', 'description', 'text');
   const H_NOTES = findHeader('notes', 'note', 'comment', 'comments', 'extra');
   const issues = [];
   if(!H_DAY) issues.push('Day');
   if(!H_PERSON) issues.push('Engineer');
-  if(!H_ENTRY && !H_NOTES) issues.push('Entry');
+  if(!H_ENTRY_ALL.length && !H_NOTES) issues.push('Entry');
   const matrix = buildEmptyPlanMatrix();
   if(issues.length){
-    return { matrix, stats, issues, columns:{ day:H_DAY, person:H_PERSON, entry:H_ENTRY, notes:H_NOTES } };
+    return { matrix, stats, issues, columns:{ day:H_DAY, person:H_PERSON, entry:H_ENTRY_ALL, notes:H_NOTES } };
   }
   rows.forEach(row => {
     const rawDay = H_DAY ? row?.[H_DAY] : null;
@@ -3293,9 +3302,9 @@ function buildPlanView(raw, context){
       stats.skippedRows += 1;
       return;
     }
-    const entryValue = H_ENTRY ? row?.[H_ENTRY] : null;
+    const entryValues = H_ENTRY_ALL.flatMap(header => splitPlanEntries(row?.[header]));
     const noteValue = H_NOTES ? row?.[H_NOTES] : null;
-    const values = splitPlanEntries(entryValue);
+    const values = entryValues.filter(Boolean);
     const noteText = sanitizePlanScalar(noteValue);
     const entriesToProcess = values.length ? values : (noteText ? [noteText] : []);
     const noteForEntries = values.length ? noteText : null;
@@ -3312,7 +3321,7 @@ function buildPlanView(raw, context){
       stats.skippedRows += 1;
     }
   });
-  return { matrix, stats, issues, columns:{ day:H_DAY, person:H_PERSON, entry:H_ENTRY, notes:H_NOTES } };
+  return { matrix, stats, issues, columns:{ day:H_DAY, person:H_PERSON, entry:H_ENTRY_ALL, notes:H_NOTES } };
 }
 
 function formatPlanTimestamp(date){
