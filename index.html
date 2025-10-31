@@ -3371,16 +3371,6 @@ function renderPlanEntry(entry){
     title.className = 'plan-entry__title';
     title.textContent = entry.workOrder?.Title || entry.raw;
     container.appendChild(title);
-    const metaParts = [];
-    if(entry.workOrder?.Location) metaParts.push(entry.workOrder.Location);
-    if(entry.workOrder?.Status) metaParts.push(entry.workOrder.Status);
-    if(entry.workOrder?.Priority) metaParts.push(`Priority: ${entry.workOrder.Priority}`);
-    if(metaParts.length){
-      const meta = document.createElement('div');
-      meta.className = 'plan-entry__meta';
-      meta.textContent = metaParts.join(' • ');
-      container.appendChild(meta);
-    }
   }else if(entry.type === 'missing'){
     const title = document.createElement('div');
     title.className = 'plan-entry__title';
