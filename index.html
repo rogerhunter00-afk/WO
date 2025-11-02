@@ -3405,6 +3405,13 @@ function buildPlanView(raw, context) {
   const seenDays   = new Set();
   const seenPeople = new Set();
 
+  // Helper function to check if a value is just a placeholder note
+  function isPlaceholderNote(value) {
+    if (!value) return false;
+    const str = String(value).trim().toLowerCase();
+    return str === 'note' || str === 'notes' || str === '';
+  }
+
   // helper: pull col by index OR by header name fallback
   function getCell(row, index, fallbackHeaderName) {
     // object row ({"Day": "...", "Engineer": "...", "Entry": "..."})
@@ -3444,19 +3451,19 @@ function buildPlanView(raw, context) {
       return;
     }
 
-    // C → Entry (WO number or task description)
+    // C → Entry (WO number or task)
     const rawEntry = getCell(row, 2, "Entry");
 
-    // split entries and filter out placeholder "NOTE" text
+    // Skip if the entire entry is just a placeholder
+    if (isPlaceholderNote(rawEntry)) {
+      stats.skippedRows++;
+      return;
+    }
+
+    // Split multiple entries and filter out placeholders
     const parts = splitPlanEntries(rawEntry)
       .map(p => String(p || "").trim())
-      .filter(p => {
-        if (!p) return false;
-        const low = p.toLowerCase();
-        // Skip standalone "note" or "notes" placeholder text
-        if (low === "note" || low === "notes") return false;
-        return true;
-      });
+      .filter(p => !isPlaceholderNote(p));
 
     if (!parts.length) {
       stats.skippedRows++;
@@ -3469,7 +3476,6 @@ function buildPlanView(raw, context) {
 
     let added = 0;
     parts.forEach((val, entryIndex) => {
-      // No separate notes column, so pass null for note parameter
       const entry = buildPlanEntry(val, null, context);
       if (!entry) return;
 
@@ -3580,18 +3586,16 @@ function createTaskCardTitle(text){
 
 function planEntryPresentationType(entry){
   if(!entry) return 'text';
-  if(entry.type === 'note') return 'note';
   if(entry.type === 'missing') return 'missing';
   if(entry.type === 'wo') return 'wo';
-  const rawLabel = typeof entry.raw === 'string' ? entry.raw.trim().toLowerCase() : '';
-  if(rawLabel && (rawLabel === 'note' || rawLabel === 'notes')) return 'note';
+  // We've already filtered out placeholder notes during parsing,
+  // so we don't need to check for them here
   return entry.type || 'text';
 }
 
 function deriveTaskCardVariant(entry, entryType){
   if(!entry) return 'scheduled';
   const type = entryType || planEntryPresentationType(entry);
-  if(type === 'note') return 'note';
   if(type === 'missing') return 'critical';
   if(type === 'text') return 'scheduled';
   const statusSlug = entry.workOrder ? slugify(String(entry.workOrder.Status ?? entry.workOrder.status ?? '')) : '';
@@ -3606,7 +3610,10 @@ function deriveTaskCardVariant(entry, entryType){
 function planCardChipLabel(entry, entryType){
   if(!entry) return null;
   const type = entryType || planEntryPresentationType(entry);
-  if(type === 'note') return 'NOTE';
+  
+  // We filter out placeholder notes during parsing, so this should never happen
+  // but keep it as a safety check
+  if(type === 'note') return null;
 
   const idCandidate = entry.lookupId || entry.workOrder?.ID;
   if(idCandidate){
@@ -5889,7 +5896,7 @@ document.addEventListener('keydown', (e)=>{
 </script>
   <script>
 (function () {
-  // keep whatever the page currently uses
+  // Enhanced cleanup to ensure no NOTE entries slip through
   const originalBuild = window.buildPlanView;
   if (typeof originalBuild !== "function") return;
 
@@ -5898,6 +5905,13 @@ document.addEventListener('keydown', (e)=>{
 
     // safety
     if (!out || !out.matrix) return out;
+
+    // Helper to check if value is a placeholder note
+    function isPlaceholderNote(value) {
+      if (!value) return false;
+      const str = String(value).trim().toLowerCase();
+      return str === 'note' || str === 'notes' || str === '';
+    }
 
     // walk every day → every engineer → entries[]
     out.matrix.forEach((peopleMap, day) => {
@@ -5909,24 +5923,22 @@ document.addEventListener('keydown', (e)=>{
           // bail if entry missing
           if (!entry) return;
 
+          // Check all possible text fields
           const label = String(entry.label || entry.title || "").trim();
           const text  = String(entry.text  || "").trim();
           const raw   = String(entry.raw || "").trim();
 
-          // 1) kill standalone "NOTE" / "Notes" / "note" entries
-          // Check if the ENTIRE value (not just containing) is exactly "note"
-          const isNoteWord =
-            (label && label.toLowerCase() === "note") ||
-            (text  && text.toLowerCase()  === "note") ||
-            (raw   && raw.toLowerCase()   === "note") ||
-            (raw   && raw.toLowerCase()   === "notes");
-
-          if (isNoteWord) {
-            return; // skip it
+          // Skip if ANY field is exactly "note" or "notes"
+          if (isPlaceholderNote(label) || isPlaceholderNote(text) || isPlaceholderNote(raw)) {
+            return; // skip it completely
           }
 
-          // 2) kill "doubled" entries like "Isla Bank FeederIsla Bank Feeder"
-          //    (this happens when entry and note are the same)
+          // Skip if type is explicitly 'note'
+          if (entry.type === 'note') {
+            return;
+          }
+
+          // Skip duplicated text (e.g., "Isla Bank FeederIsla Bank Feeder")
           const textToCheck = text || raw || "";
           if (textToCheck && textToCheck.length > 8) {
             const half = Math.floor(textToCheck.length / 2);
