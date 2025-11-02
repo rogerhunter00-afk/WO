@@ -3409,30 +3409,26 @@ function buildPlanView(raw, context) {
 
   // helper: pull col by index OR by header name fallback
   function getCell(row, index, fallbackHeaderName) {
-    // row may be an object ({"Day": "...", "Engineer": "..."})
+    // object row ({"Day": "...", "Engineer": "...", "Entry": "..."})
     if (row && typeof row === "object" && !Array.isArray(row)) {
-      // prefer index position if headers exist
       if (headers.length > index) {
         const key = headers[index];
         if (key in row) return row[key];
       }
-      // fallback to known header name if present
       if (fallbackHeaderName && fallbackHeaderName in row) {
         return row[fallbackHeaderName];
       }
       return null;
     }
-
-    // or row may be a plain array
+    // array row (["Monday","Shaun","8430"])
     if (Array.isArray(row)) {
       return typeof row[index] !== "undefined" ? row[index] : null;
     }
-
     return null;
   }
 
   rows.forEach((row, rowIndex) => {
-    // A → day
+    // A → Day
     const rawDay = getCell(row, 0, "Day");
     const day    = normalizePlanDay(rawDay);
     if (!day) {
@@ -3441,7 +3437,7 @@ function buildPlanView(raw, context) {
       return;
     }
 
-    // B → engineer
+    // B → Engineer
     const rawPerson = getCell(row, 1, "Engineer");
     const person    = normalizePlanPerson(rawPerson);
     if (!person) {
@@ -3450,9 +3446,9 @@ function buildPlanView(raw, context) {
       return;
     }
 
-    // C → entry (can be WO or note)
+    // C → Entry (note OR WO number)
     const rawEntry = getCell(row, 2, "Entry");
-    const parts    = splitPlanEntries(rawEntry);
+    const parts    = splitPlanEntries(rawEntry);   // splits on linebreaks
     if (!parts.length) {
       stats.skippedRows++;
       return;
