@@ -3388,12 +3388,11 @@ function mergePlanOrder(primary, fallback){
   return merged;
 }
 
-// REPLACE the existing buildPlanView(...) with this version
-function buildPlanView(raw, context){
+// hard-wire plan sheet: col A = Day, col B = Engineer, col C = Entry
+function buildPlanView(raw, context) {
   const headers = Array.isArray(raw?.headers) ? raw.headers : [];
   const rows    = Array.isArray(raw?.rows)    ? raw.rows    : [];
 
-  // we'll still report basic stats so the status bar works
   const stats = {
     totalRows: rows.length,
     appliedEntries: 0,
@@ -3403,74 +3402,74 @@ function buildPlanView(raw, context){
     unmatchedWorkOrders: 0,
   };
 
-  // build the empty Monday–Friday × people matrix using your existing globals
   const matrix = buildEmptyPlanMatrix();
   const order  = { days: [], people: [] };
-
-  // hard-wire: A = day, B = engineer, C = item
-  // (if the sheet has headers, these will be the real names; if not, we just invent labels)
-  const COL_DAY    = headers[0] ?? 'Day';
-  const COL_PERSON = headers[1] ?? 'Engineer';
-  const COL_ITEM   = headers[2] ?? 'Item';
-
   const seenDays   = new Set();
   const seenPeople = new Set();
 
+  // helper: pull col by index OR by header name fallback
+  function getCell(row, index, fallbackHeaderName) {
+    // row may be an object ({"Day": "...", "Engineer": "..."})
+    if (row && typeof row === "object" && !Array.isArray(row)) {
+      // prefer index position if headers exist
+      if (headers.length > index) {
+        const key = headers[index];
+        if (key in row) return row[key];
+      }
+      // fallback to known header name if present
+      if (fallbackHeaderName && fallbackHeaderName in row) {
+        return row[fallbackHeaderName];
+      }
+      return null;
+    }
+
+    // or row may be a plain array
+    if (Array.isArray(row)) {
+      return typeof row[index] !== "undefined" ? row[index] : null;
+    }
+
+    return null;
+  }
+
   rows.forEach((row, rowIndex) => {
-    // 1) get day from column A
-    const rawDay = row?.[COL_DAY] ?? null;
-    const day    = normalizePlanDay(rawDay);   // uses your existing alias map (Mon, Tue, etc.)
-    if (!day){
+    // A → day
+    const rawDay = getCell(row, 0, "Day");
+    const day    = normalizePlanDay(rawDay);
+    if (!day) {
       if (rawDay) stats.unknownDays.add(String(rawDay));
-      stats.skippedRows += 1;
+      stats.skippedRows++;
       return;
     }
 
-    // 2) get engineer from column B
-    const rawPerson = row?.[COL_PERSON] ?? null;
-    const person    = normalizePlanPerson(rawPerson);  // uses your existing person alias map
-    if (!person){
+    // B → engineer
+    const rawPerson = getCell(row, 1, "Engineer");
+    const person    = normalizePlanPerson(rawPerson);
+    if (!person) {
       if (rawPerson) stats.unknownPeople.add(String(rawPerson));
-      stats.skippedRows += 1;
+      stats.skippedRows++;
       return;
     }
 
-    // remember order in the same way as before
-    if (!seenDays.has(day)){
-      seenDays.add(day);
-      order.days.push(day);
-    }
-    if (!seenPeople.has(person)){
-      seenPeople.add(person);
-      order.people.push(person);
-    }
-
-    // 3) get item(s) from column C
-    const rawItem = row?.[COL_ITEM] ?? null;
-    // allow multiple lines in C (like your old version)
-    const itemParts = splitPlanEntries(rawItem);
-
-    // if nothing in column C, we skip this row
-    if (!itemParts.length){
-      stats.skippedRows += 1;
+    // C → entry (can be WO or note)
+    const rawEntry = getCell(row, 2, "Entry");
+    const parts    = splitPlanEntries(rawEntry);
+    if (!parts.length) {
+      stats.skippedRows++;
       return;
     }
 
-    // we do NOT have a dedicated notes column in this hard-wired version,
-    // so we just pass null as the note (the text itself will still show)
-    const noteForEntries = null;
+    if (!seenDays.has(day))   { seenDays.add(day);   order.days.push(day); }
+    if (!seenPeople.has(person)) { seenPeople.add(person); order.people.push(person); }
+
     let added = 0;
-
-    itemParts.forEach((val, entryIndex) => {
-      const entry = buildPlanEntry(val, noteForEntries, context);
+    parts.forEach((val, entryIndex) => {
+      const entry = buildPlanEntry(val, null, context);
       if (!entry) return;
 
-      // if it's a WO but we couldn't find it in ALL_ROWS, count it
-      if (entry.type === 'missing') {
-        stats.unmatchedWorkOrders += 1;
+      if (entry.type === "missing") {
+        stats.unmatchedWorkOrders++;
       }
 
-      // keep metadata so sorting in the UI still works
       entry.__meta = {
         rowIndex,
         entryIndex,
@@ -3481,25 +3480,24 @@ function buildPlanView(raw, context){
       const bucket = matrix.get(day)?.get(person);
       if (bucket) {
         bucket.push(entry);
-        stats.appliedEntries += 1;
-        added += 1;
+        stats.appliedEntries++;
+        added++;
       }
     });
 
     if (!added) {
-      stats.skippedRows += 1;
+      stats.skippedRows++;
     }
   });
 
-  // hand back the same shape the renderer expects
   return {
     matrix,
     stats,
-    issues: [], // we’re hard-wired to A/B/C so we don’t complain about missing headers
+    issues: [],
     columns: {
-      day:    COL_DAY,
-      person: COL_PERSON,
-      entry:  [COL_ITEM],
+      day:    headers[0] || "Day",
+      person: headers[1] || "Engineer",
+      entry:  [headers[2] || "Entry"],
       notes:  null
     },
     order: {
