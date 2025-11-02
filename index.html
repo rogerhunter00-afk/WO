@@ -3462,7 +3462,7 @@ function buildPlanView(raw, context){
         if(noteText && isPlanNotePlaceholder(val)) return false;
         return true;
       });
-    const entriesToProcess = values.length ? values : (noteText ? [noteText] : []);
+    const entriesToProcess = values;
     const noteForEntries = values.length ? noteText : null;
     let added = 0;
     entriesToProcess.forEach((val, entryIndex) => {
@@ -3474,7 +3474,6 @@ function buildPlanView(raw, context){
         entryIndex,
         day,
         person,
-        isStandaloneNote: !values.length,
       };
       matrix.get(day)?.get(person)?.push(entry);
       stats.appliedEntries += 1;
@@ -3562,7 +3561,6 @@ function createTaskCardTitle(text){
 
 function planEntryPresentationType(entry){
   if(!entry) return 'text';
-  if(entry.__meta?.isStandaloneNote) return 'note';
   if(entry.type === 'note') return 'note';
   if(entry.type === 'missing') return 'missing';
   if(entry.type === 'wo') return 'wo';
