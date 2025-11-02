@@ -5887,5 +5887,62 @@ document.addEventListener('keydown', (e)=>{
   }
 });
 </script>
+  <script>
+(function () {
+  // keep whatever the page currently uses
+  const originalBuild = window.buildPlanView;
+  if (typeof originalBuild !== "function") return;
+
+  window.buildPlanView = function (raw, context) {
+    const out = originalBuild(raw, context);
+
+    // safety
+    if (!out || !out.matrix) return out;
+
+    // walk every day → every engineer → entries[]
+    out.matrix.forEach((peopleMap, day) => {
+      peopleMap.forEach((entries, person) => {
+        if (!Array.isArray(entries) || !entries.length) return;
+
+        const cleaned = [];
+        entries.forEach((entry) => {
+          // bail if entry missing
+          if (!entry) return;
+
+          const label = String(entry.label || entry.title || "").trim();
+          const text  = String(entry.text  || "").trim();
+
+          // 1) kill template NOTE / Notes / note
+          const isNoteWord =
+            (label && label.toLowerCase() === "note") ||
+            (text  && text.toLowerCase()  === "note");
+
+          if (isNoteWord) {
+            return; // skip it
+          }
+
+          // 2) kill "doubled" entries like "Isla Bank FeederIsla Bank Feeder"
+          //    (this happens when entry and note are the same)
+          if (text && text.length > 8) {
+            const half = Math.floor(text.length / 2);
+            const first = text.slice(0, half);
+            const second = text.slice(half);
+            if (first === second) {
+              return; // skip the duplicated one
+            }
+          }
+
+          cleaned.push(entry);
+        });
+
+        // replace with cleaned list
+        peopleMap.set(person, cleaned);
+      });
+    });
+
+    return out;
+  };
+})();
+</script>
 </body>
 </html>
