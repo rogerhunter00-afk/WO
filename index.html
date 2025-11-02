@@ -3456,7 +3456,344 @@ function renderPlanTable(view){
     statusParts.push(`Updated ${formatPlanTimestamp(PLAN_NEXT_WEEK_LAST_UPDATED)}`);
   }
   setPlanStatus(statusParts.join(' • '), 'ready');
+  if(window.__planNextWeekNoteStyler__ && typeof window.__planNextWeekNoteStyler__.apply === 'function'){
+    try{
+      window.__planNextWeekNoteStyler__.apply();
+    }catch{}
+  }
 }
+
+// 1) css string
+const css = `
+:root{
+  --pnw-text:#1f2937;
+  --pnw-muted:#6b7280;
+  --pnw-card:#f8fafc;
+  --pnw-border:#e5e7eb;
+  --pnw-shadow:0 1px 2px rgba(0,0,0,.06),0 2px 8px rgba(0,0,0,.04);
+  --pnw-badge-wo-bg:#eef2ff;
+  --pnw-badge-wo-tx:#3730a3;
+  --pnw-badge-note-bg:#ecfeff;
+  --pnw-badge-note-tx:#065f46;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --pnw-text:#e5e7eb;
+    --pnw-muted:#9ca3af;
+    --pnw-card:#111827;
+    --pnw-border:#1f2937;
+    --pnw-shadow:0 1px 2px rgba(0,0,0,.4),0 2px 10px rgba(0,0,0,.3);
+    --pnw-badge-wo-bg:#1e293b;
+    --pnw-badge-wo-tx:#c7d2fe;
+    --pnw-badge-note-bg:#0f172a;
+    --pnw-badge-note-tx:#a7f3d0;
+  }
+}
+#plan-next-week [data-wo-card],
+#plan-next-week [data-note-chip]{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding:11px 12px;
+  border-radius:6px;
+  border:1px solid var(--pnw-border);
+  background:var(--pnw-card);
+  box-shadow:var(--pnw-shadow);
+  color:var(--pnw-text);
+  line-height:1.25;
+  font-size:15px;
+}
+#plan-next-week [data-wo-card] > .pnw-card-header,
+#plan-next-week [data-note-chip] > .pnw-card-header{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+}
+#plan-next-week [data-wo-card] > .pnw-card-header .wo-title,
+#plan-next-week [data-note-chip] > .pnw-card-header .note-title{
+  flex:1 1 auto;
+  min-width:0;
+  font-weight:600;
+  color:var(--pnw-text);
+  font-size:15px;
+  line-height:1.25;
+}
+#plan-next-week [data-wo-card] > .pnw-card-header .wo-title,
+#plan-next-week [data-note-chip] > .pnw-card-header .note-title{
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+#plan-next-week .wo-badge,
+#plan-next-week .note-badge{
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:2px 8px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  line-height:1.2;
+}
+#plan-next-week .wo-badge{
+  font-family:'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  background:var(--pnw-badge-wo-bg);
+  color:var(--pnw-badge-wo-tx);
+}
+#plan-next-week .note-badge{
+  background:var(--pnw-badge-note-bg);
+  color:var(--pnw-badge-note-tx);
+}
+#plan-next-week [data-wo-card] > :not(.pnw-card-header),
+#plan-next-week [data-note-chip] > :not(.pnw-card-header){
+  color:var(--pnw-muted);
+  font-size:13px;
+  line-height:1.35;
+}
+`; 
+
+// 2) injection + DOM pass (safe, idempotent)
+(function styleWOAndNotes(){
+  const STATE_KEY = '__planNextWeekNoteStyler__';
+  const STYLE_ID = 'plan-next-week-style';
+  const BADGE_REGEX = /\bWO\s*\d{3,6}\b/i;
+  const raf = window.requestAnimationFrame?.bind(window) || function(cb){ return setTimeout(cb, 16); };
+
+  if(window[STATE_KEY]){
+    if(typeof window[STATE_KEY].apply === 'function'){
+      window[STATE_KEY].apply();
+    }
+    return;
+  }
+
+  const state = {
+    scheduled:false,
+    root:null,
+    rootObserver:null,
+    docObserver:null,
+    apply:applyNow,
+  };
+
+  window[STATE_KEY] = state;
+
+  ensureStyle();
+  const initialRoot = ensureRoot();
+  if(initialRoot){
+    state.root = initialRoot;
+    applyNow();
+    observeRoot(initialRoot);
+  }else{
+    observeDocument();
+  }
+
+  function ensureStyle(){
+    if(document.getElementById(STYLE_ID)) return;
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+    style.textContent = css;
+    (document.head || document.documentElement).appendChild(style);
+  }
+
+  function ensureRoot(){
+    const heading = Array.from(document.querySelectorAll('h1,h2,h3,h4,h5,h6')).find(el => el.textContent && el.textContent.trim() === 'Plan for Next Week');
+    if(!heading) return null;
+    const panel = heading.closest('[role="dialog"]') || heading.closest('section,div,article') || heading.parentElement;
+    if(panel && panel.id !== 'plan-next-week'){
+      if(panel.id){
+        panel.setAttribute('data-plan-prev-id', panel.id);
+      }
+      panel.id = 'plan-next-week';
+    }
+    return panel || null;
+  }
+
+  function observeDocument(){
+    if(state.docObserver || !document.body) return;
+    const observer = new MutationObserver(() => {
+      const root = ensureRoot();
+      if(root){
+        state.root = root;
+        applyNow();
+        observeRoot(root);
+        observer.disconnect();
+        state.docObserver = null;
+      }
+    });
+    observer.observe(document.body, { childList:true, subtree:true });
+    state.docObserver = observer;
+  }
+
+  function observeRoot(root){
+    if(state.rootObserver){
+      state.rootObserver.disconnect();
+    }
+    const observer = new MutationObserver(mutations => {
+      for(const mutation of mutations){
+        if(mutation.type === 'childList'){
+          scheduleApply();
+          break;
+        }
+      }
+    });
+    observer.observe(root, { childList:true, subtree:true });
+    state.rootObserver = observer;
+  }
+
+  function scheduleApply(){
+    if(state.scheduled) return;
+    state.scheduled = true;
+    raf(() => {
+      state.scheduled = false;
+      applyNow();
+    });
+  }
+
+  function applyNow(){
+    const root = ensureRoot();
+    if(!root) return;
+    state.root = root;
+    processRoot(root);
+  }
+
+  function processRoot(root){
+    const cells = root.querySelectorAll('td');
+    cells.forEach(cell => {
+      processCandidate(cell);
+      Array.from(cell.children).forEach(child => processCandidate(child));
+    });
+  }
+
+  function processCandidate(element){
+    if(!(element instanceof HTMLElement)) return;
+    if(element.hasAttribute('data-wo-card') || element.hasAttribute('data-note-chip')) return;
+    if(element.querySelector('.wo-badge') || element.querySelector('.note-badge')) return;
+
+    const textContent = element.textContent || '';
+    const trimmed = textContent.trim();
+    if(!trimmed || trimmed === 'No plan') return;
+
+    if(BADGE_REGEX.test(trimmed)){
+      convertWorkOrder(element);
+    }else if(element.childElementCount <= 1 && trimmed.length <= 32 && !BADGE_REGEX.test(textContent) && !/[\r\n]/.test(textContent) && trimmed.replace(/\s+/g,' ').split(' ').length <= 6){
+      convertNote(element, trimmed);
+    }
+  }
+
+  function normalizeBadge(raw){
+    if(!raw) return 'WO';
+    const digitsMatch = raw.match(/\d{3,6}/);
+    if(digitsMatch){
+      return `WO ${digitsMatch[0]}`;
+    }
+    return raw.replace(/\s+/g,' ').trim().toUpperCase();
+  }
+
+  function convertWorkOrder(element){
+    if(element.querySelector('.wo-badge')) return;
+    const fullText = element.textContent || '';
+    const badgeMatch = fullText.match(BADGE_REGEX);
+    if(!badgeMatch) return;
+
+    const elements = Array.from(element.children);
+    const badgeSource = elements.find(child => BADGE_REGEX.test(child.textContent || '')) || null;
+    const badgeIndex = badgeSource ? elements.indexOf(badgeSource) : -1;
+    let titleSource = null;
+    if(badgeIndex > -1){
+      for(let i = badgeIndex + 1; i < elements.length; i += 1){
+        const nextText = elements[i].textContent;
+        if(nextText && nextText.trim()){
+          titleSource = elements[i];
+          break;
+        }
+      }
+    }
+
+    const preserveNodes = [];
+    Array.from(element.childNodes).forEach(node => {
+      if(node !== badgeSource && node !== titleSource){
+        preserveNodes.push(node);
+      }
+    });
+
+    const fragment = document.createDocumentFragment();
+    preserveNodes.forEach(node => fragment.appendChild(node));
+
+    let titleText = titleSource ? (titleSource.textContent || '').trim() : '';
+    if(!titleText){
+      const remainder = badgeMatch ? fullText.replace(badgeMatch[0], '').trim() : '';
+      const lines = remainder.split(/\r?\n+/).map(line => line.trim()).filter(Boolean);
+      titleText = lines.shift() || remainder || 'Work order';
+    }
+
+    while(element.firstChild){
+      element.removeChild(element.firstChild);
+    }
+
+    const header = document.createElement('div');
+    header.className = 'pnw-card-header';
+
+    const badge = document.createElement('span');
+    badge.className = 'wo-badge';
+    badge.textContent = normalizeBadge(badgeMatch[0]);
+
+    const title = document.createElement('span');
+    title.className = 'wo-title';
+    title.textContent = titleText;
+
+    header.appendChild(badge);
+    header.appendChild(title);
+    element.appendChild(header);
+
+    if(fragment.childNodes.length){
+      element.appendChild(fragment);
+    }
+
+    element.setAttribute('data-wo-card','');
+  }
+
+  function convertNote(element, text){
+    if(element.querySelector('.note-badge')) return;
+
+    while(element.firstChild){
+      element.removeChild(element.firstChild);
+    }
+
+    const header = document.createElement('div');
+    header.className = 'pnw-card-header';
+
+    const badge = document.createElement('span');
+    badge.className = 'note-badge';
+    badge.textContent = 'NOTE';
+
+    const title = document.createElement('span');
+    title.className = 'note-title';
+    title.textContent = text;
+
+    header.appendChild(badge);
+    header.appendChild(title);
+    element.appendChild(header);
+
+    element.setAttribute('data-note-chip','');
+  }
+})();
+
+// 3) // Optional: Tampermonkey wrapper (commented out)
+// (function(){
+//   // ==UserScript==
+//   // @name         Plan Next Week Card Restyle
+//   // @namespace    http://tampermonkey.net/
+//   // @version      1.0
+//   // @description  Restyle Plan for Next Week cards
+//   // @match        *
+//   // @grant        none
+//   // ==/UserScript==
+//   // styleWOAndNotes();
+// })();
 
 function rebuildPlanView(){
   if(!PLAN_NEXT_WEEK_RAW){
