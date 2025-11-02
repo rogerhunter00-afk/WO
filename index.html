@@ -3405,11 +3405,24 @@ function buildPlanView(raw, context) {
   const seenDays   = new Set();
   const seenPeople = new Set();
 
-  // Helper function to check if a value is just a placeholder note
+  // Helper function to check if a value is just a placeholder note or empty
   function isPlaceholderNote(value) {
-    if (!value) return false;
+    // Catch null, undefined, or truly empty
+    if (value == null || value === undefined) return true;
+    
+    // Convert to string and trim all whitespace
     const str = String(value).trim().toLowerCase();
-    return str === 'note' || str === 'notes' || str === '';
+    
+    // Empty after trimming
+    if (str === '') return true;
+    
+    // Exact matches for note placeholders
+    if (str === 'note' || str === 'notes') return true;
+    
+    // Check for whitespace-only strings
+    if (!str || /^\s*$/.test(String(value))) return true;
+    
+    return false;
   }
 
   // helper: pull col by index OR by header name fallback
@@ -3453,9 +3466,13 @@ function buildPlanView(raw, context) {
 
     // C → Entry (WO number or task)
     const rawEntry = getCell(row, 2, "Entry");
+    
+    // DEBUG LOGGING - Remove after testing
+    console.log(`Row ${rowIndex}: ${day} / ${person} / Entry: "${rawEntry}" (type: ${typeof rawEntry})`);
 
     // Skip if the entire entry is just a placeholder
     if (isPlaceholderNote(rawEntry)) {
+      console.log(`  → SKIPPED (placeholder note)`);
       stats.skippedRows++;
       return;
     }
@@ -3464,8 +3481,11 @@ function buildPlanView(raw, context) {
     const parts = splitPlanEntries(rawEntry)
       .map(p => String(p || "").trim())
       .filter(p => !isPlaceholderNote(p));
+    
+    console.log(`  → Parts after filtering:`, parts);
 
     if (!parts.length) {
+      console.log(`  → SKIPPED (no valid parts)`);
       stats.skippedRows++;
       return;
     }
@@ -4016,7 +4036,10 @@ const css = `
 
     const textContent = element.textContent || '';
     const trimmed = textContent.trim();
-    if(!trimmed || trimmed === 'No plan') return;
+    const trimmedLower = trimmed.toLowerCase();
+    
+    // Skip empty, "No plan", or NOTE placeholders
+    if(!trimmed || trimmed === 'No plan' || trimmedLower === 'note' || trimmedLower === 'notes') return;
 
     if(BADGE_REGEX.test(trimmed)){
       convertWorkOrder(element);
