@@ -1149,10 +1149,14 @@ body.force-desktop .mobile-sort{display:none!important}
   background:var(--paper);
 }
 #plan-next-week .plan-table td{
-  background:transparent;
+  background:var(--paper);
 }
 #plan-next-week .plan-table tbody tr:nth-child(odd) td{
-  background:transparent;
+  background:var(--paper);
+}
+#plan-next-week .plan-table th,
+#plan-next-week .plan-table td{
+  padding:10px 12px;
 }
 .plan-table th[scope="row"]{
   background:color-mix(in srgb, var(--paper) 92%, var(--bg));
@@ -3652,20 +3656,32 @@ const css = `
     --accent-grey:#9ca3af;
   }
 }
+#plan-next-week{
+  --plan-card-bg:color-mix(in srgb,#ffffff 85%, var(--paper) 15%);
+  --plan-card-text:#0b0f1a;
+  --plan-card-border:color-mix(in srgb, var(--grid) 70%, transparent);
+}
+@media (prefers-color-scheme: dark){
+  #plan-next-week{
+    --plan-card-bg:color-mix(in srgb,#ffffff 80%, #111827 20%);
+    --plan-card-text:#0b0f1a;
+    --plan-card-border:color-mix(in srgb, #1f2937 55%, transparent);
+  }
+}
 #plan-next-week .task-card{
   position:relative;
   display:flex;
   flex-direction:column;
-  gap:8px;
-  padding:12px 16px 12px 20px;
-  min-height:86px;
-  border-radius:8px;
-  border:1px solid var(--card-border);
-  background:var(--card-bg);
-  box-shadow:var(--card-shadow-rest);
-  color:var(--ink);
+  gap:6px;
+  padding:8px 12px 8px 16px;
+  min-height:0;
+  border-radius:6px;
+  border:1px solid var(--plan-card-border);
+  background:var(--plan-card-bg);
+  box-shadow:none;
+  color:var(--plan-card-text);
   line-height:1.4;
-  transition:box-shadow .18s ease, border-color .18s ease, transform .18s ease;
+  transition:border-color .18s ease;
   word-break:break-word;
   overflow-wrap:anywhere;
   outline:0;
@@ -3674,30 +3690,27 @@ const css = `
   content:"";
   position:absolute;
   left:0;
-  top:12px;
-  bottom:12px;
-  width:4px;
+  top:8px;
+  bottom:8px;
+  width:3px;
   border-radius:999px;
   background:var(--accent-blue);
 }
 #plan-next-week .task-card[data-variant="hold"]::before{background:var(--accent-amber);}
 #plan-next-week .task-card[data-variant="critical"]::before{background:var(--accent-red);}
 #plan-next-week .task-card[data-variant="note"]::before{background:var(--accent-grey);}
-#plan-next-week .task-card + .task-card{margin-top:12px;}
+#plan-next-week .task-card + .task-card{margin-top:8px;}
 #plan-next-week .task-card:focus-visible{
-  box-shadow:var(--card-shadow-hover);
   outline:2px solid color-mix(in srgb, var(--brand, #0b67c2) 55%, transparent);
   outline-offset:2px;
 }
 #plan-next-week .task-card:hover{
-  box-shadow:var(--card-shadow-hover);
-  border-color:color-mix(in srgb, var(--card-border) 70%, var(--brand, #0b67c2) 30%);
+  border-color:color-mix(in srgb, var(--plan-card-border) 55%, var(--brand, #0b67c2) 45%);
 }
 #plan-next-week .task-card.is-dragging,
 #plan-next-week .task-card[data-dragging="true"]{
-  box-shadow:none;
   border-style:dashed;
-  border-color:color-mix(in srgb, var(--card-border) 80%, transparent);
+  border-color:color-mix(in srgb, var(--plan-card-border) 70%, transparent);
 }
 #plan-next-week .task-card__chip-row{
   display:flex;
@@ -3729,18 +3742,18 @@ const css = `
   font-size:14.5px;
   font-weight:600;
   line-height:1.4;
-  color:var(--ink);
+  color:var(--plan-card-text);
   display:-webkit-box;
   -webkit-line-clamp:3;
   -webkit-box-orient:vertical;
   overflow:hidden;
   text-overflow:ellipsis;
 }
-#plan-next-week .task-card__suffix{color:var(--ink-muted, var(--muted));font-weight:500;}
+#plan-next-week .task-card__suffix{color:color-mix(in srgb, var(--plan-card-text) 65%, var(--muted) 35%);font-weight:500;}
 #plan-next-week .task-card__meta,
 #plan-next-week .task-card__note{
   font-size:13px;
-  color:var(--ink-muted, var(--muted));
+  color:color-mix(in srgb, var(--plan-card-text) 65%, var(--muted) 35%);
 }
 #plan-next-week .task-card__note{margin-top:2px;}
 `;
