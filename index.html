@@ -1188,7 +1188,7 @@ body.force-desktop .mobile-sort{display:none!important}
   bottom:12px;
   width:4px;
   border-radius:999px;
-  background:var(--accent-blue, var(--brand, #0b67c2));
+  background:var(--accent-blue, var(--brand));
 }
 .task-card[data-variant="hold"]::before{
   background:var(--accent-amber, #f59e0b);
@@ -1197,7 +1197,7 @@ body.force-desktop .mobile-sort{display:none!important}
   background:var(--accent-red, #ef4444);
 }
 .task-card[data-variant="note"]::before{
-  background:var(--accent-grey, var(--muted, #6b7280));
+  background:var(--accent-grey, var(--muted));
 }
 .task-card + .task-card{
   margin-top:12px;
@@ -3652,12 +3652,6 @@ const css = `
     --accent-grey:#9ca3af;
   }
 }
-#plan-next-week .plan-table td{
-  background:transparent;
-}
-#plan-next-week .plan-table tbody tr:nth-child(odd) td{
-  background:transparent;
-}
 #plan-next-week .task-card{
   position:relative;
   display:flex;
@@ -3666,9 +3660,9 @@ const css = `
   padding:12px 16px 12px 20px;
   min-height:86px;
   border-radius:8px;
-  border:1px solid var(--card-border, color-mix(in srgb, var(--grid) 70%, transparent));
-  background:var(--card-bg, color-mix(in srgb, var(--paper) 96%, var(--bg)));
-  box-shadow:var(--card-shadow-rest, var(--shadow));
+  border:1px solid var(--card-border);
+  background:var(--card-bg);
+  box-shadow:var(--card-shadow-rest);
   color:var(--ink);
   line-height:1.4;
   transition:box-shadow .18s ease, border-color .18s ease, transform .18s ease;
@@ -3684,26 +3678,26 @@ const css = `
   bottom:12px;
   width:4px;
   border-radius:999px;
-  background:var(--accent-blue, var(--brand, #0b67c2));
+  background:var(--accent-blue);
 }
-#plan-next-week .task-card[data-variant="hold"]::before{background:var(--accent-amber, #f59e0b);}
-#plan-next-week .task-card[data-variant="critical"]::before{background:var(--accent-red, #ef4444);}
-#plan-next-week .task-card[data-variant="note"]::before{background:var(--accent-grey, var(--muted, #6b7280));}
+#plan-next-week .task-card[data-variant="hold"]::before{background:var(--accent-amber);}
+#plan-next-week .task-card[data-variant="critical"]::before{background:var(--accent-red);}
+#plan-next-week .task-card[data-variant="note"]::before{background:var(--accent-grey);}
 #plan-next-week .task-card + .task-card{margin-top:12px;}
 #plan-next-week .task-card:focus-visible{
-  box-shadow:var(--card-shadow-hover, 0 6px 18px rgba(15,23,42,.16));
+  box-shadow:var(--card-shadow-hover);
   outline:2px solid color-mix(in srgb, var(--brand, #0b67c2) 55%, transparent);
   outline-offset:2px;
 }
 #plan-next-week .task-card:hover{
-  box-shadow:var(--card-shadow-hover, 0 6px 18px rgba(15,23,42,.16));
-  border-color:color-mix(in srgb, var(--card-border, var(--border)) 70%, var(--brand, #0b67c2) 30%);
+  box-shadow:var(--card-shadow-hover);
+  border-color:color-mix(in srgb, var(--card-border) 70%, var(--brand, #0b67c2) 30%);
 }
 #plan-next-week .task-card.is-dragging,
 #plan-next-week .task-card[data-dragging="true"]{
   box-shadow:none;
   border-style:dashed;
-  border-color:color-mix(in srgb, var(--card-border, var(--border)) 80%, transparent);
+  border-color:color-mix(in srgb, var(--card-border) 80%, transparent);
 }
 #plan-next-week .task-card__chip-row{
   display:flex;
@@ -3718,8 +3712,8 @@ const css = `
   justify-content:center;
   padding:2px 10px;
   border-radius:999px;
-  background:var(--chip-bg, color-mix(in srgb, var(--brand) 12%, var(--card-bg, var(--paper))));
-  color:var(--chip-ink, color-mix(in srgb, var(--brand) 35%, var(--ink)));
+  background:var(--chip-bg);
+  color:var(--chip-ink);
   font-size:12px;
   font-weight:600;
   text-transform:uppercase;
