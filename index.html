@@ -3448,12 +3448,23 @@ function buildPlanView(raw, context) {
 
     // C → Entry (note OR WO number)
     const rawEntry = getCell(row, 2, "Entry");
-    const parts    = splitPlanEntries(rawEntry);   // splits on linebreaks
+
+    // split, then drop blanks + template NOTE/Notes
+    const parts = splitPlanEntries(rawEntry)
+      .map(p => String(p || "").trim())
+      .filter(p => {
+        if (!p) return false;
+        const low = p.toLowerCase();
+        if (low === "note" || low === "notes") return false;
+        return true;
+      });
+
     if (!parts.length) {
       stats.skippedRows++;
       return;
     }
 
+    // remember order of days/people as we see them
     if (!seenDays.has(day))   { seenDays.add(day);   order.days.push(day); }
     if (!seenPeople.has(person)) { seenPeople.add(person); order.people.push(person); }
 
