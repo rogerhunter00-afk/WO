@@ -3388,9 +3388,12 @@ function mergePlanOrder(primary, fallback){
   return merged;
 }
 
+// REPLACE the existing buildPlanView(...) with this version
 function buildPlanView(raw, context){
   const headers = Array.isArray(raw?.headers) ? raw.headers : [];
-  const rows = Array.isArray(raw?.rows) ? raw.rows : [];
+  const rows    = Array.isArray(raw?.rows)    ? raw.rows    : [];
+
+  // we'll still report basic stats so the status bar works
   const stats = {
     totalRows: rows.length,
     appliedEntries: 0,
@@ -3399,97 +3402,108 @@ function buildPlanView(raw, context){
     unknownPeople: new Set(),
     unmatchedWorkOrders: 0,
   };
-  const headerLookup = headers.map(h => String(h || '').trim());
-  const findHeader = (...candidates) => {
-    const wanted = candidates.map(c => String(c).trim().toLowerCase());
-    const idx = headerLookup.findIndex(h => wanted.includes(h.toLowerCase()));
-    return idx >= 0 ? headers[idx] : null;
-  };
-  const findHeaders = (...candidates) => {
-    const wanted = new Set(candidates.map(c => String(c).trim().toLowerCase()).filter(Boolean));
-    if(!wanted.size) return [];
-    const matches = [];
-    headerLookup.forEach((h, idx) => {
-      if(wanted.has(h.toLowerCase())) matches.push(headers[idx]);
-    });
-    return matches;
-  };
-  const H_DAY = findHeader('day', 'weekday', 'week day', 'date', 'plan day');
-  const H_PERSON = findHeader('person', 'engineer', 'name', 'assigned to', 'team', 'staff');
-  const H_ENTRY_ALL = findHeaders('entry', 'item', 'task', 'work order', 'wo', 'details', 'description', 'text');
-  const H_NOTES = findHeader('notes', 'note', 'comment', 'comments', 'extra');
-  const issues = [];
-  if(!H_DAY) issues.push('Day');
-  if(!H_PERSON) issues.push('Engineer');
-  if(!H_ENTRY_ALL.length && !H_NOTES) issues.push('Entry');
+
+  // build the empty Monday–Friday × people matrix using your existing globals
   const matrix = buildEmptyPlanMatrix();
-  const order = { days: [], people: [] };
-  if(issues.length){
-    return { matrix, stats, issues, columns:{ day:H_DAY, person:H_PERSON, entry:H_ENTRY_ALL, notes:H_NOTES }, order };
-  }
-  const seenDays = new Set();
+  const order  = { days: [], people: [] };
+
+  // hard-wire: A = day, B = engineer, C = item
+  // (if the sheet has headers, these will be the real names; if not, we just invent labels)
+  const COL_DAY    = headers[0] ?? 'Day';
+  const COL_PERSON = headers[1] ?? 'Engineer';
+  const COL_ITEM   = headers[2] ?? 'Item';
+
+  const seenDays   = new Set();
   const seenPeople = new Set();
+
   rows.forEach((row, rowIndex) => {
-    const rawDay = H_DAY ? row?.[H_DAY] : null;
-    const day = normalizePlanDay(rawDay);
-    if(!day){
-      if(rawDay) stats.unknownDays.add(String(rawDay));
+    // 1) get day from column A
+    const rawDay = row?.[COL_DAY] ?? null;
+    const day    = normalizePlanDay(rawDay);   // uses your existing alias map (Mon, Tue, etc.)
+    if (!day){
+      if (rawDay) stats.unknownDays.add(String(rawDay));
       stats.skippedRows += 1;
       return;
     }
-    const rawPerson = H_PERSON ? row?.[H_PERSON] : null;
-    const person = normalizePlanPerson(rawPerson);
-    if(!person){
-      if(rawPerson) stats.unknownPeople.add(String(rawPerson));
+
+    // 2) get engineer from column B
+    const rawPerson = row?.[COL_PERSON] ?? null;
+    const person    = normalizePlanPerson(rawPerson);  // uses your existing person alias map
+    if (!person){
+      if (rawPerson) stats.unknownPeople.add(String(rawPerson));
       stats.skippedRows += 1;
       return;
     }
-    if(!seenDays.has(day)){
+
+    // remember order in the same way as before
+    if (!seenDays.has(day)){
       seenDays.add(day);
       order.days.push(day);
     }
-    if(!seenPeople.has(person)){
+    if (!seenPeople.has(person)){
       seenPeople.add(person);
       order.people.push(person);
     }
-    const entryValues = H_ENTRY_ALL.flatMap(header => splitPlanEntries(row?.[header]));
-    const noteValue = H_NOTES ? row?.[H_NOTES] : null;
-    const noteText = sanitizePlanScalar(noteValue);
-    const values = entryValues
-      .map(val => (typeof val === 'string' ? val.trim() : val))
-      .filter(val => {
-        if(!val) return false;
-        if(noteText && isPlanNotePlaceholder(val)) return false;
-        return true;
-      });
-    const entriesToProcess = values;
-    const noteForEntries = values.length ? noteText : null;
+
+    // 3) get item(s) from column C
+    const rawItem = row?.[COL_ITEM] ?? null;
+    // allow multiple lines in C (like your old version)
+    const itemParts = splitPlanEntries(rawItem);
+
+    // if nothing in column C, we skip this row
+    if (!itemParts.length){
+      stats.skippedRows += 1;
+      return;
+    }
+
+    // we do NOT have a dedicated notes column in this hard-wired version,
+    // so we just pass null as the note (the text itself will still show)
+    const noteForEntries = null;
     let added = 0;
-    entriesToProcess.forEach((val, entryIndex) => {
+
+    itemParts.forEach((val, entryIndex) => {
       const entry = buildPlanEntry(val, noteForEntries, context);
-      if(!entry) return;
-      if(entry.type === 'missing') stats.unmatchedWorkOrders += 1;
+      if (!entry) return;
+
+      // if it's a WO but we couldn't find it in ALL_ROWS, count it
+      if (entry.type === 'missing') {
+        stats.unmatchedWorkOrders += 1;
+      }
+
+      // keep metadata so sorting in the UI still works
       entry.__meta = {
         rowIndex,
         entryIndex,
         day,
         person,
       };
-      matrix.get(day)?.get(person)?.push(entry);
-      stats.appliedEntries += 1;
-      added += 1;
+
+      const bucket = matrix.get(day)?.get(person);
+      if (bucket) {
+        bucket.push(entry);
+        stats.appliedEntries += 1;
+        added += 1;
+      }
     });
-    if(!added){
+
+    if (!added) {
       stats.skippedRows += 1;
     }
   });
+
+  // hand back the same shape the renderer expects
   return {
     matrix,
     stats,
-    issues,
-    columns:{ day:H_DAY, person:H_PERSON, entry:H_ENTRY_ALL, notes:H_NOTES },
-    order:{
-      days: mergePlanOrder(order.days, PLAN_NEXT_WEEK_DAYS),
+    issues: [], // we’re hard-wired to A/B/C so we don’t complain about missing headers
+    columns: {
+      day:    COL_DAY,
+      person: COL_PERSON,
+      entry:  [COL_ITEM],
+      notes:  null
+    },
+    order: {
+      days:   mergePlanOrder(order.days,   PLAN_NEXT_WEEK_DAYS),
       people: mergePlanOrder(order.people, PLAN_NEXT_WEEK_PEOPLE),
     }
   };
