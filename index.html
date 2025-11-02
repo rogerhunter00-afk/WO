@@ -33,6 +33,16 @@
   --input-fg:var(--ink);
   --input-bd:var(--border);
   --input-bd-focus:var(--brand);
+  --card-bg:color-mix(in srgb, var(--paper) 96%, var(--bg));
+  --card-border:color-mix(in srgb, var(--border) 70%, transparent);
+  --card-shadow-rest:0 1px 2px rgba(15,23,42,.08),0 4px 10px rgba(15,23,42,.06);
+  --card-shadow-hover:0 6px 18px rgba(15,23,42,.14),0 4px 12px rgba(15,23,42,.08);
+  --chip-bg:color-mix(in srgb, var(--brand) 12%, var(--paper));
+  --chip-ink:color-mix(in srgb, var(--brand) 36%, var(--ink));
+  --accent-blue:#2563eb;
+  --accent-amber:#f59e0b;
+  --accent-red:#ef4444;
+  --accent-grey:#6b7280;
   --shadow:0 1px 2px rgba(16,24,40,.06),0 4px 10px rgba(16,24,40,.06);
 
   /* Legacy tokens */
@@ -93,6 +103,16 @@ html, body{
     --input-fg:#f3f4f6;
     --input-bd:#233150;
     --input-bd-focus:#3b82f6;
+    --card-bg:color-mix(in srgb, var(--paper) 94%, var(--bg));
+    --card-border:color-mix(in srgb, var(--border) 80%, transparent);
+    --card-shadow-rest:0 1px 2px rgba(0,0,0,.48),0 4px 12px rgba(0,0,0,.42);
+    --card-shadow-hover:0 6px 20px rgba(0,0,0,.55),0 3px 12px rgba(0,0,0,.5);
+    --chip-bg:color-mix(in srgb, var(--brand) 16%, var(--paper));
+    --chip-ink:color-mix(in srgb, var(--brand) 60%, var(--ink));
+    --accent-blue:#60a5fa;
+    --accent-amber:#fbbf24;
+    --accent-red:#f87171;
+    --accent-grey:#9ca3af;
     --als-blue:var(--brand);
     --als-blue-strong:var(--brand-strong);
     --thead:#1e3a8a;
@@ -134,6 +154,16 @@ html, body{
   --input-fg:#f3f4f6;
   --input-bd:#233150;
   --input-bd-focus:#3b82f6;
+  --card-bg:color-mix(in srgb, var(--paper) 94%, var(--bg));
+  --card-border:color-mix(in srgb, var(--border) 80%, transparent);
+  --card-shadow-rest:0 1px 2px rgba(0,0,0,.48),0 4px 12px rgba(0,0,0,.42);
+  --card-shadow-hover:0 6px 20px rgba(0,0,0,.55),0 3px 12px rgba(0,0,0,.5);
+  --chip-bg:color-mix(in srgb, var(--brand) 16%, var(--paper));
+  --chip-ink:color-mix(in srgb, var(--brand) 60%, var(--ink));
+  --accent-blue:#60a5fa;
+  --accent-amber:#fbbf24;
+  --accent-red:#f87171;
+  --accent-grey:#9ca3af;
   --als-blue:var(--brand);
   --als-blue-strong:var(--brand-strong);
   --thead:#1e3a8a;
@@ -204,6 +234,16 @@ body.dark{
   --ctrl-shadow:0 1px 0 rgba(255,255,255,.06) inset;
   --ctrl-hover:rgba(96,165,250,.15);
   --ctrl-on:#60a5fa;
+  --card-bg:color-mix(in srgb, var(--paper) 94%, var(--bg));
+  --card-border:color-mix(in srgb, var(--border) 80%, transparent);
+  --card-shadow-rest:0 1px 2px rgba(0,0,0,.48),0 4px 12px rgba(0,0,0,.42);
+  --card-shadow-hover:0 6px 20px rgba(0,0,0,.55),0 3px 12px rgba(0,0,0,.5);
+  --chip-bg:color-mix(in srgb, var(--brand) 16%, var(--paper));
+  --chip-ink:color-mix(in srgb, var(--brand) 60%, var(--ink));
+  --accent-blue:#60a5fa;
+  --accent-amber:#fbbf24;
+  --accent-red:#f87171;
+  --accent-grey:#9ca3af;
 }
 
 .control-bar,
@@ -1116,49 +1156,113 @@ body.force-desktop .mobile-sort{display:none!important}
 .plan-table tbody tr:nth-child(odd) td{
   background:color-mix(in srgb, var(--paper) 96%, var(--bg));
 }
-.plan-entry{
-  border-radius:12px;
-  padding:10px 12px;
-  background:color-mix(in srgb, var(--muted) 6%, var(--paper));
-  border:1px solid color-mix(in srgb, var(--grid) 70%, transparent);
+.task-card{
+  position:relative;
   display:flex;
   flex-direction:column;
-  gap:4px;
+  gap:8px;
+  padding:12px 16px 12px 20px;
+  min-height:86px;
+  border-radius:8px;
+  border:1px solid var(--card-border, color-mix(in srgb, var(--grid) 70%, transparent));
+  background:var(--card-bg, color-mix(in srgb, var(--paper) 96%, var(--bg)));
+  box-shadow:var(--card-shadow-rest, var(--shadow));
+  color:var(--ink);
+  line-height:1.4;
+  transition:box-shadow .18s ease, border-color .18s ease, transform .18s ease;
+  word-break:break-word;
+  overflow-wrap:anywhere;
+  outline:0;
 }
-.plan-entry + .plan-entry{
-  margin-top:10px;
+.task-card::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:12px;
+  bottom:12px;
+  width:4px;
+  border-radius:999px;
+  background:var(--accent-blue, var(--brand));
 }
-.plan-entry[data-entry-type="wo"]{
-  border-left:4px solid var(--brand);
-  background:color-mix(in srgb, var(--brand) 12%, var(--paper));
+.task-card[data-variant="hold"]::before{
+  background:var(--accent-amber, #f59e0b);
 }
-.plan-entry[data-entry-type="missing"]{
-  border-left:4px solid #f97316;
-  background:color-mix(in srgb, #f97316 14%, var(--paper));
+.task-card[data-variant="critical"]::before{
+  background:var(--accent-red, #ef4444);
 }
-.plan-entry__id{
-  font-size:.78rem;
-  letter-spacing:.04em;
+.task-card[data-variant="note"]::before{
+  background:var(--accent-grey, var(--muted));
+}
+.task-card + .task-card{
+  margin-top:12px;
+}
+.task-card:focus-visible{
+  box-shadow:var(--card-shadow-hover, 0 6px 18px rgba(15,23,42,.16));
+  outline:2px solid color-mix(in srgb, var(--brand) 55%, transparent);
+  outline-offset:2px;
+}
+.task-card:hover{
+  box-shadow:var(--card-shadow-hover, 0 6px 18px rgba(15,23,42,.16));
+  border-color:color-mix(in srgb, var(--card-border, var(--border)) 70%, var(--brand) 30%);
+}
+.task-card.is-dragging,
+.task-card[data-dragging="true"]{
+  box-shadow:none;
+  border-style:dashed;
+  border-color:color-mix(in srgb, var(--card-border, var(--border)) 80%, transparent);
+}
+.task-card__chip-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:4px 0 0;
+  min-height:0;
+}
+.task-card__chip{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:2px 10px;
+  border-radius:999px;
+  background:var(--chip-bg, color-mix(in srgb, var(--brand) 12%, var(--card-bg, var(--paper))));
+  color:var(--chip-ink, color-mix(in srgb, var(--brand) 35%, var(--ink)));
+  font-size:12px;
   font-weight:600;
   text-transform:uppercase;
-  color:color-mix(in srgb, var(--muted) 88%, var(--ink));
+  letter-spacing:.04em;
 }
-.plan-entry__title{
-  font-weight:650;
-  font-size:1.08rem;
+.task-card__body{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-height:0;
+}
+.task-card__title{
+  font-size:14.5px;
+  font-weight:600;
+  line-height:1.4;
   color:var(--ink);
+  display:-webkit-box;
+  -webkit-line-clamp:3;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
-.plan-entry__meta{
-  font-size:.85rem;
-  color:var(--muted);
+.task-card__suffix{
+  color:var(--ink-muted, var(--muted));
+  font-weight:500;
 }
-.plan-entry__note{
-  font-size:.82rem;
-  color:var(--muted);
-  font-style:italic;
+.task-card__meta,
+.task-card__note{
+  font-size:13px;
+  color:var(--ink-muted, var(--muted));
 }
-.plan-entry__text{
-  white-space:pre-line;
+.task-card__note{
+  margin-top:2px;
+}
+.task-card__text{
+  font-size:13px;
+  color:var(--ink);
 }
 .plan-empty{
   text-align:center;
@@ -3357,43 +3461,94 @@ function planStatsSummary(stats){
   return parts.join(' • ');
 }
 
-function renderPlanEntry(entry){
-  const container = document.createElement('div');
-  container.className = 'plan-entry';
-  container.dataset.entryType = entry.type || 'text';
-  if(entry.type === 'wo'){
-    const id = document.createElement('div');
-    id.className = 'plan-entry__id';
-    const idValue = entry.workOrder?.ID || entry.lookupId || entry.raw;
-    const idText = String(idValue);
-    id.textContent = /^wo/i.test(idText) ? idText : `WO ${idText}`;
-    container.appendChild(id);
-    const title = document.createElement('div');
-    title.className = 'plan-entry__title';
-    title.textContent = entry.workOrder?.Title || entry.raw;
-    container.appendChild(title);
-  }else if(entry.type === 'missing'){
-    const title = document.createElement('div');
-    title.className = 'plan-entry__title';
-    title.textContent = entry.raw;
-    container.appendChild(title);
-    const meta = document.createElement('div');
-    meta.className = 'plan-entry__meta';
-    meta.textContent = 'Work order not found';
-    container.appendChild(meta);
-  }else{
-    const text = document.createElement('div');
-    text.className = 'plan-entry__text';
-    text.textContent = entry.raw;
-    container.appendChild(text);
+function splitTaskTitleSuffix(text){
+  const raw = typeof text === 'string' ? text : (text == null ? '' : String(text));
+  const normalized = raw.replace(/\s+/g, ' ').trim();
+  if(!normalized) return { main:'', suffix:null };
+  const suffixMatch = normalized.match(/\s[-–—]\s?[A-Za-z]{1,5}$/);
+  if(suffixMatch){
+    return {
+      main: normalized.slice(0, suffixMatch.index).trimEnd(),
+      suffix: suffixMatch[0].trim()
+    };
   }
+  return { main: normalized, suffix:null };
+}
+
+function createTaskCardTitle(text){
+  const { main, suffix } = splitTaskTitleSuffix(text);
+  const el = document.createElement('div');
+  el.className = 'task-card__title';
+  const mainText = main || (typeof text === 'string' ? text.trim() : String(text ?? ''));
+  el.appendChild(document.createTextNode(mainText));
+  if(suffix){
+    el.appendChild(document.createTextNode(' '));
+    const suffixEl = document.createElement('span');
+    suffixEl.className = 'task-card__suffix';
+    suffixEl.textContent = suffix;
+    el.appendChild(suffixEl);
+  }
+  return el;
+}
+
+function deriveTaskCardVariant(entry){
+  if(!entry) return 'scheduled';
+  if(entry.type === 'note' || entry.type === 'text') return 'note';
+  if(entry.type === 'missing') return 'critical';
+  const statusSlug = entry.workOrder ? slugify(String(entry.workOrder.Status ?? entry.workOrder.status ?? '')) : '';
+  const prioritySlug = entry.workOrder ? slugify(String(entry.workOrder.Priority ?? entry.workOrder.priority ?? '')) : '';
+  if(statusSlug.includes('hold')) return 'hold';
+  if(prioritySlug.includes('critical') || prioritySlug.includes('urgent') || statusSlug.includes('critical') || statusSlug.includes('urgent')){
+    return 'critical';
+  }
+  return 'scheduled';
+}
+
+function planCardChipLabel(entry){
+  if(entry?.type === 'note' || entry?.type === 'text') return 'NOTE';
+  const candidate = entry?.lookupId || entry?.workOrder?.ID || entry?.raw;
+  if(!candidate) return 'WO';
+  const match = String(candidate).match(/\d{3,}/);
+  return match ? `WO ${match[0]}` : String(candidate).trim().toUpperCase();
+}
+
+function renderPlanEntry(entry){
+  const card = document.createElement('div');
+  card.className = 'task-card';
+  const entryType = entry.type === 'text' ? 'note' : (entry.type || 'text');
+  card.dataset.type = entryType;
+  card.dataset.variant = deriveTaskCardVariant(entry);
+  card.tabIndex = 0;
+
+  const chipRow = document.createElement('div');
+  chipRow.className = 'task-card__chip-row';
+  const chip = document.createElement('span');
+  chip.className = 'task-card__chip';
+  chip.textContent = planCardChipLabel(entry);
+  chipRow.appendChild(chip);
+  card.appendChild(chipRow);
+
+  const body = document.createElement('div');
+  body.className = 'task-card__body';
+  const titleSource = entry.type === 'wo' ? (entry.workOrder?.Title || entry.raw) : entry.raw;
+  body.appendChild(createTaskCardTitle(titleSource));
+
+  if(entry.type === 'missing'){
+    const meta = document.createElement('div');
+    meta.className = 'task-card__meta';
+    meta.textContent = 'Work order not found';
+    body.appendChild(meta);
+  }
+
   if(entry.note){
     const note = document.createElement('div');
-    note.className = 'plan-entry__note';
+    note.className = 'task-card__note';
     note.textContent = entry.note;
-    container.appendChild(note);
+    body.appendChild(note);
   }
-  return container;
+
+  card.appendChild(body);
+  return card;
 }
 
 function renderPlanTable(view){
@@ -3466,96 +3621,123 @@ function renderPlanTable(view){
 // 1) css string
 const css = `
 :root{
-  --pnw-text:#1f2937;
-  --pnw-muted:#6b7280;
-  --pnw-card:#f8fafc;
-  --pnw-border:#e5e7eb;
-  --pnw-shadow:0 1px 2px rgba(0,0,0,.06),0 2px 8px rgba(0,0,0,.04);
-  --pnw-badge-wo-bg:#eef2ff;
-  --pnw-badge-wo-tx:#3730a3;
-  --pnw-badge-note-bg:#ecfeff;
-  --pnw-badge-note-tx:#065f46;
+  --card-bg:color-mix(in srgb, var(--paper, #ffffff) 96%, var(--bg, #f3f5f9));
+  --card-border:color-mix(in srgb, var(--border, #e5e9f2) 70%, transparent);
+  --card-shadow-rest:0 1px 2px rgba(15,23,42,.08),0 4px 10px rgba(15,23,42,.06);
+  --card-shadow-hover:0 6px 18px rgba(15,23,42,.14),0 4px 12px rgba(15,23,42,.08);
+  --chip-bg:color-mix(in srgb, var(--brand, #0b67c2) 12%, var(--paper, #ffffff));
+  --chip-ink:color-mix(in srgb, var(--brand, #0b67c2) 36%, var(--ink, #0b0f1a));
+  --accent-blue:#2563eb;
+  --accent-amber:#f59e0b;
+  --accent-red:#ef4444;
+  --accent-grey:#6b7280;
 }
 @media (prefers-color-scheme: dark){
   :root{
-    --pnw-text:#e5e7eb;
-    --pnw-muted:#9ca3af;
-    --pnw-card:#111827;
-    --pnw-border:#1f2937;
-    --pnw-shadow:0 1px 2px rgba(0,0,0,.4),0 2px 10px rgba(0,0,0,.3);
-    --pnw-badge-wo-bg:#1e293b;
-    --pnw-badge-wo-tx:#c7d2fe;
-    --pnw-badge-note-bg:#0f172a;
-    --pnw-badge-note-tx:#a7f3d0;
+    --card-bg:color-mix(in srgb, var(--paper, #131a2b) 94%, var(--bg, #0f1422));
+    --card-border:color-mix(in srgb, var(--border, #233150) 80%, transparent);
+    --card-shadow-rest:0 1px 2px rgba(0,0,0,.48),0 4px 12px rgba(0,0,0,.42);
+    --card-shadow-hover:0 6px 20px rgba(0,0,0,.55),0 3px 12px rgba(0,0,0,.5);
+    --chip-bg:color-mix(in srgb, var(--brand, #3b82f6) 16%, var(--paper, #131a2b));
+    --chip-ink:color-mix(in srgb, var(--brand, #3b82f6) 60%, var(--ink, #f3f4f6));
+    --accent-blue:#60a5fa;
+    --accent-amber:#fbbf24;
+    --accent-red:#f87171;
+    --accent-grey:#9ca3af;
   }
 }
-#plan-next-week [data-wo-card],
-#plan-next-week [data-note-chip]{
+#plan-next-week .task-card{
   position:relative;
   display:flex;
   flex-direction:column;
   gap:8px;
-  padding:11px 12px;
-  border-radius:6px;
-  border:1px solid var(--pnw-border);
-  background:var(--pnw-card);
-  box-shadow:var(--pnw-shadow);
-  color:var(--pnw-text);
-  line-height:1.25;
-  font-size:15px;
+  padding:12px 16px 12px 20px;
+  min-height:86px;
+  border-radius:8px;
+  border:1px solid var(--card-border);
+  background:var(--card-bg);
+  box-shadow:var(--card-shadow-rest);
+  color:var(--ink);
+  line-height:1.4;
+  transition:box-shadow .18s ease, border-color .18s ease, transform .18s ease;
+  word-break:break-word;
+  overflow-wrap:anywhere;
+  outline:0;
 }
-#plan-next-week [data-wo-card] > .pnw-card-header,
-#plan-next-week [data-note-chip] > .pnw-card-header{
+#plan-next-week .task-card::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:12px;
+  bottom:12px;
+  width:4px;
+  border-radius:999px;
+  background:var(--accent-blue);
+}
+#plan-next-week .task-card[data-variant="hold"]::before{background:var(--accent-amber);}
+#plan-next-week .task-card[data-variant="critical"]::before{background:var(--accent-red);}
+#plan-next-week .task-card[data-variant="note"]::before{background:var(--accent-grey);}
+#plan-next-week .task-card + .task-card{margin-top:12px;}
+#plan-next-week .task-card:focus-visible{
+  box-shadow:var(--card-shadow-hover);
+  outline:2px solid color-mix(in srgb, var(--brand, #0b67c2) 55%, transparent);
+  outline-offset:2px;
+}
+#plan-next-week .task-card:hover{
+  box-shadow:var(--card-shadow-hover);
+  border-color:color-mix(in srgb, var(--card-border) 70%, var(--brand, #0b67c2) 30%);
+}
+#plan-next-week .task-card.is-dragging,
+#plan-next-week .task-card[data-dragging="true"]{
+  box-shadow:none;
+  border-style:dashed;
+  border-color:color-mix(in srgb, var(--card-border) 80%, transparent);
+}
+#plan-next-week .task-card__chip-row{
   display:flex;
   align-items:center;
   gap:8px;
-  min-width:0;
+  margin:4px 0 0;
+  min-height:0;
 }
-#plan-next-week [data-wo-card] > .pnw-card-header .wo-title,
-#plan-next-week [data-note-chip] > .pnw-card-header .note-title{
-  flex:1 1 auto;
-  min-width:0;
-  font-weight:600;
-  color:var(--pnw-text);
-  font-size:15px;
-  line-height:1.25;
-}
-#plan-next-week [data-wo-card] > .pnw-card-header .wo-title,
-#plan-next-week [data-note-chip] > .pnw-card-header .note-title{
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-#plan-next-week .wo-badge,
-#plan-next-week .note-badge{
-  flex:0 0 auto;
+#plan-next-week .task-card__chip{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  padding:2px 8px;
+  padding:2px 10px;
   border-radius:999px;
-  font-size:11px;
+  background:var(--chip-bg);
+  color:var(--chip-ink);
+  font-size:12px;
   font-weight:600;
-  letter-spacing:0.08em;
   text-transform:uppercase;
-  line-height:1.2;
+  letter-spacing:.04em;
 }
-#plan-next-week .wo-badge{
-  font-family:'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  background:var(--pnw-badge-wo-bg);
-  color:var(--pnw-badge-wo-tx);
+#plan-next-week .task-card__body{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-height:0;
 }
-#plan-next-week .note-badge{
-  background:var(--pnw-badge-note-bg);
-  color:var(--pnw-badge-note-tx);
+#plan-next-week .task-card__title{
+  font-size:14.5px;
+  font-weight:600;
+  line-height:1.4;
+  color:var(--ink);
+  display:-webkit-box;
+  -webkit-line-clamp:3;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
-#plan-next-week [data-wo-card] > :not(.pnw-card-header),
-#plan-next-week [data-note-chip] > :not(.pnw-card-header){
-  color:var(--pnw-muted);
+#plan-next-week .task-card__suffix{color:var(--ink-muted, var(--muted));font-weight:500;}
+#plan-next-week .task-card__meta,
+#plan-next-week .task-card__note{
   font-size:13px;
-  line-height:1.35;
+  color:var(--ink-muted, var(--muted));
 }
-`; 
+#plan-next-week .task-card__note{margin-top:2px;}
+`;
 
 // 2) injection + DOM pass (safe, idempotent)
 (function styleWOAndNotes(){
@@ -3670,8 +3852,7 @@ const css = `
 
   function processCandidate(element){
     if(!(element instanceof HTMLElement)) return;
-    if(element.hasAttribute('data-wo-card') || element.hasAttribute('data-note-chip')) return;
-    if(element.querySelector('.wo-badge') || element.querySelector('.note-badge')) return;
+    if(element.classList.contains('task-card')) return;
 
     const textContent = element.textContent || '';
     const trimmed = textContent.trim();
@@ -3679,7 +3860,7 @@ const css = `
 
     if(BADGE_REGEX.test(trimmed)){
       convertWorkOrder(element);
-    }else if(element.childElementCount <= 1 && trimmed.length <= 32 && !BADGE_REGEX.test(textContent) && !/[\r\n]/.test(textContent) && trimmed.replace(/\s+/g,' ').split(' ').length <= 6){
+    }else if(element.childElementCount <= 1 && trimmed.length <= 48 && !BADGE_REGEX.test(textContent) && !/[\r\n]/.test(textContent) && trimmed.replace(/\s+/g,' ').split(' ').length <= 8){
       convertNote(element, trimmed);
     }
   }
@@ -3694,7 +3875,7 @@ const css = `
   }
 
   function convertWorkOrder(element){
-    if(element.querySelector('.wo-badge')) return;
+    if(element.classList.contains('task-card')) return;
     const fullText = element.textContent || '';
     const badgeMatch = fullText.match(BADGE_REGEX);
     if(!badgeMatch) return;
@@ -3730,55 +3911,66 @@ const css = `
       titleText = lines.shift() || remainder || 'Work order';
     }
 
-    while(element.firstChild){
-      element.removeChild(element.firstChild);
+    element.innerHTML = '';
+    element.className = 'task-card';
+    element.dataset.type = 'wo';
+    element.dataset.variant = detectVariantFromFragment(fragment, fullText);
+    element.setAttribute('tabindex','0');
+
+    const chipRow = document.createElement('div');
+    chipRow.className = 'task-card__chip-row';
+    const chip = document.createElement('span');
+    chip.className = 'task-card__chip';
+    chip.textContent = normalizeBadge(badgeMatch[0]);
+    chipRow.appendChild(chip);
+    element.appendChild(chipRow);
+
+    const body = document.createElement('div');
+    body.className = 'task-card__body';
+    body.appendChild(createTaskCardTitle(titleText));
+
+    const detailText = fragment.textContent ? fragment.textContent.replace(/\s+/g,' ').trim() : '';
+    if(fragment.childNodes.length && detailText){
+      const meta = document.createElement('div');
+      meta.className = 'task-card__meta';
+      meta.appendChild(fragment);
+      body.appendChild(meta);
     }
 
-    const header = document.createElement('div');
-    header.className = 'pnw-card-header';
-
-    const badge = document.createElement('span');
-    badge.className = 'wo-badge';
-    badge.textContent = normalizeBadge(badgeMatch[0]);
-
-    const title = document.createElement('span');
-    title.className = 'wo-title';
-    title.textContent = titleText;
-
-    header.appendChild(badge);
-    header.appendChild(title);
-    element.appendChild(header);
-
-    if(fragment.childNodes.length){
-      element.appendChild(fragment);
-    }
-
-    element.setAttribute('data-wo-card','');
+    element.appendChild(body);
   }
 
   function convertNote(element, text){
-    if(element.querySelector('.note-badge')) return;
+    if(element.classList.contains('task-card')) return;
 
-    while(element.firstChild){
-      element.removeChild(element.firstChild);
-    }
+    element.innerHTML = '';
+    element.className = 'task-card';
+    element.dataset.type = 'note';
+    element.dataset.variant = 'note';
+    element.setAttribute('tabindex','0');
 
-    const header = document.createElement('div');
-    header.className = 'pnw-card-header';
+    const chipRow = document.createElement('div');
+    chipRow.className = 'task-card__chip-row';
+    const chip = document.createElement('span');
+    chip.className = 'task-card__chip';
+    chip.textContent = 'NOTE';
+    chipRow.appendChild(chip);
+    element.appendChild(chipRow);
 
-    const badge = document.createElement('span');
-    badge.className = 'note-badge';
-    badge.textContent = 'NOTE';
+    const body = document.createElement('div');
+    body.className = 'task-card__body';
+    body.appendChild(createTaskCardTitle(text));
+    element.appendChild(body);
+  }
 
-    const title = document.createElement('span');
-    title.className = 'note-title';
-    title.textContent = text;
-
-    header.appendChild(badge);
-    header.appendChild(title);
-    element.appendChild(header);
-
-    element.setAttribute('data-note-chip','');
+  function detectVariantFromFragment(fragment, fallbackText){
+    const fragmentText = fragment?.textContent || '';
+    const combined = `${fragmentText} ${fallbackText || ''}`;
+    const slug = slugify(combined || '');
+    if(!slug) return 'scheduled';
+    if(slug.includes('hold')) return 'hold';
+    if(slug.includes('critical') || slug.includes('urgent') || slug.includes('emergency')) return 'critical';
+    return 'scheduled';
   }
 })();
 
