@@ -3620,10 +3620,20 @@ function deriveTaskCardVariant(entry, entryType){
   if(type === 'text') return 'scheduled';
   const statusSlug = entry.workOrder ? slugify(String(entry.workOrder.Status ?? entry.workOrder.status ?? '')) : '';
   const prioritySlug = entry.workOrder ? slugify(String(entry.workOrder.Priority ?? entry.workOrder.priority ?? '')) : '';
-  if(statusSlug.includes('hold')) return 'hold';
-  if(prioritySlug.includes('critical') || prioritySlug.includes('urgent') || statusSlug.includes('critical') || statusSlug.includes('urgent')){
+  
+  // Red bar for Critical or High priority work orders
+  if(prioritySlug.includes('critical') || prioritySlug.includes('high') || prioritySlug.includes('urgent')){
     return 'critical';
   }
+  
+  // Amber bar for On Hold status
+  if(statusSlug.includes('hold')) return 'hold';
+  
+  // Red bar for critical/urgent status
+  if(statusSlug.includes('critical') || statusSlug.includes('urgent')){
+    return 'critical';
+  }
+  
   return 'scheduled';
 }
 
