@@ -3002,6 +3002,14 @@ function sanitizePlanScalar(value){
   return null;
 }
 
+function isPlanNotePlaceholder(value){
+  if(value == null) return false;
+  const normalized = String(value).trim().toLowerCase();
+  if(!normalized) return false;
+  const stripped = normalized.replace(/[:;.,\-–—\s]+$/g, '').trim();
+  return stripped === 'note' || stripped === 'notes';
+}
+
 function pickPlanScalar(...values){
   for(const v of values){
     const next = sanitizePlanScalar(v);
@@ -3366,6 +3374,20 @@ function buildEmptyPlanMatrix(){
   return matrix;
 }
 
+function mergePlanOrder(primary, fallback){
+  const merged = [];
+  const seen = new Set();
+  const add = value => {
+    if(value == null) return;
+    if(seen.has(value)) return;
+    seen.add(value);
+    merged.push(value);
+  };
+  if(Array.isArray(primary)) primary.forEach(add);
+  if(Array.isArray(fallback)) fallback.forEach(add);
+  return merged;
+}
+
 function buildPlanView(raw, context){
   const headers = Array.isArray(raw?.headers) ? raw.headers : [];
   const rows = Array.isArray(raw?.rows) ? raw.rows : [];
@@ -3401,10 +3423,13 @@ function buildPlanView(raw, context){
   if(!H_PERSON) issues.push('Engineer');
   if(!H_ENTRY_ALL.length && !H_NOTES) issues.push('Entry');
   const matrix = buildEmptyPlanMatrix();
+  const order = { days: [], people: [] };
   if(issues.length){
-    return { matrix, stats, issues, columns:{ day:H_DAY, person:H_PERSON, entry:H_ENTRY_ALL, notes:H_NOTES } };
+    return { matrix, stats, issues, columns:{ day:H_DAY, person:H_PERSON, entry:H_ENTRY_ALL, notes:H_NOTES }, order };
   }
-  rows.forEach(row => {
+  const seenDays = new Set();
+  const seenPeople = new Set();
+  rows.forEach((row, rowIndex) => {
     const rawDay = H_DAY ? row?.[H_DAY] : null;
     const day = normalizePlanDay(rawDay);
     if(!day){
@@ -3419,17 +3444,38 @@ function buildPlanView(raw, context){
       stats.skippedRows += 1;
       return;
     }
+    if(!seenDays.has(day)){
+      seenDays.add(day);
+      order.days.push(day);
+    }
+    if(!seenPeople.has(person)){
+      seenPeople.add(person);
+      order.people.push(person);
+    }
     const entryValues = H_ENTRY_ALL.flatMap(header => splitPlanEntries(row?.[header]));
     const noteValue = H_NOTES ? row?.[H_NOTES] : null;
-    const values = entryValues.filter(Boolean);
     const noteText = sanitizePlanScalar(noteValue);
+    const values = entryValues
+      .map(val => (typeof val === 'string' ? val.trim() : val))
+      .filter(val => {
+        if(!val) return false;
+        if(noteText && isPlanNotePlaceholder(val)) return false;
+        return true;
+      });
     const entriesToProcess = values.length ? values : (noteText ? [noteText] : []);
     const noteForEntries = values.length ? noteText : null;
     let added = 0;
-    entriesToProcess.forEach(val => {
+    entriesToProcess.forEach((val, entryIndex) => {
       const entry = buildPlanEntry(val, noteForEntries, context);
       if(!entry) return;
       if(entry.type === 'missing') stats.unmatchedWorkOrders += 1;
+      entry.__meta = {
+        rowIndex,
+        entryIndex,
+        day,
+        person,
+        isStandaloneNote: !values.length,
+      };
       matrix.get(day)?.get(person)?.push(entry);
       stats.appliedEntries += 1;
       added += 1;
@@ -3438,7 +3484,16 @@ function buildPlanView(raw, context){
       stats.skippedRows += 1;
     }
   });
-  return { matrix, stats, issues, columns:{ day:H_DAY, person:H_PERSON, entry:H_ENTRY_ALL, notes:H_NOTES } };
+  return {
+    matrix,
+    stats,
+    issues,
+    columns:{ day:H_DAY, person:H_PERSON, entry:H_ENTRY_ALL, notes:H_NOTES },
+    order:{
+      days: mergePlanOrder(order.days, PLAN_NEXT_WEEK_DAYS),
+      people: mergePlanOrder(order.people, PLAN_NEXT_WEEK_PEOPLE),
+    }
+  };
 }
 
 function formatPlanTimestamp(date){
@@ -3505,11 +3560,23 @@ function createTaskCardTitle(text){
   return el;
 }
 
-function deriveTaskCardVariant(entry){
-  if(!entry) return 'scheduled';
+function planEntryPresentationType(entry){
+  if(!entry) return 'text';
+  if(entry.__meta?.isStandaloneNote) return 'note';
   if(entry.type === 'note') return 'note';
-  if(entry.type === 'missing') return 'critical';
-  if(entry.type === 'text') return 'scheduled';
+  if(entry.type === 'missing') return 'missing';
+  if(entry.type === 'wo') return 'wo';
+  const rawLabel = typeof entry.raw === 'string' ? entry.raw.trim().toLowerCase() : '';
+  if(rawLabel && (rawLabel === 'note' || rawLabel === 'notes')) return 'note';
+  return entry.type || 'text';
+}
+
+function deriveTaskCardVariant(entry, entryType){
+  if(!entry) return 'scheduled';
+  const type = entryType || planEntryPresentationType(entry);
+  if(type === 'note') return 'note';
+  if(type === 'missing') return 'critical';
+  if(type === 'text') return 'scheduled';
   const statusSlug = entry.workOrder ? slugify(String(entry.workOrder.Status ?? entry.workOrder.status ?? '')) : '';
   const prioritySlug = entry.workOrder ? slugify(String(entry.workOrder.Priority ?? entry.workOrder.priority ?? '')) : '';
   if(statusSlug.includes('hold')) return 'hold';
@@ -3519,9 +3586,10 @@ function deriveTaskCardVariant(entry){
   return 'scheduled';
 }
 
-function planCardChipLabel(entry){
+function planCardChipLabel(entry, entryType){
   if(!entry) return null;
-  if(entry.type === 'note') return null;
+  const type = entryType || planEntryPresentationType(entry);
+  if(type === 'note') return 'NOTE';
 
   const idCandidate = entry.lookupId || entry.workOrder?.ID;
   if(idCandidate){
@@ -3547,12 +3615,12 @@ function planCardChipLabel(entry){
 function renderPlanEntry(entry){
   const card = document.createElement('div');
   card.className = 'task-card';
-  const entryType = entry.type === 'text' ? 'note' : (entry.type || 'text');
+  const entryType = planEntryPresentationType(entry);
   card.dataset.type = entryType;
-  card.dataset.variant = deriveTaskCardVariant(entry);
+  card.dataset.variant = deriveTaskCardVariant(entry, entryType);
   card.tabIndex = 0;
 
-  const chipLabel = planCardChipLabel(entry);
+  const chipLabel = planCardChipLabel(entry, entryType);
   if(chipLabel){
     const chipRow = document.createElement('div');
     chipRow.className = 'task-card__chip-row';
@@ -3586,6 +3654,18 @@ function renderPlanEntry(entry){
   return card;
 }
 
+function comparePlanEntryOrder(a, b){
+  const aMeta = a?.__meta || {};
+  const bMeta = b?.__meta || {};
+  const aRow = Number.isFinite(aMeta.rowIndex) ? aMeta.rowIndex : Number.MAX_SAFE_INTEGER;
+  const bRow = Number.isFinite(bMeta.rowIndex) ? bMeta.rowIndex : Number.MAX_SAFE_INTEGER;
+  if(aRow !== bRow) return aRow - bRow;
+  const aIdx = Number.isFinite(aMeta.entryIndex) ? aMeta.entryIndex : Number.MAX_SAFE_INTEGER;
+  const bIdx = Number.isFinite(bMeta.entryIndex) ? bMeta.entryIndex : Number.MAX_SAFE_INTEGER;
+  if(aIdx !== bIdx) return aIdx - bIdx;
+  return String(a?.raw ?? '').localeCompare(String(b?.raw ?? ''), undefined, { numeric:true, sensitivity:'base' });
+}
+
 function renderPlanTable(view){
   if(!$planTable) return;
   $planTable.innerHTML = '';
@@ -3601,13 +3681,15 @@ function renderPlanTable(view){
     setPlanStatus(`Plan sheet is missing required column(s): ${view.issues.join(', ')}`, 'error');
     return;
   }
+  const dayOrder = mergePlanOrder(view.order?.days, PLAN_NEXT_WEEK_DAYS);
+  const peopleOrder = mergePlanOrder(view.order?.people, PLAN_NEXT_WEEK_PEOPLE);
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
   const thBlank = document.createElement('th');
   thBlank.scope = 'col';
   thBlank.textContent = 'Engineer';
   headerRow.appendChild(thBlank);
-  PLAN_NEXT_WEEK_DAYS.forEach(day => {
+  dayOrder.forEach(day => {
     const th = document.createElement('th');
     th.scope = 'col';
     th.textContent = day;
@@ -3615,17 +3697,19 @@ function renderPlanTable(view){
   });
   thead.appendChild(headerRow);
   const tbody = document.createElement('tbody');
-  PLAN_NEXT_WEEK_PEOPLE.forEach(person => {
+  peopleOrder.forEach(person => {
     const tr = document.createElement('tr');
     const th = document.createElement('th');
     th.scope = 'row';
     th.textContent = person;
     tr.appendChild(th);
-    PLAN_NEXT_WEEK_DAYS.forEach(day => {
+    dayOrder.forEach(day => {
       const td = document.createElement('td');
-      const entries = view.matrix.get(day)?.get(person) || [];
-      if(entries.length){
-        entries.forEach(entry => td.appendChild(renderPlanEntry(entry)));
+      const dayBucket = view.matrix.get(day);
+      const entries = dayBucket?.get(person) || [];
+      const sortedEntries = entries.length > 1 ? entries.slice().sort(comparePlanEntryOrder) : entries;
+      if(sortedEntries.length){
+        sortedEntries.forEach(entry => td.appendChild(renderPlanEntry(entry)));
       }else{
         const empty = document.createElement('div');
         empty.className = 'plan-empty';
