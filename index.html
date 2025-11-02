@@ -3633,6 +3633,10 @@ function planCardChipLabel(entry, entryType){
   
   // Never show NOTE chips
   if(type === 'note') return null;
+  
+  // Only show chips for work orders and missing work orders
+  // Don't show chips for plain text entries
+  if(type === 'text') return null;
 
   const idCandidate = entry.lookupId || entry.workOrder?.ID;
   if(idCandidate){
@@ -3640,29 +3644,20 @@ function planCardChipLabel(entry, entryType){
     if(match) return `WO ${match[0]}`;
   }
 
-  if(entry.type === 'text'){
-    const rawText = typeof entry.raw === 'string' ? entry.raw.trim() : (entry.raw != null ? String(entry.raw).trim() : '');
-    
-    // Don't show chip if the text is literally "note" or "notes"
-    const rawLower = rawText.toLowerCase();
-    if(rawLower === 'note' || rawLower === 'notes') return null;
-    
-    if(rawText){
-      const maxLength = 24;
-      return rawText.length > maxLength ? `${rawText.slice(0, maxLength - 1).trimEnd()}…` : rawText;
-    }
-    return 'PLAN';
+  // For missing work orders, show the WO number if we have it
+  if(type === 'missing' && entry.lookupId){
+    return `WO ${entry.lookupId}`;
   }
 
   const candidate = entry.lookupId || entry.workOrder?.ID || entry.raw;
-  if(!candidate) return 'PLAN';
+  if(!candidate) return null;
   
   // Check if candidate is "note" before processing
   const candLower = String(candidate).trim().toLowerCase();
   if(candLower === 'note' || candLower === 'notes') return null;
   
   const match = String(candidate).match(/\d{3,}/);
-  return match ? `WO ${match[0]}` : String(candidate).trim().toUpperCase();
+  return match ? `WO ${match[0]}` : null;
 }
 
 function renderPlanEntry(entry){
