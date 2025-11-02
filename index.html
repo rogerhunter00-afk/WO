@@ -3446,14 +3446,17 @@ function buildPlanView(raw, context) {
 
     // C → Entry (WO number or task description)
     const rawEntry = getCell(row, 2, "Entry");
-    
-    // D → Note (optional notes column)
-    const rawNote = getCell(row, 3, "Note");
 
-    // split entries - only filter out truly empty strings
+    // split entries and filter out placeholder "NOTE" text
     const parts = splitPlanEntries(rawEntry)
       .map(p => String(p || "").trim())
-      .filter(Boolean);  // Just remove empty strings, keep everything else
+      .filter(p => {
+        if (!p) return false;
+        const low = p.toLowerCase();
+        // Skip standalone "note" or "notes" placeholder text
+        if (low === "note" || low === "notes") return false;
+        return true;
+      });
 
     if (!parts.length) {
       stats.skippedRows++;
@@ -3466,8 +3469,8 @@ function buildPlanView(raw, context) {
 
     let added = 0;
     parts.forEach((val, entryIndex) => {
-      // Pass the note from column D (if it exists)
-      const entry = buildPlanEntry(val, rawNote, context);
+      // No separate notes column, so pass null for note parameter
+      const entry = buildPlanEntry(val, null, context);
       if (!entry) return;
 
       if (entry.type === "missing") {
