@@ -3631,8 +3631,7 @@ function planCardChipLabel(entry, entryType){
   if(!entry) return null;
   const type = entryType || planEntryPresentationType(entry);
   
-  // We filter out placeholder notes during parsing, so this should never happen
-  // but keep it as a safety check
+  // Never show NOTE chips
   if(type === 'note') return null;
 
   const idCandidate = entry.lookupId || entry.workOrder?.ID;
@@ -3643,6 +3642,11 @@ function planCardChipLabel(entry, entryType){
 
   if(entry.type === 'text'){
     const rawText = typeof entry.raw === 'string' ? entry.raw.trim() : (entry.raw != null ? String(entry.raw).trim() : '');
+    
+    // Don't show chip if the text is literally "note" or "notes"
+    const rawLower = rawText.toLowerCase();
+    if(rawLower === 'note' || rawLower === 'notes') return null;
+    
     if(rawText){
       const maxLength = 24;
       return rawText.length > maxLength ? `${rawText.slice(0, maxLength - 1).trimEnd()}…` : rawText;
@@ -3652,11 +3656,36 @@ function planCardChipLabel(entry, entryType){
 
   const candidate = entry.lookupId || entry.workOrder?.ID || entry.raw;
   if(!candidate) return 'PLAN';
+  
+  // Check if candidate is "note" before processing
+  const candLower = String(candidate).trim().toLowerCase();
+  if(candLower === 'note' || candLower === 'notes') return null;
+  
   const match = String(candidate).match(/\d{3,}/);
   return match ? `WO ${match[0]}` : String(candidate).trim().toUpperCase();
 }
 
 function renderPlanEntry(entry){
+  // Safety checks - don't render if entry is problematic
+  if(!entry) return null;
+  
+  const raw = String(entry.raw || "").trim();
+  const rawLower = raw.toLowerCase();
+  
+  // Skip if raw is "note" or "notes"
+  if(rawLower === 'note' || rawLower === 'notes') return null;
+  
+  // Skip if text is duplicated (e.g., "TextText")
+  if(raw.length >= 8){
+    const half = Math.floor(raw.length / 2);
+    const first = raw.slice(0, half);
+    const second = raw.slice(half);
+    if(first === second){
+      console.log(`Skipping duplicated entry in render: "${raw}"`);
+      return null;
+    }
+  }
+  
   const card = document.createElement('div');
   card.className = 'task-card';
   const entryType = planEntryPresentationType(entry);
@@ -3753,8 +3782,13 @@ function renderPlanTable(view){
       const entries = dayBucket?.get(person) || [];
       const sortedEntries = entries.length > 1 ? entries.slice().sort(comparePlanEntryOrder) : entries;
       if(sortedEntries.length){
-        sortedEntries.forEach(entry => td.appendChild(renderPlanEntry(entry)));
-      }else{
+        sortedEntries.forEach(entry => {
+          const rendered = renderPlanEntry(entry);
+          if(rendered) td.appendChild(rendered);
+        });
+      }
+      // Show "No plan" only if td is still empty after rendering all entries
+      if(!td.hasChildNodes()){
         const empty = document.createElement('div');
         empty.className = 'plan-empty';
         empty.textContent = 'No plan';
@@ -5935,6 +5969,16 @@ document.addEventListener('keydown', (e)=>{
       const str = String(value).trim().toLowerCase();
       return str === 'note' || str === 'notes' || str === '';
     }
+    
+    // Helper to check for text duplication (e.g., "TextText")
+    function isDuplicated(text) {
+      if (!text || text.length < 8) return false;
+      const str = String(text);
+      const half = Math.floor(str.length / 2);
+      const first = str.slice(0, half);
+      const second = str.slice(half);
+      return first === second;
+    }
 
     // walk every day → every engineer → entries[]
     out.matrix.forEach((peopleMap, day) => {
@@ -5953,23 +5997,20 @@ document.addEventListener('keydown', (e)=>{
 
           // Skip if ANY field is exactly "note" or "notes"
           if (isPlaceholderNote(label) || isPlaceholderNote(text) || isPlaceholderNote(raw)) {
+            console.log(`Skipping placeholder note entry:`, entry);
             return; // skip it completely
           }
 
           // Skip if type is explicitly 'note'
           if (entry.type === 'note') {
+            console.log(`Skipping note type entry:`, entry);
             return;
           }
 
-          // Skip duplicated text (e.g., "Isla Bank FeederIsla Bank Feeder")
-          const textToCheck = text || raw || "";
-          if (textToCheck && textToCheck.length > 8) {
-            const half = Math.floor(textToCheck.length / 2);
-            const first = textToCheck.slice(0, half);
-            const second = textToCheck.slice(half);
-            if (first === second) {
-              return; // skip the duplicated one
-            }
+          // Skip duplicated text in ANY field
+          if (isDuplicated(raw) || isDuplicated(text) || isDuplicated(label)) {
+            console.log(`Skipping duplicated text entry:`, entry);
+            return;
           }
 
           cleaned.push(entry);
