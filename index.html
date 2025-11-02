@@ -4057,11 +4057,23 @@ const css = `
   }
 
   function processRoot(root){
+    // DISABLED: This DOM post-processor conflicts with renderPlanEntry
+    // The Plan table is already properly rendered by buildPlanView + renderPlanEntry
+    // Running processCandidate on it causes:
+    // 1. Duplicate "NOTE" chips on valid entries
+    // 2. Text duplication issues
+    // 3. Cards being incorrectly converted
+    
+    // If you need this processor for OTHER tables, uncomment and add a filter:
+    /*
     const cells = root.querySelectorAll('td');
     cells.forEach(cell => {
+      // Only process cells that don't have task-cards
+      if(cell.querySelector('.task-card')) return;
       processCandidate(cell);
       Array.from(cell.children).forEach(child => processCandidate(child));
     });
+    */
   }
 
   function processCandidate(element){
