@@ -1200,6 +1200,10 @@ body.force-desktop .mobile-sort{display:none!important}
 .task-card[data-variant="critical"]::before{
   background:var(--accent-red, #ef4444);
 }
+.task-card[data-variant="note"]{
+  background:color-mix(in srgb, var(--card-bg, var(--paper)) 70%, var(--bg));
+  color:color-mix(in srgb, var(--muted) 75%, var(--ink));
+}
 .task-card[data-variant="note"]::before{
   background:var(--accent-grey, var(--muted));
 }
@@ -3503,8 +3507,9 @@ function createTaskCardTitle(text){
 
 function deriveTaskCardVariant(entry){
   if(!entry) return 'scheduled';
-  if(entry.type === 'note' || entry.type === 'text') return 'note';
+  if(entry.type === 'note') return 'note';
   if(entry.type === 'missing') return 'critical';
+  if(entry.type === 'text') return 'scheduled';
   const statusSlug = entry.workOrder ? slugify(String(entry.workOrder.Status ?? entry.workOrder.status ?? '')) : '';
   const prioritySlug = entry.workOrder ? slugify(String(entry.workOrder.Priority ?? entry.workOrder.priority ?? '')) : '';
   if(statusSlug.includes('hold')) return 'hold';
@@ -3515,9 +3520,26 @@ function deriveTaskCardVariant(entry){
 }
 
 function planCardChipLabel(entry){
-  if(entry?.type === 'note' || entry?.type === 'text') return null;
-  const candidate = entry?.lookupId || entry?.workOrder?.ID || entry?.raw;
-  if(!candidate) return 'WO';
+  if(!entry) return null;
+  if(entry.type === 'note') return null;
+
+  const idCandidate = entry.lookupId || entry.workOrder?.ID;
+  if(idCandidate){
+    const match = String(idCandidate).match(/\d{3,}/);
+    if(match) return `WO ${match[0]}`;
+  }
+
+  if(entry.type === 'text'){
+    const rawText = typeof entry.raw === 'string' ? entry.raw.trim() : (entry.raw != null ? String(entry.raw).trim() : '');
+    if(rawText){
+      const maxLength = 24;
+      return rawText.length > maxLength ? `${rawText.slice(0, maxLength - 1).trimEnd()}…` : rawText;
+    }
+    return 'PLAN';
+  }
+
+  const candidate = entry.lookupId || entry.workOrder?.ID || entry.raw;
+  if(!candidate) return 'PLAN';
   const match = String(candidate).match(/\d{3,}/);
   return match ? `WO ${match[0]}` : String(candidate).trim().toUpperCase();
 }
@@ -3698,6 +3720,10 @@ const css = `
   width:3px;
   border-radius:999px;
   background:var(--accent-blue);
+}
+#plan-next-week .task-card[data-variant="note"]{
+  background:color-mix(in srgb, var(--plan-card-bg) 65%, var(--bg));
+  color:color-mix(in srgb, var(--muted) 75%, var(--plan-card-text));
 }
 #plan-next-week .task-card[data-variant="scheduled"]::before,
 #plan-next-week .task-card[data-variant="note"]::before{
