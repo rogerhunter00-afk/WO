@@ -3091,6 +3091,19 @@ function sanitizePlanScalar(value){
   return null;
 }
 
+function normalizePlanLabel(value){
+  const sanitized = sanitizePlanScalar(value);
+  if(!sanitized) return null;
+  const slug = slugify(sanitized);
+  if(slug === 'plan-next-week' || slug === 'next-week-plan' || slug === 'plan-for-next-week'){
+    return 'Eng Schedule';
+  }
+  if(slug === 'eng-schedule' || slug === 'engineering-schedule'){
+    return 'Eng Schedule';
+  }
+  return sanitized;
+}
+
 function isPlanNotePlaceholder(value){
   if(value == null) return false;
   const normalized = String(value).trim().toLowerCase();
@@ -3132,7 +3145,8 @@ const planConfigFromBody = (() => {
 
 const planDays = pickPlanList(planConfigFromBody.days, planConfigFromWindow?.days, PLAN_DEFAULT_DAYS);
 const planPeople = pickPlanList(planConfigFromBody.people, planConfigFromWindow?.people, PLAN_DEFAULT_PEOPLE);
-const planLabelOverride = pickPlanScalar(planConfigFromBody.label, planConfigFromWindow?.label);
+const rawPlanLabelOverride = pickPlanScalar(planConfigFromBody.label, planConfigFromWindow?.label);
+const planLabelOverride = normalizePlanLabel(rawPlanLabelOverride) || rawPlanLabelOverride;
 const planGidOverride = pickPlanScalar(planConfigFromBody.gid, planConfigFromWindow?.gid);
 const planUrlOverride = pickPlanScalar(planConfigFromBody.url, planConfigFromWindow?.url);
 const PLAN_LABEL_LOCKED = Boolean(planLabelOverride);
@@ -3362,7 +3376,7 @@ function applyPlanSourceFromIndex(entry){
     }
   }
   if(!PLAN_LABEL_LOCKED){
-    const lbl = sanitizePlanScalar(entry.label);
+    const lbl = normalizePlanLabel(entry.label) || sanitizePlanScalar(entry.label);
     if(lbl) PLAN_NEXT_WEEK_SOURCE.label = lbl;
   }
   updatePlanHeaderLabel();
@@ -4399,7 +4413,7 @@ function refreshPlanWithWorkOrders(){
 
 function isPlanLabel(label){
   const slug = slugify(String(label || ''));
-  return slug === 'plan-next-week' || slug === 'next-week-plan' || slug === 'plan-for-next-week';
+  return slug === 'plan-next-week' || slug === 'next-week-plan' || slug === 'plan-for-next-week' || slug === 'eng-schedule';
 }
 
 /* --- Parse the Index (label, week_end, gid) with aliases + diagnostics --- */
