@@ -3618,10 +3618,19 @@ function deriveTaskCardVariant(entry, entryType){
   const type = entryType || planEntryPresentationType(entry);
   if(type === 'missing') return 'critical';
   if(type === 'text') return 'scheduled';
+  
   const statusSlug = entry.workOrder ? slugify(String(entry.workOrder.Status ?? entry.workOrder.status ?? '')) : '';
   const prioritySlug = entry.workOrder ? slugify(String(entry.workOrder.Priority ?? entry.workOrder.priority ?? '')) : '';
   
-  // Red bar for Critical or High priority work orders
+  // Check if work order has "Priority" in its Categories field
+  const hasPriorityTag = entry.workOrder ? hasPriorityCategory(entry.workOrder) : false;
+  
+  // Red bar for work orders with "Priority" category
+  if(hasPriorityTag){
+    return 'critical';
+  }
+  
+  // Red bar for Critical/High/Urgent priority level
   if(prioritySlug.includes('critical') || prioritySlug.includes('high') || prioritySlug.includes('urgent')){
     return 'critical';
   }
