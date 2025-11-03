@@ -1069,9 +1069,20 @@ body.force-desktop .mobile-sort{display:none!important}
   align-items:center;
   justify-content:center;
   padding:24px;
-  background:color-mix(in srgb, var(--ink) 45%, transparent);
+  background:color-mix(in srgb, var(--bg) 88%, transparent);
   backdrop-filter:blur(3px);
   z-index:1100;
+}
+body.light .plan-overlay{
+  background:var(--paper);
+}
+body.dark .plan-overlay{
+  background:color-mix(in srgb, var(--ink) 45%, transparent);
+}
+@media (prefers-color-scheme: dark){
+  body:not(.light) .plan-overlay{
+    background:color-mix(in srgb, var(--ink) 45%, transparent);
+  }
 }
 .plan-overlay[hidden]{
   display:none;
