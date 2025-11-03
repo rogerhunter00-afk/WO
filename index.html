@@ -1061,7 +1061,7 @@ body.force-desktop .mobile-sort{display:none!important}
   opacity:1; transform:none; pointer-events:auto;
 }
 
-/* --- Plan for Next Week overlay --- */
+/* --- Eng Schedule overlay --- */
 .plan-overlay{
   position:fixed;
   inset:0;
@@ -1495,7 +1495,7 @@ body.dark .plan-overlay{
 
             <button id="refreshBtn" class="btn btn--outline" type="button">Refresh data</button>
             <button id="exportCsvBtn" class="btn btn--primary" type="button" disabled>Export CSV</button>
-            <button id="planNextWeekBtn" class="btn btn--ghost" type="button">Plan for Next Week</button>
+            <button id="planNextWeekBtn" class="btn btn--ghost" type="button">Eng Schedule</button>
             <button class="ctrl-pill switch-wrap" id="layout-toggle" type="button" role="switch" aria-checked="false" aria-label="Switch to mobile view">
               <span class="switch" aria-hidden="true"><span class="switch__thumb"></span></span>
               <span class="switch-label">Auto</span>
@@ -1558,7 +1558,7 @@ body.dark .plan-overlay{
   <div id="planNextWeekOverlay" class="plan-overlay" hidden aria-hidden="true">
     <div class="plan-dialog" id="planNextWeekDialog" role="dialog" aria-modal="true" aria-labelledby="planNextWeekTitle" tabindex="-1">
       <header class="plan-dialog__header">
-        <h2 class="plan-dialog__title" id="planNextWeekTitle">Plan for Next Week</h2>
+        <h2 class="plan-dialog__title" id="planNextWeekTitle">Eng Schedule</h2>
         <div class="plan-dialog__actions">
           <button id="planNextWeekRefresh" class="btn btn--ghost btn--sm" type="button">Refresh</button>
           <button id="planNextWeekClose" class="btn btn--ghost btn--sm" type="button">Close</button>
@@ -3057,7 +3057,7 @@ function csvUrlForGid(gid){
   return x.toString();
 }
 
-/* --- Plan for Next Week integration --- */
+/* --- Eng Schedule integration --- */
 const PLAN_DEFAULT_DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
 const PLAN_DEFAULT_PEOPLE = ['Callum','Graeme','Shaun','Jim/Ciaren'];
 const PLAN_FOCUS_SELECTOR = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -3141,7 +3141,7 @@ const PLAN_SOURCE_LOCKED = Boolean(planGidOverride || planUrlOverride);
 let PLAN_NEXT_WEEK_SOURCE = {
   gid: planGidOverride,
   url: planUrlOverride,
-  label: planLabelOverride || 'Plan for Next Week',
+  label: planLabelOverride || 'Eng Schedule',
   days: planDays.length ? planDays : PLAN_DEFAULT_DAYS.slice(),
   people: planPeople.length ? planPeople : PLAN_DEFAULT_PEOPLE.slice(),
   meta: null,
@@ -3210,7 +3210,7 @@ let __planReturnFocus = null;
 let __planPrevBodyOverflow = null;
 
 function planLabel(){
-  return PLAN_NEXT_WEEK_SOURCE?.label || 'Plan for Next Week';
+  return PLAN_NEXT_WEEK_SOURCE?.label || 'Eng Schedule';
 }
 
 function planSourceIsConfigured(){
@@ -4115,7 +4115,7 @@ const css = `
   }
 
   function ensureRoot(){
-    const heading = Array.from(document.querySelectorAll('h1,h2,h3,h4,h5,h6')).find(el => el.textContent && el.textContent.trim() === 'Plan for Next Week');
+    const heading = Array.from(document.querySelectorAll('h1,h2,h3,h4,h5,h6')).find(el => el.textContent && el.textContent.trim() === 'Eng Schedule');
     if(!heading) return null;
     const panel = heading.closest('[role="dialog"]') || heading.closest('section,div,article') || heading.parentElement;
     if(panel && panel.id !== 'plan-next-week'){
@@ -4328,7 +4328,7 @@ const css = `
 //   // @name         Plan Next Week Card Restyle
 //   // @namespace    http://tampermonkey.net/
 //   // @version      1.0
-//   // @description  Restyle Plan for Next Week cards
+//   // @description  Restyle Eng Schedule cards
 //   // @match        *
 //   // @grant        none
 //   // ==/UserScript==
