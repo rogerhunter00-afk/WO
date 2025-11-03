@@ -4057,11 +4057,12 @@ const css = `
   font-weight:600;
   line-height:1.4;
   color:var(--plan-card-text);
-  display:-webkit-box;
-  -webkit-line-clamp:3;
-  -webkit-box-orient:vertical;
-  overflow:hidden;
-  text-overflow:ellipsis;
+  display:block;
+  -webkit-line-clamp:unset;
+  -webkit-box-orient:unset;
+  overflow:visible;
+  text-overflow:clip;
+  white-space:normal;
 }
 #plan-next-week .task-card__suffix{color:color-mix(in srgb, var(--plan-card-text) 65%, var(--muted) 35%);font-weight:500;}
 #plan-next-week .task-card__meta,
