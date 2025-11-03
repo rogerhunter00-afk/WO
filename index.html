@@ -1192,6 +1192,13 @@ body.force-desktop .mobile-sort{display:none!important}
   border-radius:999px;
   background:var(--accent-blue, var(--brand));
 }
+.task-card[data-variant="done"]{
+  border-color:color-mix(in srgb, var(--card-border, var(--grid)) 55%, var(--done-tx) 45%);
+  background:color-mix(in srgb, var(--done-tx) 16%, var(--card-bg, var(--paper)));
+}
+.task-card[data-variant="done"]::before{
+  background:var(--done-tx);
+}
 .task-card[data-variant="hold"]::before{
   background:var(--accent-amber, #f59e0b);
 }
@@ -3697,17 +3704,22 @@ function deriveTaskCardVariant(entry, entryType){
   
   // Check if work order has "Priority" in its Categories field
   const hasPriorityTag = entry.workOrder ? hasPriorityCategory(entry.workOrder) : false;
-  
+
+  // Green bar for completed work orders
+  if(statusSlug.includes('done') || statusSlug.includes('complete')){
+    return 'done';
+  }
+
   // Red bar for work orders with "Priority" category
   if(hasPriorityTag){
     return 'critical';
   }
-  
+
   // Red bar for Critical/High/Urgent priority level
   if(prioritySlug.includes('critical') || prioritySlug.includes('high') || prioritySlug.includes('urgent')){
     return 'critical';
   }
-  
+
   // Amber bar for On Hold status
   if(statusSlug.includes('hold')) return 'hold';
   
@@ -3970,6 +3982,14 @@ const css = `
   width:3px;
   border-radius:999px;
   background:var(--accent-blue);
+}
+#plan-next-week .task-card[data-variant="done"]{
+  border-color:color-mix(in srgb, var(--plan-card-border) 40%, var(--done-tx) 60%);
+  background:color-mix(in srgb, var(--done-tx) 18%, var(--plan-card-bg));
+}
+#plan-next-week .task-card[data-variant="done"]::before{
+  background:var(--done-tx);
+  content:"";
 }
 #plan-next-week .task-card[data-variant="note"]{
   background:color-mix(in srgb, var(--plan-card-bg) 65%, var(--bg));
