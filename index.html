@@ -1134,7 +1134,8 @@ body.dark .plan-overlay{
 }
 .plan-status{
   padding:10px 24px;
-  font-size:.92rem;
+  font-size:.46rem;
+  line-height:1.2;
   color:var(--muted);
   border-bottom:1px solid var(--grid);
 }
@@ -1148,6 +1149,39 @@ body.dark .plan-overlay{
   flex:1 1 auto;
   overflow:auto;
   padding:0 24px 24px;
+}
+.plan-filter-buttons{
+  display:none;
+  gap:8px;
+  flex-wrap:wrap;
+  margin:18px 0 0;
+}
+.plan-filter-buttons[hidden]{
+  display:none!important;
+}
+.plan-filter-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font:inherit;
+  font-size:.85rem;
+  padding:6px 12px;
+  border-radius:999px;
+  border:1px solid color-mix(in srgb, var(--grid) 70%, transparent);
+  background:color-mix(in srgb, var(--paper) 94%, var(--bg));
+  color:var(--ink);
+  cursor:pointer;
+  transition:background-color .15s ease, color .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.plan-filter-button:focus-visible{
+  outline:2px solid var(--brand);
+  outline-offset:2px;
+}
+.plan-filter-button.is-active{
+  background:var(--brand);
+  border-color:var(--brand);
+  color:var(--btn-fg);
+  box-shadow:0 1px 4px rgba(15,23,42,.16);
 }
 .plan-table{
   width:100%;
@@ -1340,6 +1374,9 @@ body.dark .plan-overlay{
   }
   .plan-scroll{
     padding:0 16px 20px;
+  }
+  .plan-filter-buttons{
+    display:flex;
   }
   .plan-table{
     display:block;
@@ -1577,6 +1614,7 @@ body.dark .plan-overlay{
       </header>
       <div id="planNextWeekStatus" class="plan-status" role="status" aria-live="polite"></div>
       <div class="plan-scroll">
+        <div id="planNextWeekFilters" class="plan-filter-buttons" hidden role="toolbar" aria-label="Filter by engineer"></div>
         <table class="plan-table" id="planNextWeekTable" aria-describedby="planNextWeekStatus"></table>
       </div>
     </div>
@@ -3230,6 +3268,15 @@ const $planRefresh = document.getElementById('planNextWeekRefresh');
 const $planStatus = document.getElementById('planNextWeekStatus');
 const $planTable = document.getElementById('planNextWeekTable');
 const $planTitle = document.getElementById('planNextWeekTitle');
+const $planFilters = document.getElementById('planNextWeekFilters');
+
+let PLAN_NEXT_WEEK_PERSON_FILTER = null;
+let PLAN_NEXT_WEEK_PEOPLE_ORDER = [];
+
+const PLAN_FILTER_BREAKPOINT = '(max-width: 680px)';
+const PLAN_FILTER_MEDIA = (typeof window !== 'undefined' && typeof window.matchMedia === 'function')
+  ? window.matchMedia(PLAN_FILTER_BREAKPOINT)
+  : null;
 
 let __planReturnFocus = null;
 let __planPrevBodyOverflow = null;
@@ -3279,6 +3326,101 @@ function setPlanStatus(message, state='info'){
   if(!$planStatus) return;
   $planStatus.textContent = message || '';
   $planStatus.dataset.state = state;
+}
+
+function planIsMobileLayout(){
+  if(PLAN_FILTER_MEDIA) return PLAN_FILTER_MEDIA.matches;
+  if(typeof window !== 'undefined' && typeof window.innerWidth === 'number'){
+    return window.innerWidth <= 680;
+  }
+  return false;
+}
+
+function clearPlanFilterControls(){
+  if(!$planFilters) return;
+  $planFilters.innerHTML = '';
+  $planFilters.hidden = true;
+}
+
+function syncPlanFilterButtons(){
+  if(!$planFilters) return;
+  const buttons = $planFilters.querySelectorAll('.plan-filter-button');
+  buttons.forEach(button => {
+    const person = button.dataset.person || '';
+    const isAll = person === '';
+    const isActive = PLAN_NEXT_WEEK_PERSON_FILTER ? (!isAll && PLAN_NEXT_WEEK_PERSON_FILTER === person) : isAll;
+    button.classList.toggle('is-active', isActive);
+    button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  });
+}
+
+function createPlanFilterButton(person, label){
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'plan-filter-button';
+  button.dataset.person = person || '';
+  button.textContent = label;
+  button.setAttribute('aria-pressed', 'false');
+  if(person){
+    button.addEventListener('click', () => {
+      const normalized = person;
+      const next = PLAN_NEXT_WEEK_PERSON_FILTER === normalized ? null : normalized;
+      setPlanPersonFilter(next);
+    });
+  }else{
+    button.addEventListener('click', () => {
+      setPlanPersonFilter(null);
+    });
+  }
+  return button;
+}
+
+function updatePlanFilterControls(peopleOrder){
+  if(!$planFilters) return;
+  const order = Array.isArray(peopleOrder) ? peopleOrder.filter(Boolean) : [];
+  if(!planIsMobileLayout() || order.length <= 1){
+    clearPlanFilterControls();
+    return;
+  }
+  $planFilters.hidden = false;
+  $planFilters.removeAttribute('hidden');
+  $planFilters.innerHTML = '';
+  const fragment = document.createDocumentFragment();
+  fragment.appendChild(createPlanFilterButton(null, 'All'));
+  order.forEach(person => {
+    fragment.appendChild(createPlanFilterButton(person, person));
+  });
+  $planFilters.appendChild(fragment);
+  syncPlanFilterButtons();
+}
+
+function setPlanPersonFilter(person){
+  const normalized = typeof person === 'string' && person ? person : null;
+  if(PLAN_NEXT_WEEK_PERSON_FILTER === normalized) return;
+  PLAN_NEXT_WEEK_PERSON_FILTER = normalized;
+  if(PLAN_NEXT_WEEK_VIEW){
+    renderPlanTable(PLAN_NEXT_WEEK_VIEW);
+  }
+}
+
+function handlePlanFilterBreakpointChange(event){
+  if(!event.matches && PLAN_NEXT_WEEK_PERSON_FILTER){
+    PLAN_NEXT_WEEK_PERSON_FILTER = null;
+  }
+  if(PLAN_NEXT_WEEK_VIEW){
+    renderPlanTable(PLAN_NEXT_WEEK_VIEW);
+  }else{
+    updatePlanFilterControls(PLAN_NEXT_WEEK_PEOPLE_ORDER);
+  }
+}
+
+if(PLAN_FILTER_MEDIA){
+  const listener = handlePlanFilterBreakpointChange;
+  if(typeof PLAN_FILTER_MEDIA.addEventListener === 'function'){
+    PLAN_FILTER_MEDIA.addEventListener('change', listener);
+  }else if(typeof PLAN_FILTER_MEDIA.addListener === 'function'){
+    PLAN_FILTER_MEDIA.addListener(listener);
+  }
 }
 
 function isPlanOverlayOpen(){
@@ -3877,6 +4019,7 @@ function comparePlanEntryOrder(a, b){
 function renderPlanTable(view){
   if(!$planTable) return;
   $planTable.innerHTML = '';
+  clearPlanFilterControls();
   if(!planSourceIsConfigured()){
     setPlanStatus('Configure the plan sheet ID/URL to view the schedule.', 'info');
     return;
@@ -3891,6 +4034,16 @@ function renderPlanTable(view){
   }
   const dayOrder = mergePlanOrder(view.order?.days, PLAN_NEXT_WEEK_DAYS);
   const peopleOrder = mergePlanOrder(view.order?.people, PLAN_NEXT_WEEK_PEOPLE);
+  PLAN_NEXT_WEEK_PEOPLE_ORDER = peopleOrder.slice();
+  if(PLAN_NEXT_WEEK_PERSON_FILTER && !peopleOrder.includes(PLAN_NEXT_WEEK_PERSON_FILTER)){
+    PLAN_NEXT_WEEK_PERSON_FILTER = null;
+  }
+  if(!planIsMobileLayout() && PLAN_NEXT_WEEK_PERSON_FILTER){
+    PLAN_NEXT_WEEK_PERSON_FILTER = null;
+  }
+  updatePlanFilterControls(peopleOrder);
+  const activeFilter = PLAN_NEXT_WEEK_PERSON_FILTER;
+  const visiblePeople = activeFilter ? peopleOrder.filter(person => person === activeFilter) : peopleOrder;
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
   const thBlank = document.createElement('th');
@@ -3905,7 +4058,7 @@ function renderPlanTable(view){
   });
   thead.appendChild(headerRow);
   const tbody = document.createElement('tbody');
-  peopleOrder.forEach(person => {
+  visiblePeople.forEach(person => {
     const tr = document.createElement('tr');
     const th = document.createElement('th');
     th.scope = 'row';
@@ -3940,6 +4093,9 @@ function renderPlanTable(view){
   statusParts.push(planLabel());
   const summary = planStatsSummary(view.stats);
   if(summary) statusParts.push(summary);
+  if(activeFilter){
+    statusParts.push(`Filtered to ${activeFilter}`);
+  }
   if(PLAN_NEXT_WEEK_LAST_UPDATED){
     statusParts.push(`Updated ${formatPlanTimestamp(PLAN_NEXT_WEEK_LAST_UPDATED)}`);
   }
