@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light" />
-  <title>PSSR Inspection Tracker – ALS Engineering Dashboard</title>
+  <title>Inspections Tracker – ALS Engineering Dashboard</title>
   <style>
     :root {
       --bg:#f3f5f9;
@@ -900,6 +900,39 @@
       font-weight:600;
     }
 
+    .search-control,
+    .category-filter {
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      font-size:12px;
+    }
+
+    .search-control label,
+    .category-filter label {
+      color:var(--muted);
+      font-weight:600;
+    }
+
+    .search-control input,
+    .category-filter select {
+      background:var(--input-bg);
+      color:var(--input-fg);
+      border:1px solid var(--input-bd);
+      border-radius:10px;
+      padding:6px 10px;
+      font:inherit;
+      transition:border-color .18s ease,box-shadow .18s ease,background-color .18s ease;
+      min-width:0;
+    }
+
+    .search-control input:focus,
+    .category-filter select:focus {
+      outline:0;
+      border-color:var(--input-bd-focus);
+      box-shadow:0 0 0 3px color-mix(in srgb,var(--input-bd-focus) 28%,transparent);
+    }
+
     .sort-control__inputs {
       display:flex;
       align-items:center;
@@ -1247,7 +1280,7 @@
       box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--als-blue) 45%, transparent);
     }
 
-    tbody td[data-col="Comments"] {
+    tbody td[data-col="Notes"] {
       max-width:420px;
     }
 
@@ -1258,8 +1291,8 @@
       white-space:nowrap;
     }
 
-    tbody td[data-col="Comments"] > span,
-    tbody td[data-col="Comments"] {
+    tbody td[data-col="Notes"] > span,
+    tbody td[data-col="Notes"] {
       white-space:normal;
       overflow:visible;
     }
@@ -1300,6 +1333,31 @@
       color:#0f766e;
       background:color-mix(in srgb,#0f766e 18%,transparent);
     }
+
+    .status-pill {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:4px 10px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:700;
+      letter-spacing:0.08em;
+      text-transform:uppercase;
+      background:var(--surface-strong);
+      color:var(--ink);
+      border:1px solid color-mix(in srgb,var(--grid) 70%,transparent);
+      white-space:nowrap;
+      min-width:0;
+    }
+
+    .status-pill.is-overdue { background:color-mix(in srgb,var(--risk-critical) 18%,var(--paper)); color:var(--risk-critical); border-color:color-mix(in srgb,var(--risk-critical) 60%,transparent); }
+    .status-pill.is-due { background:color-mix(in srgb,var(--risk-warning) 16%,var(--paper)); color:var(--risk-warning); border-color:color-mix(in srgb,var(--risk-warning) 55%,transparent); }
+    .status-pill.is-clear { background:color-mix(in srgb,var(--risk-ok) 18%,var(--paper)); color:var(--risk-ok); border-color:color-mix(in srgb,var(--risk-ok) 55%,transparent); }
+    .status-pill.is-completed { background:color-mix(in srgb,var(--als-blue) 14%,var(--paper)); color:var(--als-blue); border-color:color-mix(in srgb,var(--als-blue) 60%,transparent); }
+    .status-pill.is-in-progress { background:color-mix(in srgb,var(--als-blue) 10%,var(--paper)); color:color-mix(in srgb,var(--als-blue) 80%,var(--ink)); border-color:color-mix(in srgb,var(--als-blue) 40%,transparent); }
+    .status-pill.is-scheduled { background:color-mix(in srgb,var(--muted) 12%,var(--paper)); color:color-mix(in srgb,var(--muted) 78%,var(--ink)); border-color:color-mix(in srgb,var(--muted) 45%,transparent); }
+    .status-pill.is-unknown { background:color-mix(in srgb,var(--muted) 8%,var(--paper)); color:color-mix(in srgb,var(--muted) 65%,var(--ink)); border-color:color-mix(in srgb,var(--muted) 40%,transparent); }
 
     .empty-state {
       padding:20px;
@@ -1520,6 +1578,35 @@
       color:color-mix(in srgb,var(--ink) 80%,var(--muted));
     }
 
+    .mobile-card__actions {
+      width:100%;
+      display:flex;
+      justify-content:flex-start;
+      margin:0;
+    }
+
+    .mobile-card__action {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-size:11px;
+      font-weight:600;
+      color:var(--als-blue);
+      text-decoration:none;
+      padding:6px 12px;
+      border-radius:999px;
+      border:1px solid color-mix(in srgb,var(--als-blue) 60%,transparent);
+      background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));
+      transition:background .18s ease,border-color .18s ease,color .18s ease;
+    }
+
+    .mobile-card__action:hover,
+    .mobile-card__action:focus-visible {
+      background:color-mix(in srgb,var(--als-blue) 18%,var(--paper));
+      border-color:color-mix(in srgb,var(--als-blue) 75%,transparent);
+      outline:none;
+    }
+
     .mobile-card.row-overdue {
       border-color:color-mix(in srgb,#dc2626 45%,var(--grid));
     }
@@ -1574,6 +1661,10 @@
       .mobile-cards { display:flex; flex-direction:column; align-items:center; gap:10px; padding-bottom:24px; }
       .sticky-top__content { flex-direction:column; align-items:flex-start; }
       .sticky-controls { width:100%; flex-direction:column; align-items:stretch; gap:12px; }
+      .search-control,
+      .category-filter { width:100%; }
+      .search-control input,
+      .category-filter select { width:100%; }
       .mobile-sort { display:grid; width:100%; gap:8px; }
       .mobile-sort label { font-weight:600; }
       .mobile-sort select { width:100%; }
@@ -1592,12 +1683,12 @@
   <div class="page">
     <header class="page-head">
       <div class="page-head__title">
-        <h1 class="title">PSSR Inspection Tracker</h1>
+        <h1 class="title">Inspections Tracker</h1>
         <nav class="nav" aria-label="Dashboard sections">
           <a class="tab" href="index.html">Work Orders</a>
           <a class="tab" href="facilities.html">Facilities</a>
-          <a class="tab" aria-selected="true" href="pssr.html">PSSR Inspections</a>
-          <a class="tab" href="inspections.html">Inspections Tracker</a>
+          <a class="tab" href="pssr.html">PSSR Inspections</a>
+          <a class="tab" aria-selected="true" href="inspections.html">Inspections Tracker</a>
         </nav>
       </div>
       <img src="LOGOlesswhitespace.png" alt="ALS Engineering" class="logo" />
@@ -1605,33 +1696,34 @@
     <div class="top-rule" role="presentation"></div>
     <section class="pssr-overview">
       <div class="pssr-overview__summary">
-        <div class="pssr-signal" data-role="pssr-signal" data-state="empty">
+        <div class="pssr-signal" data-role="inspections-signal" data-state="empty">
           <span class="pssr-signal__label">Current risk posture</span>
-          <span class="pssr-signal__value" data-role="pssr-signal-value">—</span>
-          <p class="pssr-signal__note" data-role="pssr-signal-note">Awaiting data</p>
+          <span class="pssr-signal__value" data-role="inspections-signal-value">—</span>
+          <p class="pssr-signal__note" data-role="inspections-signal-note">Awaiting data</p>
         </div>
       </div>
       <div class="pssr-overview__insights">
-        <section class="pssr-risk-panel" aria-label="Risk snapshot" data-role="pssr-risk">
+        <section class="pssr-risk-panel" aria-label="Risk snapshot" data-role="inspections-risk">
           <h3 class="pssr-risk-panel__title">Risk snapshot</h3>
-          <p class="pssr-risk-panel__message" data-role="pssr-risk-message">Awaiting inspection data.</p>
+          <p class="pssr-risk-panel__message" data-role="inspections-risk-message">Awaiting inspection data.</p>
           <div class="pssr-risk-bar">
-            <div class="pssr-risk-bar__track" data-role="pssr-risk-track">
-              <span class="pssr-risk-bar__segment is-alert" data-role="pssr-risk-overdue" style="left:0;width:0%;"></span>
-              <span class="pssr-risk-bar__segment is-warning" data-role="pssr-risk-due" style="left:0;width:0%;"></span>
-              <span class="pssr-risk-bar__segment is-ok" data-role="pssr-risk-clear" style="left:0;width:0%;"></span>
+            <div class="pssr-risk-bar__track" data-role="inspections-risk-track">
+              <span class="pssr-risk-bar__segment is-alert" data-role="inspections-risk-overdue" style="left:0;width:0%;"></span>
+              <span class="pssr-risk-bar__segment is-warning" data-role="inspections-risk-due" style="left:0;width:0%;"></span>
+              <span class="pssr-risk-bar__segment is-ok" data-role="inspections-risk-clear" style="left:0;width:0%;"></span>
             </div>
             <div class="pssr-risk-bar__legend">
-              <span class="pssr-risk-bar__legend-item is-alert"><span class="pssr-risk-bar__dot" aria-hidden="true"></span><span data-role="pssr-risk-label-overdue">0 overdue</span></span>
-              <span class="pssr-risk-bar__legend-item is-warning"><span class="pssr-risk-bar__dot" aria-hidden="true"></span><span data-role="pssr-risk-label-due">0 due soon</span></span>
-              <span class="pssr-risk-bar__legend-item is-ok"><span class="pssr-risk-bar__dot" aria-hidden="true"></span><span data-role="pssr-risk-label-clear">0 on track</span></span>
+              <span class="pssr-risk-bar__legend-item is-alert"><span class="pssr-risk-bar__dot" aria-hidden="true"></span><span data-role="inspections-risk-label-overdue">0 overdue</span></span>
+              <span class="pssr-risk-bar__legend-item is-warning"><span class="pssr-risk-bar__dot" aria-hidden="true"></span><span data-role="inspections-risk-label-due">0 due soon</span></span>
+              <span class="pssr-risk-bar__legend-item is-ok"><span class="pssr-risk-bar__dot" aria-hidden="true"></span><span data-role="inspections-risk-label-clear">0 on track</span></span>
             </div>
           </div>
         </section>
       </div>
       <section class="pssr-site-panel" aria-label="Site health overview">
         <h3 class="pssr-site-panel__title">Site health</h3>
-        <ul class="pssr-site-breakdown" data-role="pssr-site-breakdown">
+        <p class="pssr-site-panel__hint" data-role="inspections-site-hint">Awaiting inspection data.</p>
+        <ul class="pssr-site-breakdown" data-role="inspections-site-breakdown">
           <li class="pssr-site-breakdown__item is-empty">Awaiting inspection data.</li>
         </ul>
       </section>
@@ -1658,16 +1750,28 @@
               <button type="button" class="site-filter__tab" data-site-key="mugiemoss" aria-pressed="false">Mugiemoss</button>
             </div>
           </div>
+          <div class="category-filter" data-role="category-filter">
+            <label for="category-select">Category</label>
+            <select id="category-select" data-role="category-select" aria-label="Filter inspections by category">
+              <option value="all">All categories</option>
+            </select>
+          </div>
+          <div class="search-control" data-role="search-control">
+            <label for="inspection-search">Search</label>
+            <input type="search" id="inspection-search" placeholder="Search inspections" data-role="search-input" autocomplete="off" />
+          </div>
           <div class="sort-control" data-role="sort-control">
             <label class="sort-control__label" for="desktop-sort-select">Sort by</label>
             <div class="sort-control__inputs">
               <select id="desktop-sort-select" data-role="sort-select" aria-label="Select column to sort">
-                <option value="Asset" selected>Asset</option>
-                <option value="Location">Location</option>
-                <option value="Last Inspection Date">Last Inspection Date</option>
-                <option value="Next Inspection Date">Next Inspection Date</option>
-                <option value="Countdown">Countdown</option>
-                <option value="Comments">Comments</option>
+                <option value="Next Due" selected>Next Due</option>
+                <option value="Asset">Asset</option>
+                <option value="Site">Site</option>
+                <option value="Category">Category</option>
+                <option value="Last Completed">Last Completed</option>
+                <option value="Status">Status</option>
+                <option value="WO/Link">WO/Link</option>
+                <option value="Notes">Notes</option>
               </select>
               <button type="button" class="sort-control__direction btn btn--ghost btn--sm" data-role="sort-direction" data-direction="asc" aria-label="Toggle sort direction (currently ascending)">Ascending</button>
             </div>
@@ -1675,12 +1779,14 @@
           <div class="mobile-sort" data-role="mobile-sort">
             <label for="mobile-sort-select">Sort by</label>
             <select id="mobile-sort-select" data-role="mobile-sort-select" aria-label="Select column to sort">
-              <option value="Asset" selected>Asset</option>
-              <option value="Location">Location</option>
-              <option value="Last Inspection Date">Last Inspection Date</option>
-              <option value="Next Inspection Date">Next Inspection Date</option>
-              <option value="Countdown">Countdown</option>
-              <option value="Comments">Comments</option>
+              <option value="Next Due" selected>Next Due</option>
+              <option value="Asset">Asset</option>
+              <option value="Site">Site</option>
+              <option value="Category">Category</option>
+              <option value="Last Completed">Last Completed</option>
+              <option value="Status">Status</option>
+              <option value="WO/Link">WO/Link</option>
+              <option value="Notes">Notes</option>
             </select>
             <button type="button" class="mobile-sort__direction btn btn--outline btn--sm" data-role="mobile-sort-direction" data-direction="asc" aria-label="Toggle sort direction (currently ascending)">Ascending</button>
           </div>
@@ -1691,23 +1797,25 @@
       <span data-msg>Ready</span><span data-detail></span>
     </div>
     <div class="pssr-content">
-      <section class="table-wrapper" data-component="pssr-table">
+      <section class="table-wrapper" data-component="inspections-table">
         <div class="table-scroll" data-role="scroll-region" data-loading="true">
-          <table aria-describedby="pssr-table-caption">
-            <caption id="pssr-table-caption" class="visually-hidden">PSSR inspection schedule</caption>
+          <table aria-describedby="inspections-table-caption">
+            <caption id="inspections-table-caption" class="visually-hidden">Inspections schedule</caption>
             <thead>
               <tr>
+                <th scope="col" data-col="Site" aria-sort="none">Site <span class="sort-arrow" aria-hidden="true"></span></th>
                 <th scope="col" data-col="Asset" aria-sort="none">Asset <span class="sort-arrow" aria-hidden="true"></span></th>
-                <th scope="col" data-col="Location" aria-sort="none">Location <span class="sort-arrow" aria-hidden="true"></span></th>
-                <th scope="col" data-col="Last Inspection Date" aria-sort="none">Last Inspection Date <span class="sort-arrow" aria-hidden="true"></span></th>
-                <th scope="col" data-col="Next Inspection Date" aria-sort="none">Next Inspection Date <span class="sort-arrow" aria-hidden="true"></span></th>
-                <th scope="col" data-col="Countdown" aria-sort="none">Countdown <span class="sort-arrow" aria-hidden="true"></span></th>
-                <th scope="col" data-col="Comments" aria-sort="none">Comments <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th scope="col" data-col="Category" aria-sort="none">Category <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th scope="col" data-col="Last Completed" aria-sort="none">Last Completed <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th scope="col" data-col="Next Due" aria-sort="none">Next Due <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th scope="col" data-col="Status" aria-sort="none">Status <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th scope="col" data-col="WO/Link" aria-sort="none">WO/Link <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th scope="col" data-col="Notes" aria-sort="none">Notes <span class="sort-arrow" aria-hidden="true"></span></th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td colspan="6" class="empty-state">Loading inspection data…</td>
+                <td colspan="8" class="empty-state">Loading inspection data…</td>
               </tr>
             </tbody>
           </table>
@@ -1728,8 +1836,10 @@
 
   <script>
     // ===== Config =====
-    const DEFAULT_PSSR_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhXb-392ExhOiESN5E6IqM5ScrrB4oFpPcLhf8yis6_ZhFqjanoHomQJcqL-feiPi-t-sygaGb85at/pub?output=csv';
-    const DUE_SOON_THRESHOLD_DAYS = 60;
+    const INSPECTIONS_SHEET_NAME = 'Inspections';
+    const DEFAULT_INSPECTIONS_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhXb-392ExhOiESN5E6IqM5ScrrB4oFpPcLhf8yis6_ZhFqjanoHomQJcqL-feiPi-t-sygaGb85at/pub?output=csv';
+    const DUE_SOON_DAYS = 30;
+    const DUE_SOON_THRESHOLD_DAYS = DUE_SOON_DAYS;
 
     // Toggle via query params.
     // Defaults: offline in file/sandbox; online in http(s).
@@ -1774,7 +1884,7 @@
     }
 
     function getLayoutContainer(){
-      return document.querySelector('[data-component="pssr-table"]');
+      return document.querySelector('[data-component="inspections-table"]');
     }
 
     function applyLayoutMode(mode,{ persist=true, container } = {}){
@@ -1897,9 +2007,24 @@
       } catch { return null; }
     }
 
+    function ensureSheetName(url, sheetName){
+      if(!url || !sheetName) return url;
+      try {
+        const resolved = new URL(url, location.href);
+        if(!resolved.searchParams.has('gid')){
+          resolved.searchParams.set('sheet', sheetName);
+        }
+        return resolved.toString();
+      } catch {
+        return url;
+      }
+    }
+
     function getSheetUrl(){
       const p = new URLSearchParams(location.search);
-      return sanitizeSheetUrl(p.get('sheetUrl') || p.get('sheet') || document.body?.dataset?.sheetUrl || DEFAULT_PSSR_SHEET_URL);
+      const raw = p.get('sheetUrl') || p.get('sheet') || document.body?.dataset?.sheetUrl || DEFAULT_INSPECTIONS_SHEET_URL;
+      const sanitized = sanitizeSheetUrl(raw);
+      return sanitized ? ensureSheetName(sanitized, INSPECTIONS_SHEET_NAME) : sanitized;
     }
 
     function normalizeGoogleDocumentUrl(url){
@@ -1963,6 +2088,23 @@
       }
     }
 
+    function normalizeExternalUrl(raw){
+      if(!raw) return '';
+      const value = String(raw).trim();
+      if(!value) return '';
+      if(value.startsWith('mailto:')) return value;
+      try {
+        const url = new URL(value, location.href);
+        if(url.protocol === 'http:'){
+          url.protocol = 'https:';
+        }
+        if(url.protocol !== 'https:') return '';
+        return url.toString();
+      } catch {
+        return '';
+      }
+    }
+
     function resolveSiteLabel(siteKey){
       if(!siteKey) return SITE_LABELS.all;
       const normalized = String(siteKey).trim().toLowerCase();
@@ -1971,6 +2113,21 @@
         return SITE_LABELS[normalized];
       }
       return normalized.split(/[\s_-]+/).map(part => part ? (part[0].toUpperCase() + part.slice(1)) : '').join(' ').trim() || SITE_LABELS.all;
+    }
+
+    function resolveCategoryLabel(categoryKey){
+      const normalized = normalizeCategoryKey(categoryKey);
+      if(!normalized || normalized === 'all') return 'All categories';
+      const select = document.querySelector('[data-role="category-select"]');
+      if(select){
+        const option = Array.from(select.options || []).find(opt => normalizeCategoryKey(opt.value) === normalized);
+        if(option){
+          const text = option.textContent?.trim();
+          if(text) return text.replace(/\s+\(\d+\)$/, '');
+        }
+      }
+      if(normalized === 'uncategorised') return 'Uncategorised';
+      return normalized.split('-').map(part => part ? (part[0].toUpperCase() + part.slice(1)) : '').join(' ').trim() || 'All categories';
     }
 
     function resolveRiskLabel(riskKey){
@@ -1983,20 +2140,18 @@
     }
 
     const SAMPLE = [
-      { Asset:'Keith Steam Boiler 2', Site:'Keith', Location:'Keith – Energy Centre', 'Last Inspection Date':'12/03/2024', 'Next Inspection Date':'12/09/2024', Comments:'Internal and external statutory inspection booked for September.', 'Document URL':'about:blank' },
-      { Asset:'Byron Compressed Air Receiver', Site:'Byron', Location:'Byron – Maintenance Bay', 'Last Inspection Date':'05/01/2024', 'Next Inspection Date':'05/07/2024', Comments:'Requalification due alongside dryer swap.', 'Document URL':'about:blank' },
-      { Asset:'Mugiemoss Tunnel Washer 2', Site:'Mugiemoss', Location:'Mugiemoss – Wash Line', 'Last Inspection Date':'20/11/2023', 'Next Inspection Date':'20/11/2025', Comments:'Inspection aligned with OEM service interval.', 'Document URL':'about:blank' },
-      { Asset:'East Kilbride Steam Boiler 1', Site:'East Kilbride', Location:'East Kilbride – Energy Centre', 'Last Inspection Date':'18/05/2023', 'Next Inspection Date':'18/05/2024', Comments:'Coordinate statutory inspection with planned burner maintenance.', 'Document URL':'about:blank' },
-      { Asset:'Byron Steam Generator 1', Site:'Byron', Location:'Byron – Plant Room', 'Last Inspection Date':'14/09/2023', 'Next Inspection Date':'14/03/2024', Comments:'Boiler house annual inspection – burner upgrade noted.', 'Document URL':'about:blank' },
-      { Asset:'Keith Air Receiver A', Site:'Keith', Location:'Keith – Compressor House', 'Last Inspection Date':'02/06/2023', 'Next Inspection Date':'02/12/2023', Comments:'Receiver drained and ready for recertification.', 'Document URL':'about:blank' },
-      { Asset:'Mugiemoss Calorifier 4', Site:'Mugiemoss', Location:'Mugiemoss – Hot Water Plant', 'Last Inspection Date':'22/08/2023', 'Next Inspection Date':'22/02/2024', Comments:'Monitor expansion vessel replacement before inspection.', 'Document URL':'about:blank' }
+      { Site:'Byron', Asset:'Compressed Air Receiver', Category:'Pressure Systems', 'Last Completed':'12/02/2024', 'Next Due':'12/08/2024', Status:'Due soon', 'WO/Link':'WO-48219', Notes:'Requalification scheduled alongside dryer swap.', 'Document URL':'about:blank' },
+      { Site:'Keith', Asset:'Steam Boiler 2', Category:'Steam Plant', 'Last Completed':'18/09/2023', 'Next Due':'18/03/2024', 'WO/Link':'https://example.com/workorders/123', Notes:'Coordinate statutory inspection with burner maintenance.' },
+      { Site:'Mugiemoss', Asset:'Tunnel Washer 2', Category:'Process Equipment', 'Last Completed':'20/11/2023', 'Next Due':'20/11/2025', Status:'On track', Notes:'Inspection aligned with OEM service interval.' },
+      { Site:'East Kilbride', Asset:'Calorifier 4', Category:'Water Systems', 'Last Completed':'22/08/2023', 'Next Due':'22/02/2024', Notes:'Monitor expansion vessel replacement before inspection.', 'Document URL':'about:blank' },
+      { Site:'Keith', Asset:'Air Receiver A', Category:'Pressure Systems', 'Last Completed':'02/06/2023', 'Next Due':'02/12/2023', Notes:'Receiver drained and ready for recertification.', Status:'' }
     ];
 
-    const RESOLVED_PSSR_SHEET_URL = getSheetUrl();
-    if(RESOLVED_PSSR_SHEET_URL){
-      window.__PSSR_SHEET_URL = RESOLVED_PSSR_SHEET_URL;
+    const RESOLVED_INSPECTIONS_SHEET_URL = getSheetUrl();
+    if(RESOLVED_INSPECTIONS_SHEET_URL){
+      window.__INSPECTIONS_SHEET_URL = RESOLVED_INSPECTIONS_SHEET_URL;
     }else{
-      console.warn('PSSR sheet URL could not be resolved. Update DEFAULT_PSSR_SHEET_URL or supply ?sheetUrl=.');
+      console.warn('Inspections sheet URL could not be resolved. Update DEFAULT_INSPECTIONS_SHEET_URL or supply ?sheetUrl=.');
     }
 
     function banner(type, msg, detail=''){
@@ -2112,6 +2267,54 @@
       'on track':'clear',
       'ontrack':'clear'
     };
+    const STATUS_KEY_ALIASES = {
+      overdue:'overdue',
+      'past due':'overdue',
+      'past-due':'overdue',
+      late:'overdue',
+      'overdue!':'overdue',
+      due:'due',
+      'due soon':'due',
+      'due-soon':'due',
+      upcoming:'due',
+      pending:'scheduled',
+      scheduled:'scheduled',
+      planning:'scheduled',
+      planned:'scheduled',
+      'not started':'scheduled',
+      'not-started':'scheduled',
+      open:'in-progress',
+      'in progress':'in-progress',
+      'in-progress':'in-progress',
+      active:'in-progress',
+      clear:'clear',
+      'on track':'clear',
+      'on-track':'clear',
+      ok:'clear',
+      complete:'completed',
+      completed:'completed',
+      done:'completed',
+      closed:'completed',
+      finished:'completed'
+    };
+    const STATUS_DISPLAY_LABELS = {
+      overdue:'Overdue',
+      due:'Due soon',
+      clear:'On track',
+      completed:'Completed',
+      'in-progress':'In progress',
+      scheduled:'Scheduled',
+      unknown:'Not set'
+    };
+    const STATUS_CLASS_MAP = {
+      overdue:'is-overdue',
+      due:'is-due',
+      clear:'is-clear',
+      completed:'is-completed',
+      'in-progress':'is-in-progress',
+      scheduled:'is-scheduled',
+      unknown:'is-unknown'
+    };
     let __tableMinWidthCache = null;
 
     async function safeFetch(url, {timeout=7000, retries=2} = {}){
@@ -2226,10 +2429,14 @@
 
     function formatDisplayDate(date, fallback='—'){
       if(!(date instanceof Date) || isNaN(date)) return fallback;
-      const d = date.getDate().toString().padStart(2,'0');
-      const m = (date.getMonth()+1).toString().padStart(2,'0');
-      const y = date.getFullYear();
-      return `${d}/${m}/${y}`;
+      try {
+        return DATE_DISPLAY_FORMATTER.format(date);
+      } catch {
+        const d = date.getDate().toString().padStart(2,'0');
+        const m = (date.getMonth()+1).toString().padStart(2,'0');
+        const y = date.getFullYear();
+        return `${d}/${m}/${y}`;
+      }
     }
 
     function detectType(column, rows){
@@ -2243,6 +2450,7 @@
     }
 
     const stringCollator = new Intl.Collator(undefined, { sensitivity:'base', numeric:false });
+    const DATE_DISPLAY_FORMATTER = new Intl.DateTimeFormat('en-GB', { day:'2-digit', month:'short', year:'numeric' });
 
     function applySort(rows, column, direction){
       const list = Array.isArray(rows) ? rows.slice() : [];
@@ -2250,7 +2458,7 @@
       const dir = direction === 'asc' ? 'asc' : 'desc';
       const factor = dir === 'asc' ? 1 : -1;
 
-      if(column === 'Next Inspection Date'){
+      if(column === 'Next Due'){
         const fallback = dir === 'asc' ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
         return list.sort((a,b) => {
           const aTime = (a.__nextDate instanceof Date && !Number.isNaN(a.__nextDate.getTime())) ? a.__nextDate.getTime() : fallback;
@@ -2259,7 +2467,7 @@
         });
       }
 
-      if(column === 'Last Inspection Date'){
+      if(column === 'Last Completed'){
         const fallback = dir === 'asc' ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
         return list.sort((a,b) => {
           const aTime = (a.__lastDate instanceof Date && !Number.isNaN(a.__lastDate.getTime())) ? a.__lastDate.getTime() : fallback;
@@ -2268,12 +2476,19 @@
         });
       }
 
-      if(column === 'Countdown'){
-        const fallback = dir === 'asc' ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+      if(column === 'Status'){
+        const order = ['overdue','due','clear','completed','in-progress','scheduled','unknown'];
         return list.sort((a,b) => {
-          const aVal = typeof a.__countdownDays === 'number' ? a.__countdownDays : fallback;
-          const bVal = typeof b.__countdownDays === 'number' ? b.__countdownDays : fallback;
-          return factor * (aVal - bVal);
+          const aKey = a.__statusKey || 'unknown';
+          const bKey = b.__statusKey || 'unknown';
+          const aIndex = order.indexOf(aKey);
+          const bIndex = order.indexOf(bKey);
+          const normalizedA = aIndex >= 0 ? aIndex : order.length;
+          const normalizedB = bIndex >= 0 ? bIndex : order.length;
+          if(normalizedA === normalizedB){
+            return factor * stringCollator.compare(String(a.Status ?? ''), String(b.Status ?? ''));
+          }
+          return factor * (normalizedA - normalizedB);
         });
       }
 
@@ -2324,6 +2539,12 @@
       return normalized || 'all';
     }
 
+    function normalizeCategoryKey(value){
+      const normalized = String(value ?? '').trim().toLowerCase();
+      const cleaned = normalized.replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+      return cleaned || 'uncategorised';
+    }
+
     function normalizeRiskKey(value){
       const normalized = String(value ?? '').trim().toLowerCase();
       if(!normalized) return 'all';
@@ -2331,6 +2552,64 @@
         return RISK_KEY_ALIASES[normalized];
       }
       return normalized;
+    }
+
+    function normalizeStatusKey(value){
+      const normalized = String(value ?? '').trim().toLowerCase();
+      if(!normalized) return '';
+      if(Object.prototype.hasOwnProperty.call(STATUS_KEY_ALIASES, normalized)){
+        return STATUS_KEY_ALIASES[normalized];
+      }
+      return normalized.replace(/\s+/g, '-');
+    }
+
+    function deriveStatusKey(statusValue, diffDays){
+      const normalized = normalizeStatusKey(statusValue);
+      const fallback = () => {
+        if(typeof diffDays === 'number'){
+          if(diffDays < 0) return 'overdue';
+          if(diffDays <= DUE_SOON_DAYS) return 'due';
+          return 'clear';
+        }
+        return 'unknown';
+      };
+      if(!normalized || normalized === 'unknown' || normalized === 'n/a' || normalized === 'na'){
+        return fallback();
+      }
+      if(normalized === 'overdue' || normalized === 'due' || normalized === 'clear' || normalized === 'completed'){
+        return normalized;
+      }
+      if(normalized === 'scheduled' || normalized === 'planned' || normalized === 'planning' || normalized === 'pending' || normalized === 'not-started'){
+        const derived = fallback();
+        return derived === 'unknown' ? 'scheduled' : derived;
+      }
+      if(normalized === 'in-progress' || normalized === 'open' || normalized === 'active'){
+        const derived = fallback();
+        return derived === 'unknown' ? 'in-progress' : derived;
+      }
+      if(normalized === 'done' || normalized === 'closed' || normalized === 'finished'){
+        return 'completed';
+      }
+      return fallback();
+    }
+
+    function statusToRiskKey(statusKey, diffDays){
+      const key = statusKey || 'unknown';
+      if(key === 'overdue') return 'overdue';
+      if(key === 'due') return 'due';
+      if(typeof diffDays === 'number'){
+        if(diffDays < 0) return 'overdue';
+        if(diffDays <= DUE_SOON_DAYS) return 'due';
+      }
+      if(key === 'clear' || key === 'completed') return 'clear';
+      if(key === 'scheduled' || key === 'in-progress'){
+        if(typeof diffDays === 'number'){
+          if(diffDays < 0) return 'overdue';
+          if(diffDays <= DUE_SOON_DAYS) return 'due';
+        }
+        return 'clear';
+      }
+      return 'clear';
     }
 
     function matchesSite(row, siteKey){
@@ -2370,8 +2649,24 @@
       return list.filter(row => matchesSite(row, siteKey));
     }
 
-    function applyFilters(rows){
-      return Array.isArray(rows) ? rows.slice() : [];
+    function applyCategoryFilter(rows, categoryKey){
+      const list = Array.isArray(rows) ? rows.slice() : [];
+      if(!categoryKey || categoryKey === 'all') return list;
+      const normalized = normalizeCategoryKey(categoryKey);
+      return list.filter(row => normalizeCategoryKey(row?.__categoryName) === normalized);
+    }
+
+    function applySearchFilter(rows, query){
+      const list = Array.isArray(rows) ? rows.slice() : [];
+      const raw = String(query ?? '').trim().toLowerCase();
+      if(!raw) return list;
+      const tokens = raw.split(/\s+/).filter(Boolean);
+      if(!tokens.length) return list;
+      return list.filter(row => {
+        const haystack = String(row?.__searchText ?? '').toLowerCase();
+        if(!haystack) return false;
+        return tokens.every(token => haystack.includes(token));
+      });
     }
 
     function applyRiskFilter(rows, riskKey){
@@ -2413,7 +2708,7 @@
     }
 
     function updateSortControls(container){
-      const state = container.__currentSort || { column:'Asset', direction:'asc' };
+      const state = container.__currentSort || { column:'Next Due', direction:'asc' };
       const selects = Array.isArray(container.__sortSelects) ? container.__sortSelects : [];
       selects.forEach(select => {
         if(select){
@@ -2491,12 +2786,86 @@
       updateSiteFilterControls(container);
     }
 
+    function updateCategoryFilterControls(container){
+      const select = container.__categorySelect;
+      if(!select) return;
+      const value = container.__categoryFilter || 'all';
+      if(select.value !== value){
+        select.value = value;
+      }
+    }
+
+    function updateCategoryFilterOptions(container){
+      const select = container.__categorySelect;
+      if(!select) return;
+      const rows = Array.isArray(container.__rows) ? container.__rows : [];
+      const counts = new Map();
+      rows.forEach(row => {
+        const labelRaw = String(row?.__categoryName || '').trim();
+        const label = labelRaw || 'Uncategorised';
+        const key = normalizeCategoryKey(label);
+        if(!counts.has(key)){
+          counts.set(key, { key, label, count:0 });
+        }
+        counts.get(key).count += 1;
+      });
+      const sorted = Array.from(counts.values()).sort((a,b) => a.label.localeCompare(b.label));
+      const current = container.__categoryFilter || 'all';
+      let hasCurrent = current === 'all';
+      const options = ['<option value="all">All categories</option>'];
+      sorted.forEach(item => {
+        const optionLabel = `${item.label} (${item.count})`;
+        options.push(`<option value="${esc(item.key)}">${esc(optionLabel)}</option>`);
+        if(item.key === current){
+          hasCurrent = true;
+        }
+      });
+      select.innerHTML = options.join('');
+      if(!hasCurrent){
+        container.__categoryFilter = 'all';
+      }
+      updateCategoryFilterControls(container);
+    }
+
+    function attachCategoryFilterHandlers(container){
+      const select = container.__categorySelect;
+      if(!select) return;
+      select.addEventListener('change', () => {
+        const value = select.value || 'all';
+        container.__categoryFilter = value || 'all';
+        refreshView(container);
+      });
+    }
+
+    function updateSearchControl(container){
+      const input = container.__searchInput;
+      if(!input) return;
+      const value = container.__searchTerm || '';
+      if(input.value !== value){
+        input.value = value;
+      }
+    }
+
+    function attachSearchHandlers(container){
+      const input = container.__searchInput;
+      if(!input) return;
+      const apply = () => {
+        container.__searchTerm = input.value || '';
+        refreshView(container);
+      };
+      input.addEventListener('input', apply);
+      input.addEventListener('search', apply);
+    }
+
     function refreshView(container){
       if(!container) return;
-      const state = container.__currentSort || { column:'Asset', direction:'asc' };
-      const siteFiltered = applySiteFilter(container.__rows, container.__siteFilter);
+      const state = container.__currentSort || { column:'Next Due', direction:'asc' };
+      const allRows = Array.isArray(container.__rows) ? container.__rows : [];
+      const siteFiltered = applySiteFilter(allRows, container.__siteFilter);
       const riskFiltered = applyRiskFilter(siteFiltered, container.__riskFilter);
-      const sorted = applySort(riskFiltered, state.column, state.direction);
+      const categoryFiltered = applyCategoryFilter(riskFiltered, container.__categoryFilter);
+      const searched = applySearchFilter(categoryFiltered, container.__searchTerm);
+      const sorted = applySort(searched, state.column, state.direction);
       container.__viewRows = sorted;
       renderTable(container, sorted);
       if(container.__selectedDocUrl){
@@ -2510,10 +2879,12 @@
         }
       }
       renderMobileCards(container, sorted);
-      updateSummaryMetrics(siteFiltered, {
+      updateSummaryMetrics(searched, {
         siteFilter: container.__siteFilter,
         riskFilter: container.__riskFilter,
-        totalRowCount: Array.isArray(container.__rows) ? container.__rows.length : 0
+        categoryFilter: container.__categoryFilter,
+        searchTerm: container.__searchTerm,
+        totalRowCount: allRows.length
       });
     }
 
@@ -2534,10 +2905,10 @@
     }
 
     function attachSiteKpiHandlers(container){
-      const list = document.querySelector('[data-role="pssr-site-breakdown"]');
+      const list = document.querySelector('[data-role="inspections-site-breakdown"]');
       if(!list) return;
       list.addEventListener('click', event => {
-        const button = event.target.closest('[data-role="pssr-site-kpi"]');
+        const button = event.target.closest('[data-role="inspections-site-kpi"]');
         if(!button) return;
         const siteKey = normalizeSiteKey(button.dataset.siteKey);
         const riskKey = normalizeRiskKey(button.dataset.riskKey);
@@ -2578,7 +2949,7 @@
       const diffDays = Math.round((normalized - startOfToday) / (1000 * 60 * 60 * 24));
 
       const classify = () => {
-        if(diffDays <= 30){
+        if(diffDays <= DUE_SOON_DAYS){
           return 'is-urgent';
         }
         if(diffDays <= 180){
@@ -2598,7 +2969,7 @@
       };
 
       const describe = (days) => {
-        if(days <= 30){
+        if(days <= DUE_SOON_DAYS){
           return { value: days, unit:'d' };
         }
         if(days < 365){
@@ -2748,7 +3119,7 @@
     async function fetchSheet(){
       const url = getSheetUrl();
       if(!url){
-        throw new Error('No PSSR inspection sheet URL is configured.');
+        throw new Error('No inspections sheet URL is configured.');
       }
       const text = await safeFetch(url, { timeout:7000, retries:2 });
       if(/^[\[{]/.test(text.trim())){
@@ -2778,53 +3149,100 @@
       return false;
     }
 
-    function ensurePssrSheet(headers, rows){
+    function ensureInspectionsSheet(headers, rows){
       if(looksLikeFacilitiesSheet(headers, rows)){
-        throw new Error('The configured sheet appears to point to the Facilities work orders data. Please double-check the published PSSR sheet link.');
+        throw new Error('The configured sheet appears to point to the Facilities work orders data. Please double-check the published Inspections sheet link.');
       }
     }
 
     function buildRowModel(raw){
-      const asset = pickField(raw, ['Asset','Asset ID','Asset Name','Equipment']);
-      const locationValue = pickField(raw, ['Location','Site','Area']);
-      const siteNameRaw = pickField(raw, ['Site']);
-      const primarySite = siteNameRaw || (typeof locationValue === 'string' ? locationValue.split(/[–—-]/)[0].trim() : locationValue);
-      const location = locationValue;
-      const lastRaw = pickField(raw, ['Last Inspection Date','Last Inspection','Previous Inspection']);
-      const nextRaw = pickField(raw, ['Next Inspection Date','Next Inspection','Inspection Due']);
-      const comments = pickField(raw, ['Comments','Notes','Remarks']);
-      const documentUrl = pickField(
+      const siteValue = pickField(raw, ['Site','Facility','Location','Plant','Area']);
+      const asset = pickField(raw, ['Asset','Asset ID','Asset Name','Equipment','Inspection Item','Title','Item']);
+      const categoryValue = pickField(raw, ['Category','Discipline','Programme','Type','Inspection Category']);
+      const lastRaw = pickField(raw, ['Last Completed','Last Inspection','Previous Inspection','Last Done','Last Date']);
+      const nextRaw = pickField(raw, ['Next Due','Next Inspection','Inspection Due','Due Date','Next Date','Due']);
+      const statusRaw = pickField(raw, ['Status','Current Status','State','Risk','Condition']);
+      const workOrderRaw = pickField(
         raw,
-        ['Document URL','Document','Link','Document Link','Attachment','Attachment URL'],
+        ['WO/Link','WO','Work Order','Work Order Link','Work Order URL','Link','URL','Reference'],
         {
           fuzzy:[
-            { all:['document'], any:['link','url','hyperlink','href'] },
-            { all:['doc'], any:['link','url'] },
-            { all:['certificate'], any:['link','url'] },
-            { all:['inspection','report'], any:['link','url'] },
-            { all:['record'], any:['link','url'] }
+            { all:['work','order'], any:['link','url','ref'] },
+            { all:['wo'], any:['link','url'] }
           ],
           fallbackUrl:true
         }
       );
-      const normalizedDocumentUrl = normalizeDocumentUrl(documentUrl);
+      const documentRaw = pickField(
+        raw,
+        ['Document URL','Document','Attachment','Attachment URL','Evidence','Certificate','Supporting Document'],
+        {
+          fuzzy:[
+            { all:['document'], any:['link','url','hyperlink','href'] },
+            { all:['certificate'], any:['link','url'] },
+            { all:['inspection','report'], any:['link','url'] }
+          ],
+          fallbackUrl:true
+        }
+      );
+      const notesRaw = pickField(raw, ['Notes','Comments','Remarks','Summary','Details','Description','Comment']);
+      const normalizedDocumentUrl = normalizeDocumentUrl(documentRaw || workOrderRaw);
+      const workOrderUrl = normalizeExternalUrl(workOrderRaw);
       const lastDate = parseDateLoose(lastRaw);
       const nextDate = parseDateLoose(nextRaw);
       const countdown = normalizeCountdown(nextDate instanceof Date ? new Date(nextDate) : nextDate);
+      const diffDays = typeof countdown.diffDays === 'number' ? countdown.diffDays : null;
+      const statusKey = deriveStatusKey(statusRaw, diffDays);
+      const riskKey = statusToRiskKey(statusKey, diffDays);
+      const statusLabel = (() => {
+        const rawText = String(statusRaw ?? '').trim();
+        if(rawText) return rawText.replace(/\s+/g,' ').trim();
+        return STATUS_DISPLAY_LABELS[statusKey] || '—';
+      })();
+      const statusClass = STATUS_CLASS_MAP[statusKey] || STATUS_CLASS_MAP.unknown;
+      const siteDisplay = siteValue || FALLBACK_SITE_LABEL;
+      const categoryDisplay = categoryValue || 'Uncategorised';
+      const notesDisplay = notesRaw || '—';
+      const workOrderLabel = (() => {
+        const text = String(workOrderRaw ?? '').trim();
+        if(text) return text;
+        if(workOrderUrl){
+          try {
+            const host = new URL(workOrderUrl).hostname.replace(/^www\./i,'');
+            return host || 'Open link';
+          } catch {
+            return 'Open link';
+          }
+        }
+        return '—';
+      })();
+      const searchParts = [siteValue, asset, categoryValue, statusLabel, notesRaw, workOrderRaw]
+        .filter(Boolean)
+        .map(part => String(part).toLowerCase())
+        .join(' ');
       return {
+        Site: siteDisplay || '—',
         Asset: asset || '—',
-        Location: location || primarySite || '—',
-        'Last Inspection Date': lastDate ? formatDisplayDate(lastDate) : (lastRaw || '—'),
-        'Next Inspection Date': nextDate ? formatDisplayDate(nextDate) : (nextRaw || '—'),
-        Countdown: countdown.label,
-        Comments: comments || '—',
+        Category: categoryDisplay,
+        'Last Completed': lastDate ? formatDisplayDate(lastDate) : (lastRaw || '—'),
+        'Next Due': nextDate ? formatDisplayDate(nextDate) : (nextRaw || '—'),
+        Status: statusLabel || STATUS_DISPLAY_LABELS[statusKey] || '—',
+        'WO/Link': workOrderLabel,
+        Notes: notesDisplay,
         __lastDate: lastDate,
         __nextDate: nextDate,
         __countdownClass: countdown.className,
-        __countdownDays: countdown.diffDays,
-        __overdue: countdown.overdue,
-        __siteName: primarySite || '',
+        __countdownDays: diffDays,
+        __overdue: statusKey === 'overdue' || countdown.overdue,
+        __siteName: siteValue || '',
+        __categoryName: categoryDisplay,
+        __categoryKey: normalizeCategoryKey(categoryDisplay),
+        __statusKey: statusKey,
+        __statusClass: statusClass,
+        __riskKey: riskKey,
         __docUrl: normalizedDocumentUrl,
+        __workOrderUrl: workOrderUrl,
+        __searchText: searchParts,
         __raw: raw
       };
     }
@@ -2833,28 +3251,40 @@
       const tbody = container.__tbody;
       const scrollRegion = container.__scrollRegion;
       if(!tbody) return;
-      if(!rows.length){
-        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No inspections are currently scheduled.</td></tr>';
+      if(!Array.isArray(rows) || !rows.length){
+        const hasSource = Array.isArray(container?.__rows) && container.__rows.length > 0;
+        const message = hasSource ? 'No inspections match your filters.' : 'No inspections are currently scheduled.';
+        tbody.innerHTML = `<tr><td colspan="8" class="empty-state">${esc(message)}</td></tr>`;
         scrollRegion?.setAttribute('data-loading','false');
         updateResponsiveMode(container);
         return;
       }
       const html = rows.map(row => {
         const overdueClass = row.__overdue ? 'row-overdue' : '';
-        const assetTitle = esc(row.Asset);
-        const locationTitle = esc(row.Location);
-        const lastTitle = esc(row['Last Inspection Date']);
-        const nextTitle = esc(row['Next Inspection Date']);
-        const commentsTitle = esc(row.Comments);
         const docAttr = row.__docUrl ? ` data-doc="${esc(row.__docUrl)}"` : '';
+        const statusKey = row.__statusKey || 'unknown';
+        const statusClass = row.__statusClass || STATUS_CLASS_MAP.unknown;
+        const statusPill = `<span class="status-pill ${statusClass}" data-status="${esc(statusKey)}">${esc(row.Status)}</span>`;
+        const woLabel = String(row['WO/Link'] ?? '—').trim() || '—';
+        let woCell = esc(woLabel);
+        if(row.__workOrderUrl){
+          woCell = `<a href="${esc(row.__workOrderUrl)}" target="_blank" rel="noopener">${esc(woLabel)}</a>`;
+        }else if(/^https?:\/\//i.test(woLabel)){
+          const safe = normalizeExternalUrl(woLabel);
+          if(safe){
+            woCell = `<a href="${esc(safe)}" target="_blank" rel="noopener">${esc(woLabel)}</a>`;
+          }
+        }
         return `
           <tr class="${overdueClass}" tabindex="0"${docAttr}>
-            <td data-col="Asset" title="${assetTitle}"><span>${assetTitle}</span></td>
-            <td data-col="Location" title="${locationTitle}"><span>${locationTitle}</span></td>
-            <td data-col="Last Inspection Date" title="${lastTitle}"><span>${lastTitle}</span></td>
-            <td data-col="Next Inspection Date" title="${nextTitle}"><span>${nextTitle}</span></td>
-            <td data-col="Countdown" title="${esc(row.Countdown)}"><span><span class="countdown-chip ${row.__countdownClass}">${esc(row.Countdown)}</span></span></td>
-            <td data-col="Comments" title="${commentsTitle}"><span>${commentsTitle}</span></td>
+            <td data-col="Site" title="${esc(row.Site)}"><span>${esc(row.Site)}</span></td>
+            <td data-col="Asset" title="${esc(row.Asset)}"><span>${esc(row.Asset)}</span></td>
+            <td data-col="Category" title="${esc(row.Category)}"><span>${esc(row.Category)}</span></td>
+            <td data-col="Last Completed" title="${esc(row['Last Completed'])}"><span>${esc(row['Last Completed'])}</span></td>
+            <td data-col="Next Due" title="${esc(row['Next Due'])}"><span>${esc(row['Next Due'])}</span></td>
+            <td data-col="Status" title="${esc(row.Status)}"><span>${statusPill}</span></td>
+            <td data-col="WO/Link" title="${esc(woLabel)}"><span>${woCell}</span></td>
+            <td data-col="Notes" title="${esc(row.Notes)}"><span>${esc(row.Notes)}</span></td>
           </tr>
         `;
       }).join('');
@@ -2933,26 +3363,20 @@
       mobile.dataset.state = list.length ? 'ready' : 'empty';
       mobile.setAttribute('aria-busy','false');
       if(!list.length){
-        mobile.innerHTML = '<div class="mobile-card mobile-card--status empty-state" role="listitem">No inspections are currently scheduled.</div>';
+        mobile.innerHTML = '<div class="mobile-card mobile-card--status empty-state" role="listitem">No inspections match your filters.</div>';
         return;
       }
       const html = list.map(row => {
         const overdueClass = row.__overdue ? 'row-overdue' : '';
-        const siteRaw = (row.__siteName || '').trim();
-        const locationRaw = (row.Location || '').trim();
-        const siteClean = siteRaw && siteRaw !== '—' ? siteRaw : '';
-        const locationClean = locationRaw && locationRaw !== '—' ? locationRaw : '';
-        const showSite = !!siteClean;
-        const showLocation = !!locationClean && locationClean.toLowerCase() !== siteClean.toLowerCase();
-        const subtitle = (showSite || showLocation)
-          ? `<div class="mobile-card__subtitle">${showSite ? `<span>${esc(siteClean)}</span>` : ''}${showLocation ? `<span>${esc(locationClean)}</span>` : ''}</div>`
+        const subtitle = `<div class="mobile-card__subtitle"><span>${esc(row.Site)}</span><span>${esc(row.Category)}</span></div>`;
+        const statusClass = row.__statusClass || STATUS_CLASS_MAP.unknown;
+        const statusKey = row.__statusKey || 'unknown';
+        const statusPill = `<span class="status-pill ${statusClass}" data-status="${esc(statusKey)}">${esc(row.Status)}</span>`;
+        const notesRaw = String(row.Notes ?? '').trim();
+        const notesText = notesRaw || 'No notes provided.';
+        const linkBlock = row.__workOrderUrl
+          ? `<div class="mobile-card__actions"><a class="mobile-card__action" href="${esc(row.__workOrderUrl)}" target="_blank" rel="noopener">Open link</a></div>`
           : '';
-        const locationDetail = showLocation && showSite
-          ? `<dt class="mobile-card__detail-label">Location</dt><dd class="mobile-card__detail-value mobile-card__detail-value--wide">${esc(locationClean)}</dd>`
-          : '';
-        const commentsRaw = (row.Comments || '').trim();
-        const hasComment = !!commentsRaw && commentsRaw !== '—';
-        const commentText = hasComment ? esc(commentsRaw) : 'No comments provided.';
         return `
           <article class="mobile-card ${overdueClass}" aria-label="Inspection for ${esc(row.Asset)}" role="listitem">
             <header class="mobile-card__header">
@@ -2960,16 +3384,16 @@
                 <div class="mobile-card__title">${esc(row.Asset)}</div>
                 ${subtitle}
               </div>
-              <span class="countdown-chip mobile-card__chip ${row.__countdownClass}">${esc(row.Countdown)}</span>
+              ${statusPill}
             </header>
             <dl class="mobile-card__details">
-              ${locationDetail}
-              <dt class="mobile-card__detail-label">Last</dt><dd class="mobile-card__detail-value">${esc(row['Last Inspection Date'])}</dd>
-              <dt class="mobile-card__detail-label">Next</dt><dd class="mobile-card__detail-value">${esc(row['Next Inspection Date'])}</dd>
+              <dt class="mobile-card__detail-label">Last</dt><dd class="mobile-card__detail-value">${esc(row['Last Completed'])}</dd>
+              <dt class="mobile-card__detail-label">Next</dt><dd class="mobile-card__detail-value">${esc(row['Next Due'])}</dd>
             </dl>
+            ${linkBlock}
             <div class="mobile-card__note">
-              <span class="mobile-card__note-label">Comments</span>
-              <p class="mobile-card__note-text">${commentText}</p>
+              <span class="mobile-card__note-label">Notes</span>
+              <p class="mobile-card__note-text">${esc(notesText)}</p>
             </div>
           </article>
         `;
@@ -2978,32 +3402,57 @@
     }
 
     function updateSummaryMetrics(rows, context={}){
-      const signalRoot = document.querySelector('[data-role="pssr-signal"]');
-      const signalValueNode = document.querySelector('[data-role="pssr-signal-value"]');
-      const signalNoteNode = document.querySelector('[data-role="pssr-signal-note"]');
-      const riskPanel = document.querySelector('[data-role="pssr-risk"]');
-      const riskMessageNode = document.querySelector('[data-role="pssr-risk-message"]');
+      const signalRoot = document.querySelector('[data-role="inspections-signal"]');
+      const signalValueNode = document.querySelector('[data-role="inspections-signal-value"]');
+      const signalNoteNode = document.querySelector('[data-role="inspections-signal-note"]');
+      const riskPanel = document.querySelector('[data-role="inspections-risk"]');
+      const riskMessageNode = document.querySelector('[data-role="inspections-risk-message"]');
       const riskSegments = {
-        overdue: document.querySelector('[data-role="pssr-risk-overdue"]'),
-        due: document.querySelector('[data-role="pssr-risk-due"]'),
-        clear: document.querySelector('[data-role="pssr-risk-clear"]')
+        overdue: document.querySelector('[data-role="inspections-risk-overdue"]'),
+        due: document.querySelector('[data-role="inspections-risk-due"]'),
+        clear: document.querySelector('[data-role="inspections-risk-clear"]')
       };
       const riskLabels = {
-        overdue: document.querySelector('[data-role="pssr-risk-label-overdue"]'),
-        due: document.querySelector('[data-role="pssr-risk-label-due"]'),
-        clear: document.querySelector('[data-role="pssr-risk-label-clear"]')
+        overdue: document.querySelector('[data-role="inspections-risk-label-overdue"]'),
+        due: document.querySelector('[data-role="inspections-risk-label-due"]'),
+        clear: document.querySelector('[data-role="inspections-risk-label-clear"]')
       };
-      const siteListRoot = document.querySelector('[data-role="pssr-site-breakdown"]');
-      const siteHintNode = document.querySelector('[data-role="pssr-site-hint"]');
+      const siteListRoot = document.querySelector('[data-role="inspections-site-breakdown"]');
+      const siteHintNode = document.querySelector('[data-role="inspections-site-hint"]');
 
       const list = Array.isArray(rows) ? rows : [];
       const total = list.length;
-      const dueSoonThreshold = DUE_SOON_THRESHOLD_DAYS;
+      const dueSoonThreshold = DUE_SOON_DAYS;
       const siteFilter = normalizeSiteKey(context.siteFilter);
       const riskFilter = normalizeRiskKey(context.riskFilter);
+      const categoryFilter = normalizeCategoryKey(context.categoryFilter);
+      const searchTermRaw = String(context.searchTerm ?? '').trim();
       const overallCount = typeof context.totalRowCount === 'number' ? context.totalRowCount : total;
       const isFiltered = siteFilter !== 'all';
       const isRiskFiltered = riskFilter !== 'all';
+      const isCategoryFiltered = categoryFilter !== 'all';
+      const isSearchFiltered = searchTermRaw.length > 0;
+      const categoryLabel = resolveCategoryLabel(context.categoryFilter);
+      const filterLabelParts = [];
+      if(isFiltered){
+        filterLabelParts.push(resolveSiteLabel(siteFilter));
+      }
+      if(isCategoryFiltered){
+        filterLabelParts.push(categoryLabel);
+      }
+      const filterLabel = filterLabelParts.join(' · ');
+      const appliedFilters = [];
+      if(filterLabelParts.length){
+        appliedFilters.push(filterLabel);
+      }
+      if(isRiskFiltered){
+        appliedFilters.push(resolveRiskLabel(riskFilter).toLowerCase());
+      }
+      if(isSearchFiltered){
+        appliedFilters.push(`search “${searchTermRaw}”`);
+      }
+      const filterSummaryText = appliedFilters.length ? appliedFilters.join(' · ') : '';
+      const hasActiveFilters = (isFiltered || isRiskFiltered || isCategoryFiltered || isSearchFiltered) && overallCount > 0;
       const dueSoonRows = list.filter(row => typeof row?.__countdownDays === 'number' && row.__countdownDays >= 0 && row.__countdownDays <= dueSoonThreshold);
       const overdueRows = list.filter(row => row?.__overdue);
       const compliantCount = Math.max(total - overdueRows.length - dueSoonRows.length, 0);
@@ -3014,25 +3463,29 @@
 
       if(signalRoot){
         let signalValue = '—';
-        let signalNote = (isFiltered || isRiskFiltered) && overallCount > 0
-          ? `No inspections currently match the ${resolveSiteLabel(siteFilter)}${isRiskFiltered ? ` – ${resolveRiskLabel(riskFilter).toLowerCase()}` : ''} filter.`
-          : 'Awaiting data from the published schedule.';
+        let signalNote;
 
-        if(total > 0){
-          if(riskState === 'critical'){
-            signalValue = 'Critical';
-            signalNote = overdueRows.length === 1
-              ? '1 inspection is overdue and needs immediate action.'
-              : `${overdueRows.length} inspections are overdue and need immediate action.`;
-          }else if(riskState === 'warning'){
-            signalValue = 'Caution';
-            signalNote = dueSoonRows.length === 1
-              ? '1 inspection is due within the next 60 days.'
-              : `${dueSoonRows.length} inspections are due within the next ${dueSoonThreshold} days.`;
+        if(total === 0){
+          if(hasActiveFilters){
+            const summary = filterSummaryText || 'selected';
+            signalValue = 'Filtered';
+            signalNote = `No inspections currently match the ${summary} filter.`;
           }else{
-            signalValue = 'Stable';
-            signalNote = 'All inspections are currently outside the next 60 days.';
+            signalNote = 'Awaiting data from the published schedule.';
           }
+        }else if(riskState === 'critical'){
+          signalValue = 'Critical';
+          signalNote = overdueRows.length === 1
+            ? '1 inspection is overdue and needs immediate action.'
+            : `${overdueRows.length} inspections are overdue and need immediate action.`;
+        }else if(riskState === 'warning'){
+          signalValue = 'Caution';
+          signalNote = dueSoonRows.length === 1
+            ? `1 inspection is due within the next ${dueSoonThreshold} days.`
+            : `${dueSoonRows.length} inspections are due within the next ${dueSoonThreshold} days.`;
+        }else{
+          signalValue = 'Stable';
+          signalNote = `All inspections are currently outside the next ${dueSoonThreshold} days.`;
         }
 
         signalRoot.setAttribute('data-state', riskState);
@@ -3054,8 +3507,8 @@
       if(riskMessageNode){
         let message = 'Awaiting inspection data.';
         if(total === 0){
-          message = (isFiltered || isRiskFiltered) && overallCount > 0
-            ? `No inspections fall under the ${resolveSiteLabel(siteFilter)}${isRiskFiltered ? ` – ${resolveRiskLabel(riskFilter).toLowerCase()}` : ''} filter.`
+          message = hasActiveFilters
+            ? `No inspections fall under the ${filterSummaryText || 'selected'} filter.`
             : 'Awaiting inspection data.';
         }else if(riskState === 'critical'){
           message = overdueRows.length === 1
@@ -3063,10 +3516,10 @@
             : `${overdueRows.length} inspections are overdue and need immediate action.`;
         }else if(riskState === 'warning'){
           message = dueSoonRows.length === 1
-            ? '1 inspection is due within the next 60 days.'
+            ? `1 inspection is due within the next ${dueSoonThreshold} days.`
             : `${dueSoonRows.length} inspections are due within the next ${dueSoonThreshold} days.`;
         }else if(riskState === 'stable'){
-          message = 'All inspections are currently outside the next 60 days.';
+          message = `All inspections are currently outside the next ${dueSoonThreshold} days.`;
         }
         riskMessageNode.textContent = message;
       }
@@ -3116,15 +3569,17 @@
 
       if(siteHintNode){
         if(total === 0){
-          siteHintNode.textContent = (isFiltered || isRiskFiltered) && overallCount > 0
-            ? `No inspections currently align with ${resolveSiteLabel(siteFilter)}${isRiskFiltered ? ` – ${resolveRiskLabel(riskFilter).toLowerCase()}` : ''}.`
-            : 'Awaiting data from the published schedule.';
-        }else if(isFiltered && isRiskFiltered){
-          siteHintNode.textContent = `Viewing ${resolveRiskLabel(riskFilter).toLowerCase()} inspections for ${resolveSiteLabel(siteFilter)}.`;
-        }else if(isFiltered){
-          siteHintNode.textContent = `Status for ${resolveSiteLabel(siteFilter)}.`;
+          siteHintNode.textContent = hasActiveFilters
+            ? `No inspections currently align with the ${filterSummaryText || 'selected'} filter.`
+            : 'Awaiting inspection data.';
+        }else if(filterLabel && isRiskFiltered){
+          siteHintNode.textContent = `Viewing ${resolveRiskLabel(riskFilter).toLowerCase()} inspections for ${filterLabel}${isSearchFiltered ? ` matching “${searchTermRaw}”` : ''}.`;
+        }else if(filterLabel){
+          siteHintNode.textContent = `Status for ${filterLabel}${isSearchFiltered ? ` matching “${searchTermRaw}”` : ''}.`;
         }else if(isRiskFiltered){
-          siteHintNode.textContent = `${resolveRiskLabel(riskFilter)} inspections across all sites.`;
+          siteHintNode.textContent = `${resolveRiskLabel(riskFilter)} inspections across all sites${isCategoryFiltered ? ` – ${categoryLabel}` : ''}${isSearchFiltered ? ` matching “${searchTermRaw}”` : ''}.`;
+        }else if(isSearchFiltered){
+          siteHintNode.textContent = `Results matching “${searchTermRaw}”.`;
         }else{
           siteHintNode.textContent = 'Sites ordered by highest risk first.';
         }
@@ -3132,8 +3587,8 @@
 
       if(siteListRoot){
         if(!list.length){
-          const message = isFiltered && overallCount > 0
-            ? `No inspections match ${resolveSiteLabel(siteFilter)}.`
+          const message = hasActiveFilters
+            ? `No inspections match the ${filterSummaryText || 'selected'} filter.`
             : 'Awaiting inspection data.';
           siteListRoot.innerHTML = `<li class="pssr-site-breakdown__item is-empty">${esc(message)}</li>`;
         }else{
@@ -3208,7 +3663,7 @@
               const isActive = activeSiteKey === normalizedSite && activeRiskKey === normalizedRisk;
               const ariaLabel = `${stat.displayName}: ${count} ${label}`;
               return `
-                <button type="button" class="pssr-site-breakdown__badge ${className}" data-role="pssr-site-kpi" data-site-key="${esc(normalizedSite)}" data-risk-key="${esc(normalizedRisk)}" data-empty="${isEmpty}" aria-label="${esc(ariaLabel)}" title="${esc(ariaLabel)}" aria-pressed="${isActive ? 'true' : 'false'}">
+                <button type="button" class="pssr-site-breakdown__badge ${className}" data-role="inspections-site-kpi" data-site-key="${esc(normalizedSite)}" data-risk-key="${esc(normalizedRisk)}" data-empty="${isEmpty}" aria-label="${esc(ariaLabel)}" title="${esc(ariaLabel)}" aria-pressed="${isActive ? 'true' : 'false'}">
                   <span class="pssr-site-breakdown__count">${esc(count)}</span>
                   <span class="pssr-site-breakdown__label">${esc(label)}</span>
                 </button>
@@ -3274,7 +3729,7 @@
       buttons.forEach(button => {
         if(!button) return;
         button.addEventListener('click', () => {
-          const fallbackColumn = container.__currentSort?.column || container.__sortSelects?.[0]?.value || 'Asset';
+          const fallbackColumn = container.__currentSort?.column || container.__sortSelects?.[0]?.value || 'Next Due';
           const current = container.__currentSort || { column:fallbackColumn, direction:'asc' };
           const direction = current.direction === 'asc' ? 'desc' : 'asc';
           setSort(container, current.column || fallbackColumn, direction);
@@ -3289,8 +3744,52 @@
       document.documentElement.style.setProperty('--sticky-controls-offset', `${Math.ceil(height)}px`);
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      const container = document.querySelector('[data-component="pssr-table"]');
+    async function refreshInspections(containerOverride){
+      const container = containerOverride || document.querySelector('[data-component="inspections-table"]');
+      if(!container) return;
+      banner('', 'Fetching latest inspections…');
+      container.__scrollRegion?.setAttribute('data-loading','true');
+      container.__selectedDocUrl = '';
+      setViewerPlaceholder('Select an inspection to preview documentation.');
+      if(container.__mobileCards){
+        container.__mobileCards.dataset.state = 'loading';
+        container.__mobileCards.setAttribute('aria-busy','true');
+        container.__mobileCards.innerHTML = '<div class="mobile-card mobile-card--status" role="listitem" aria-live="polite">Loading inspection data…</div>';
+      }
+      try {
+        if(!ALLOW_NETWORK){
+          throw new Error('Network disabled in this environment');
+        }
+        const { headers, rows } = await fetchSheet();
+        ensureInspectionsSheet(headers, rows);
+        const hasRows = Array.isArray(rows) && rows.length > 0;
+        const sourceRows = hasRows ? rows : SAMPLE;
+        const mapped = sourceRows.map(buildRowModel);
+        container.__rows = mapped;
+        updateCategoryFilterOptions(container);
+        syncSiteFilterAvailability(container);
+        setSort(container, container.__currentSort.column, container.__currentSort.direction);
+        if(hasRows){
+          hideBanner();
+        }else{
+          banner('warn', 'Showing sample data', 'sheet returned no rows');
+        }
+      } catch (error) {
+        console.warn('Falling back to SAMPLE. Reason:', error?.message || error);
+        const message = (error && typeof error.message === 'string' && error.message.trim()) ? error.message.trim() : DEFAULT_ERROR_MESSAGE;
+        const fallback = SAMPLE.map(buildRowModel);
+        container.__rows = fallback;
+        updateCategoryFilterOptions(container);
+        syncSiteFilterAvailability(container);
+        setSort(container, container.__currentSort.column, container.__currentSort.direction);
+        banner('warn', 'Showing sample data', message);
+      } finally {
+        container.__scrollRegion?.setAttribute('data-loading','false');
+      }
+    }
+
+    function initInspections(){
+      const container = document.querySelector('[data-component="inspections-table"]');
 
       restoreStoredLayoutMode(container);
 
@@ -3306,7 +3805,7 @@
       initViewerToggle();
       setViewerCollapsed(true, { respectPreference:false });
 
-      if(!container) return;
+      if(!container) return null;
       container.__thead = container.querySelector('thead');
       container.__tbody = container.querySelector('tbody');
       container.__scrollRegion = container.querySelector('[data-role="scroll-region"]');
@@ -3315,11 +3814,15 @@
       container.__sortDirectionButtons = Array.from(document.querySelectorAll('[data-role="sort-direction"], [data-role="mobile-sort-direction"]'));
       container.__siteFilterNav = document.querySelector('[data-role="site-nav"]');
       container.__siteFilterActiveLabel = document.querySelector('[data-role="site-filter-active"]');
+      container.__categorySelect = document.querySelector('[data-role="category-select"]');
+      container.__searchInput = document.querySelector('[data-role="search-input"]');
       container.__rows = [];
       container.__viewRows = [];
-      container.__currentSort = { column:'Asset', direction:'asc' };
+      container.__currentSort = { column:'Next Due', direction:'asc' };
       container.__siteFilter = 'all';
       container.__riskFilter = 'all';
+      container.__categoryFilter = 'all';
+      container.__searchTerm = '';
       container.__selectedDocUrl = '';
 
       setViewerPlaceholder('Select an inspection to preview documentation.');
@@ -3331,48 +3834,27 @@
       updateSiteFilterControls(container);
       attachSiteFilterHandlers(container);
       attachSiteKpiHandlers(container);
+      updateCategoryFilterControls(container);
+      attachCategoryFilterHandlers(container);
+      updateSearchControl(container);
+      attachSearchHandlers(container);
 
-      async function loadData(){
-        banner('', 'Fetching latest inspections…');
-        container.__scrollRegion?.setAttribute('data-loading','true');
-        container.__selectedDocUrl = '';
-        setViewerPlaceholder('Select an inspection to preview documentation.');
-        if(container.__mobileCards){
-          container.__mobileCards.dataset.state = 'loading';
-          container.__mobileCards.setAttribute('aria-busy','true');
-          container.__mobileCards.innerHTML = '<div class="mobile-card mobile-card--status" role="listitem" aria-live="polite">Loading inspection data…</div>';
-        }
-        try {
-          if(!ALLOW_NETWORK){
-            throw new Error('Network disabled in this environment');
-          }
-          const { headers, rows } = await fetchSheet();
-          ensurePssrSheet(headers, rows);
-          const hasRows = Array.isArray(rows) && rows.length > 0;
-          const sourceRows = hasRows ? rows : SAMPLE;
-          const mapped = sourceRows.map(buildRowModel);
-          container.__rows = mapped;
-          syncSiteFilterAvailability(container);
-          setSort(container, container.__currentSort.column, container.__currentSort.direction);
-          if(hasRows){
-            hideBanner();
-          }else{
-            banner('warn', 'Showing sample data', 'sheet returned no rows');
-          }
-        } catch (error) {
-          console.warn('Falling back to SAMPLE. Reason:', error?.message || error);
-          const message = (error && typeof error.message === 'string' && error.message.trim()) ? error.message.trim() : DEFAULT_ERROR_MESSAGE;
-          const fallback = SAMPLE.map(buildRowModel);
-          container.__rows = fallback;
-          syncSiteFilterAvailability(container);
-          setSort(container, container.__currentSort.column, container.__currentSort.direction);
-          banner('warn', 'Showing sample data', message);
-        } finally {
-          container.__scrollRegion?.setAttribute('data-loading','false');
-        }
+      const refreshButton = document.querySelector('[data-action="refresh"]');
+      if(refreshButton){
+        refreshButton.addEventListener('click', () => refreshInspections(container));
       }
 
-      loadData();
+      refreshInspections(container);
+      return container;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const container = initInspections();
+      if(container){
+        window.refreshInspections = () => refreshInspections(container);
+      }else{
+        window.refreshInspections = () => refreshInspections();
+      }
     });
   </script>
 </body>
