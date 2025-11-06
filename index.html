@@ -3227,6 +3227,29 @@ const PLAN_NEXT_WEEK_PEOPLE = PLAN_NEXT_WEEK_SOURCE.people;
 let PLAN_NEXT_WEEK_DEFAULT_RANGE = planRangeOverride || null;
 let PLAN_NEXT_WEEK_ACTIVE_RANGE = planRangeOverride || null;
 
+const PLAN_INDEX_ENTRIES_BY_WEEK = new Map();
+
+function rememberPlanIndexEntry(entry){
+  if(!entry) return;
+  const weekKey = sanitizePlanScalar(entry.weekEnd);
+  if(!weekKey) return;
+  PLAN_INDEX_ENTRIES_BY_WEEK.set(String(weekKey), {
+    ...entry,
+    planRange: sanitizePlanRange(entry.planRange) || null,
+    planUrl: sanitizePlanScalar(entry.planUrl),
+    planGid: sanitizePlanScalar(entry.planGid),
+    gid: sanitizePlanScalar(entry.gid),
+    url: sanitizePlanScalar(entry.url)
+  });
+}
+
+function planIndexEntryForWeek(weekEntry){
+  if(!weekEntry) return null;
+  const weekKey = sanitizePlanScalar(weekEntry.weekEnd);
+  if(!weekKey) return null;
+  return PLAN_INDEX_ENTRIES_BY_WEEK.get(String(weekKey)) || null;
+}
+
 const PLAN_DAY_SLUG_MAP = new Map();
 PLAN_NEXT_WEEK_DAYS.forEach(day => {
   const str = String(day || '');
@@ -3453,9 +3476,14 @@ function updateActivePlanRange(nextRange){
 }
 
 function applyPlanContextFromWeek(weekEntry){
+  const planEntry = planIndexEntryForWeek(weekEntry);
+  if(planEntry){
+    applyPlanSourceFromIndex(planEntry);
+  }
   if(PLAN_RANGE_LOCKED) return;
   const weekRange = sanitizePlanRange(weekEntry?.planRange);
-  const desiredRange = weekRange || PLAN_NEXT_WEEK_DEFAULT_RANGE || null;
+  const planRange = planEntry ? sanitizePlanRange(planEntry.planRange) : null;
+  const desiredRange = weekRange || planRange || PLAN_NEXT_WEEK_DEFAULT_RANGE || null;
   if(updateActivePlanRange(desiredRange)){
     markPlanDataStale();
   }
@@ -4791,17 +4819,20 @@ const out = rows.map(r => {
     throw new Error('Index has no rows with a gid');
   }
 
+  PLAN_INDEX_ENTRIES_BY_WEEK.clear();
   const planRows = [];
   const weekRows = [];
   out.forEach(entry => {
     if(isPlanLabel(entry.label)){
       planRows.push(entry);
+      rememberPlanIndexEntry(entry);
     }else{
       weekRows.push(entry);
     }
   });
 
   if(planRows.length){
+    planRows.sort((a,b) => String(b.weekEnd).localeCompare(String(a.weekEnd)));
     applyPlanSourceFromIndex(planRows[0]);
   }
 
