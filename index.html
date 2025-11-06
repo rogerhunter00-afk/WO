@@ -1454,7 +1454,7 @@ body.dark .plan-overlay{
 
 </style>
 </head>
-<body class="light" data-plan-gid="">
+<body class="light" data-plan-gid="" data-plan-range="">
   <!-- ❄️ Winter visual effects (hidden until Winter Plan is active) -->
   <div class="fx-layer" id="fx-layer" hidden>
     <canvas id="snow-far" aria-hidden="true"></canvas>
@@ -2639,6 +2639,7 @@ async function loadLatestOrChosenWeek(forceBust=false){
     __WEEKS = weeks.slice();                                // <—
     const chosen = chooseInitialWeek(__WEEKS);
     __WEEK_SELECTED = chosen.weekEnd;                       // <—
+    applyPlanContextFromWeek(chosen);
 
     renderWeekControls(__WEEKS, chosen);
     rememberWeek(chosen);
@@ -2688,6 +2689,7 @@ function renderWeekControls(weeks, chosen){
 
 function setSelectedWeek(weekObj){
   __WEEK_SELECTED = weekObj?.weekEnd || null;
+  applyPlanContextFromWeek(weekObj);
   rememberWeek(weekObj);
 
   // keep URL tidy
@@ -3141,6 +3143,10 @@ function sanitizePlanScalar(value){
   return null;
 }
 
+function sanitizePlanRange(value){
+  return sanitizePlanScalar(value);
+}
+
 function normalizePlanLabel(value){
   const sanitized = sanitizePlanScalar(value);
   if(!sanitized) return null;
@@ -3190,6 +3196,7 @@ const planConfigFromBody = (() => {
     label: dataset.planLabel,
     days: dataset.planDays,
     people: dataset.planPeople,
+    range: dataset.planRange,
   };
 })();
 
@@ -3199,8 +3206,10 @@ const rawPlanLabelOverride = pickPlanScalar(planConfigFromBody.label, planConfig
 const planLabelOverride = normalizePlanLabel(rawPlanLabelOverride) || rawPlanLabelOverride;
 const planGidOverride = pickPlanScalar(planConfigFromBody.gid, planConfigFromWindow?.gid);
 const planUrlOverride = pickPlanScalar(planConfigFromBody.url, planConfigFromWindow?.url);
+const planRangeOverride = pickPlanScalar(planConfigFromBody.range, planConfigFromWindow?.range);
 const PLAN_LABEL_LOCKED = Boolean(planLabelOverride);
 const PLAN_SOURCE_LOCKED = Boolean(planGidOverride || planUrlOverride);
+const PLAN_RANGE_LOCKED = Boolean(planRangeOverride);
 
 let PLAN_NEXT_WEEK_SOURCE = {
   gid: planGidOverride,
@@ -3208,11 +3217,15 @@ let PLAN_NEXT_WEEK_SOURCE = {
   label: planLabelOverride || 'Eng Schedule',
   days: planDays.length ? planDays : PLAN_DEFAULT_DAYS.slice(),
   people: planPeople.length ? planPeople : PLAN_DEFAULT_PEOPLE.slice(),
+  range: planRangeOverride || null,
   meta: null,
 };
 
 const PLAN_NEXT_WEEK_DAYS = PLAN_NEXT_WEEK_SOURCE.days;
 const PLAN_NEXT_WEEK_PEOPLE = PLAN_NEXT_WEEK_SOURCE.people;
+
+let PLAN_NEXT_WEEK_DEFAULT_RANGE = planRangeOverride || null;
+let PLAN_NEXT_WEEK_ACTIVE_RANGE = planRangeOverride || null;
 
 const PLAN_DAY_SLUG_MAP = new Map();
 PLAN_NEXT_WEEK_DAYS.forEach(day => {
@@ -3305,11 +3318,26 @@ function planSourceIsConfigured(){
 }
 
 function getPlanSourceUrl(){
-  if(PLAN_NEXT_WEEK_SOURCE?.url) return PLAN_NEXT_WEEK_SOURCE.url;
-  if(PLAN_NEXT_WEEK_SOURCE?.gid != null && PLAN_NEXT_WEEK_SOURCE.gid !== ''){
-    return csvUrlForGid(PLAN_NEXT_WEEK_SOURCE.gid);
+  let base = null;
+  if(PLAN_NEXT_WEEK_SOURCE?.url){
+    base = PLAN_NEXT_WEEK_SOURCE.url;
+  }else if(PLAN_NEXT_WEEK_SOURCE?.gid != null && PLAN_NEXT_WEEK_SOURCE.gid !== ''){
+    base = csvUrlForGid(PLAN_NEXT_WEEK_SOURCE.gid);
   }
-  return null;
+  if(!base) return null;
+
+  if(!PLAN_NEXT_WEEK_ACTIVE_RANGE){
+    return base;
+  }
+
+  try{
+    const url = new URL(base);
+    url.searchParams.set('range', PLAN_NEXT_WEEK_ACTIVE_RANGE);
+    return url.toString();
+  }catch(err){
+    const sep = base.includes('?') ? '&' : '?';
+    return `${base}${sep}range=${encodeURIComponent(PLAN_NEXT_WEEK_ACTIVE_RANGE)}`;
+  }
 }
 
 function updatePlanHeaderLabel(){
@@ -3388,6 +3416,49 @@ function createPlanFilterButton(person, label){
     });
   }
   return button;
+}
+
+function markPlanDataStale(){
+  PLAN_NEXT_WEEK_RAW = null;
+  PLAN_NEXT_WEEK_VIEW = null;
+  PLAN_NEXT_WEEK_LAST_UPDATED = null;
+  PLAN_NEXT_WEEK_PEOPLE_ORDER = [];
+  PLAN_NEXT_WEEK_PERSON_FILTER = null;
+  if($planTable) $planTable.innerHTML = '';
+  clearPlanFilterControls();
+
+  if(!planSourceIsConfigured()){
+    setPlanStatus('Configure the plan sheet ID/URL to view the schedule.', 'info');
+    syncPlanButtons();
+    updatePlanHeaderLabel();
+    return;
+  }
+
+  setPlanStatus('Plan data has not been loaded yet.', 'info');
+  syncPlanButtons();
+  updatePlanHeaderLabel();
+
+  if(isPlanOverlayOpen()){
+    ensurePlanLoaded(true);
+  }
+}
+
+function updateActivePlanRange(nextRange){
+  const candidate = sanitizePlanRange(nextRange);
+  const normalized = candidate || null;
+  const current = PLAN_NEXT_WEEK_ACTIVE_RANGE || null;
+  if(normalized === current) return false;
+  PLAN_NEXT_WEEK_ACTIVE_RANGE = normalized;
+  return true;
+}
+
+function applyPlanContextFromWeek(weekEntry){
+  if(PLAN_RANGE_LOCKED) return;
+  const weekRange = sanitizePlanRange(weekEntry?.planRange);
+  const desiredRange = weekRange || PLAN_NEXT_WEEK_DEFAULT_RANGE || null;
+  if(updateActivePlanRange(desiredRange)){
+    markPlanDataStale();
+  }
 }
 
 function updatePlanFilterControls(peopleOrder){
@@ -3531,24 +3602,68 @@ updatePlanHeaderLabel();
 syncPlanButtons();
 setPlanStatus(planSourceIsConfigured() ? 'Plan data has not been loaded yet.' : 'Configure the plan sheet ID/URL to view the schedule.', 'info');
 
+function derivePlanSource(entry){
+  if(!entry) return { url: null, gid: null };
+  const url = sanitizePlanScalar(entry?.planUrl) || sanitizePlanScalar(entry?.url);
+  let gid = sanitizePlanScalar(entry?.planGid) || sanitizePlanScalar(entry?.gid);
+  if(url) gid = null;
+  return { url: url || null, gid: gid || null };
+}
+
 function applyPlanSourceFromIndex(entry){
   if(!entry) return;
   PLAN_NEXT_WEEK_SOURCE.meta = entry;
+
+  let needsReload = false;
+
   if(!PLAN_SOURCE_LOCKED){
-    const gid = sanitizePlanScalar(entry.gid);
-    const url = sanitizePlanScalar(entry.url);
-    if(url){
-      PLAN_NEXT_WEEK_SOURCE.url = url;
-    }else if(gid){
-      PLAN_NEXT_WEEK_SOURCE.gid = gid;
+    const { url: nextUrl, gid: nextGid } = derivePlanSource(entry);
+    const currUrl = PLAN_NEXT_WEEK_SOURCE.url || null;
+    const currGid = PLAN_NEXT_WEEK_SOURCE.gid || null;
+
+    if(nextUrl){
+      if(nextUrl !== currUrl || currGid !== null){
+        PLAN_NEXT_WEEK_SOURCE.url = nextUrl;
+        PLAN_NEXT_WEEK_SOURCE.gid = null;
+        needsReload = true;
+      }
+    }else{
+      const normalizedGid = nextGid || null;
+      if(currUrl !== null){
+        PLAN_NEXT_WEEK_SOURCE.url = null;
+        PLAN_NEXT_WEEK_SOURCE.gid = normalizedGid;
+        needsReload = true;
+      }else if(normalizedGid !== currGid){
+        PLAN_NEXT_WEEK_SOURCE.gid = normalizedGid;
+        needsReload = true;
+      }
     }
   }
+
   if(!PLAN_LABEL_LOCKED){
     const lbl = normalizePlanLabel(entry.label) || sanitizePlanScalar(entry.label);
     if(lbl) PLAN_NEXT_WEEK_SOURCE.label = lbl;
   }
-  updatePlanHeaderLabel();
-  syncPlanButtons();
+
+  if(!PLAN_RANGE_LOCKED){
+    const normalizedDefault = sanitizePlanRange(entry.planRange) || null;
+    const prevDefault = PLAN_NEXT_WEEK_DEFAULT_RANGE;
+    PLAN_NEXT_WEEK_SOURCE.range = normalizedDefault;
+    PLAN_NEXT_WEEK_DEFAULT_RANGE = normalizedDefault;
+    const prevActive = PLAN_NEXT_WEEK_ACTIVE_RANGE || null;
+    if(prevActive == null || prevActive === prevDefault){
+      if(updateActivePlanRange(normalizedDefault)){
+        needsReload = true;
+      }
+    }
+  }
+
+  if(needsReload){
+    markPlanDataStale();
+  }else{
+    updatePlanHeaderLabel();
+    syncPlanButtons();
+  }
 }
 
 function normalizePlanDay(value){
@@ -4626,6 +4741,10 @@ async function loadWeeksIndexFrom(url){
   // Optional URL column (we can extract gid=12345 from it)
   const H_URL     = findHeader('url', 'sheet url', 'link');
 
+  const H_PLAN_GID   = findHeader('plan_gid', 'plan gid', 'plan sheet gid', 'plan tab gid', 'plan sheet id', 'plan sheetgid');
+  const H_PLAN_URL   = findHeader('plan_url', 'plan sheet url', 'plan csv url', 'plan link', 'plan sheet link');
+  const H_PLAN_RANGE = findHeader('plan_range', 'plan range', 'plan named range', 'plan table', 'plan_table', 'plan range name', 'schedule range', 'schedule table');
+
   if (!H_GID && !H_URL){
     console.error('[Index] Headers present:', headers);
     throw new Error('Index is missing a "gid" or "url" column');
@@ -4645,11 +4764,27 @@ const out = rows.map(r => {
   const label   = H_LABEL   ? r[H_LABEL]   : (r[H_WEEKEND] || '').trim();
   const weekEnd = H_WEEKEND ? r[H_WEEKEND] : '';
   const urlRaw  = H_URL ? String(r[H_URL] || '').trim() : '';
-  let gid       = H_GID ? r[H_GID] : null;
+  let gid       = sanitizePlanScalar(H_GID ? r[H_GID] : null);
   if (!gid && urlRaw) gid = gidFromUrl(urlRaw);
-  const url     = urlRaw || null;     // keep the URL if provided
-  return { label, weekEnd, gid, url };
-}).filter(x => x && (x.gid || x.url));
+  const url     = sanitizePlanScalar(urlRaw) || (urlRaw || null);
+
+  const planUrlRaw = H_PLAN_URL ? String(r[H_PLAN_URL] ?? '').trim() : '';
+  let planUrl = sanitizePlanScalar(planUrlRaw);
+  if(planUrl === null) planUrl = null;
+  let planGid = sanitizePlanScalar(H_PLAN_GID ? r[H_PLAN_GID] : null);
+  if(planUrl) planGid = null;
+  const planRange = sanitizePlanRange(H_PLAN_RANGE ? r[H_PLAN_RANGE] : null);
+
+  return {
+    label,
+    weekEnd,
+    gid: gid || null,
+    url,
+    planUrl,
+    planGid: planUrl ? null : (planGid || null),
+    planRange,
+  };
+}).filter(x => x && (x.gid || x.url || x.planUrl || x.planGid));
 
   if (!out.length){
     console.error('[Index] No usable rows. Headers:', headers, 'Sample row:', rows[0]);
