@@ -1837,7 +1837,7 @@
   <script>
     // ===== Config =====
     const INSPECTIONS_SHEET_NAME = 'Inspections';
-    const DEFAULT_INSPECTIONS_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhXb-392ExhOiESN5E6IqM5ScrrB4oFpPcLhf8yis6_ZhFqjanoHomQJcqL-feiPi-t-sygaGb85at/pub?output=csv';
+    const DEFAULT_INSPECTIONS_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhXb-392ExhOiESN5E6IqM5ScrrB4oFpPcLhf8yis6_ZhFqjanoHomQJcqL-feiPi-t-sygaGb85at/pub?gid=1634430248&output=csv';
     const DUE_SOON_DAYS = 30;
     const DUE_SOON_THRESHOLD_DAYS = DUE_SOON_DAYS;
 
@@ -3158,13 +3158,13 @@
     function buildRowModel(raw){
       const siteValue = pickField(raw, ['Site','Facility','Location','Plant','Area']);
       const asset = pickField(raw, ['Asset','Asset ID','Asset Name','Equipment','Inspection Item','Title','Item']);
-      const categoryValue = pickField(raw, ['Category','Discipline','Programme','Type','Inspection Category']);
-      const lastRaw = pickField(raw, ['Last Completed','Last Inspection','Previous Inspection','Last Done','Last Date']);
-      const nextRaw = pickField(raw, ['Next Due','Next Inspection','Inspection Due','Due Date','Next Date','Due']);
+      const categoryValue = pickField(raw, ['Category','Discipline','Programme','Type','Inspection Category','Categories']);
+      const lastRaw = pickField(raw, ['Last Completed','Last Inspection','Previous Inspection','Last Done','Last Date','Completed on']);
+      const nextRaw = pickField(raw, ['Next Due','Next Inspection','Inspection Due','Due Date','Next Date','Due','Due date']);
       const statusRaw = pickField(raw, ['Status','Current Status','State','Risk','Condition']);
       const workOrderRaw = pickField(
         raw,
-        ['WO/Link','WO','Work Order','Work Order Link','Work Order URL','Link','URL','Reference'],
+        ['WO/Link','WO','Work Order','Work Order Link','Work Order URL','Link','URL','Reference','ID'],
         {
           fuzzy:[
             { all:['work','order'], any:['link','url','ref'] },
@@ -3186,6 +3186,18 @@
         }
       );
       const notesRaw = pickField(raw, ['Notes','Comments','Remarks','Summary','Details','Description','Comment']);
+      const titleRaw = pickField(raw, ['Title','Inspection Title','Inspection Name','Task','Summary Title']);
+      const priorityRaw = pickField(raw, ['Priority','Risk Priority','Priority Level']);
+      const assignedRaw = pickField(raw, ['Assigned to','Assigned','Assignee','Owner','Responsible']);
+      const createdRaw = pickField(raw, ['Created on','Created','Created Date','Date Created']);
+      const plannedRaw = pickField(raw, ['Planned Start Date','Planned Start','Scheduled Start','Start Date']);
+      const updatedRaw = pickField(raw, ['Last updated','Last Update','Updated on','Last Modified','Modified']);
+      const createdDate = parseDateLoose(createdRaw);
+      const plannedDate = parseDateLoose(plannedRaw);
+      const updatedDate = parseDateLoose(updatedRaw);
+      const createdDisplay = createdDate ? formatDisplayDate(createdDate) : (createdRaw || '');
+      const plannedDisplay = plannedDate ? formatDisplayDate(plannedDate) : (plannedRaw || '');
+      const updatedDisplay = updatedDate ? formatDisplayDate(updatedDate) : (updatedRaw || '');
       const normalizedDocumentUrl = normalizeDocumentUrl(documentRaw || workOrderRaw);
       const workOrderUrl = normalizeExternalUrl(workOrderRaw);
       const lastDate = parseDateLoose(lastRaw);
@@ -3202,7 +3214,25 @@
       const statusClass = STATUS_CLASS_MAP[statusKey] || STATUS_CLASS_MAP.unknown;
       const siteDisplay = siteValue || FALLBACK_SITE_LABEL;
       const categoryDisplay = categoryValue || 'Uncategorised';
-      const notesDisplay = notesRaw || '—';
+      const notesDisplay = (() => {
+        if(notesRaw) return notesRaw;
+        const meta = [];
+        if(titleRaw && String(titleRaw).trim().length){
+          const normalizedTitle = String(titleRaw).trim().toLowerCase();
+          const normalizedAsset = String(asset ?? '').trim().toLowerCase();
+          if(!normalizedAsset || normalizedAsset !== normalizedTitle){
+            meta.push(titleRaw);
+          }
+        }
+        const detailParts = [];
+        if(priorityRaw) detailParts.push(`Priority: ${priorityRaw}`);
+        if(assignedRaw) detailParts.push(`Assigned: ${assignedRaw}`);
+        const scheduleParts = [];
+        if(plannedDisplay) scheduleParts.push(`Planned: ${plannedDisplay}`);
+        if(createdDisplay) scheduleParts.push(`Created: ${createdDisplay}`);
+        if(updatedDisplay) scheduleParts.push(`Updated: ${updatedDisplay}`);
+        return [...meta, ...detailParts, ...scheduleParts].filter(Boolean).join(' • ') || '—';
+      })();
       const workOrderLabel = (() => {
         const text = String(workOrderRaw ?? '').trim();
         if(text) return text;
@@ -3216,7 +3246,21 @@
         }
         return '—';
       })();
-      const searchParts = [siteValue, asset, categoryValue, statusLabel, notesRaw, workOrderRaw]
+      const searchParts = [
+        siteValue,
+        asset,
+        categoryValue,
+        statusLabel,
+        notesRaw,
+        notesDisplay,
+        workOrderRaw,
+        titleRaw,
+        priorityRaw,
+        assignedRaw,
+        plannedRaw,
+        createdRaw,
+        updatedRaw
+      ]
         .filter(Boolean)
         .map(part => String(part).toLowerCase())
         .join(' ');
@@ -3243,6 +3287,12 @@
         __docUrl: normalizedDocumentUrl,
         __workOrderUrl: workOrderUrl,
         __searchText: searchParts,
+        __title: titleRaw || '',
+        __priority: priorityRaw || '',
+        __assigned: assignedRaw || '',
+        __planned: plannedDisplay || '',
+        __created: createdDisplay || '',
+        __updated: updatedDisplay || '',
         __raw: raw
       };
     }
@@ -3368,7 +3418,14 @@
       }
       const html = list.map(row => {
         const overdueClass = row.__overdue ? 'row-overdue' : '';
-        const subtitle = `<div class="mobile-card__subtitle"><span>${esc(row.Site)}</span><span>${esc(row.Category)}</span></div>`;
+        const cardTitle = row.__title && String(row.__title).trim().length ? row.__title : row.Asset;
+        const subtitleParts = [];
+        if(row.Site) subtitleParts.push(row.Site);
+        if(row.Asset && cardTitle !== row.Asset) subtitleParts.push(row.Asset);
+        if(row.Category) subtitleParts.push(row.Category);
+        const subtitle = subtitleParts.length
+          ? `<div class="mobile-card__subtitle">${subtitleParts.map(part => `<span>${esc(part)}</span>`).join('')}</div>`
+          : '';
         const statusClass = row.__statusClass || STATUS_CLASS_MAP.unknown;
         const statusKey = row.__statusKey || 'unknown';
         const statusPill = `<span class="status-pill ${statusClass}" data-status="${esc(statusKey)}">${esc(row.Status)}</span>`;
@@ -3377,11 +3434,11 @@
         const linkBlock = row.__workOrderUrl
           ? `<div class="mobile-card__actions"><a class="mobile-card__action" href="${esc(row.__workOrderUrl)}" target="_blank" rel="noopener">Open link</a></div>`
           : '';
-        return `
-          <article class="mobile-card ${overdueClass}" aria-label="Inspection for ${esc(row.Asset)}" role="listitem">
+          return `
+          <article class="mobile-card ${overdueClass}" aria-label="Inspection for ${esc(cardTitle)}" role="listitem">
             <header class="mobile-card__header">
               <div class="mobile-card__heading">
-                <div class="mobile-card__title">${esc(row.Asset)}</div>
+                <div class="mobile-card__title">${esc(cardTitle)}</div>
                 ${subtitle}
               </div>
               ${statusPill}
