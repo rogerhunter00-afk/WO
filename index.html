@@ -3282,6 +3282,20 @@ const PLAN_FILTER_MEDIA = (typeof window !== 'undefined' && typeof window.matchM
 let __planReturnFocus = null;
 let __planPrevBodyOverflow = null;
 
+const PLAN_DONE_FLAG_TEST = /-\s*done\s*-/i;
+const PLAN_DONE_FLAG_STRIP = /-\s*done\s*-/gi;
+
+function analyzePlanDoneFlag(value){
+  if(value == null) return { has:false, cleaned:'' };
+  const str = typeof value === 'string' ? value : String(value ?? '');
+  if(!str) return { has:false, cleaned:'' };
+  if(!PLAN_DONE_FLAG_TEST.test(str)){
+    return { has:false, cleaned:str.trim() };
+  }
+  const cleaned = str.replace(PLAN_DONE_FLAG_STRIP, ' ').replace(/\s{2,}/g, ' ').trim();
+  return { has:true, cleaned };
+}
+
 function planLabel(){
   return PLAN_NEXT_WEEK_SOURCE?.label || 'Eng Schedule';
 }
@@ -3605,6 +3619,9 @@ function buildPlanEntry(rawValue, noteText, context){
   const raw = sanitizePlanScalar(rawValue);
   if(!raw) return null;
   const entry = { raw, note: sanitizePlanScalar(noteText) || null, type:'text', lookupId:null, workOrder:null };
+  const doneInfo = analyzePlanDoneFlag(raw);
+  entry.displayText = doneInfo.cleaned;
+  entry.doneFromText = Boolean(doneInfo.has);
   const id = extractPlanWorkOrderId(raw);
   if(id){
     entry.lookupId = id;
@@ -3615,6 +3632,7 @@ function buildPlanEntry(rawValue, noteText, context){
     }else{
       entry.type = 'missing';
     }
+    entry.doneFromText = false;
   }
   return entry;
 }
@@ -3876,8 +3894,8 @@ function deriveTaskCardVariant(entry, entryType){
   if(!entry) return 'scheduled';
   const type = entryType || planEntryPresentationType(entry);
   if(type === 'missing') return 'critical';
-  if(type === 'text') return 'scheduled';
-  
+  if(type === 'text') return entry.doneFromText ? 'done' : 'scheduled';
+
   const statusSlug = entry.workOrder ? slugify(String(entry.workOrder.Status ?? entry.workOrder.status ?? '')) : '';
   const prioritySlug = entry.workOrder ? slugify(String(entry.workOrder.Priority ?? entry.workOrder.priority ?? '')) : '';
   
@@ -3984,7 +4002,21 @@ function renderPlanEntry(entry){
 
   const body = document.createElement('div');
   body.className = 'task-card__body';
-  const titleSource = entry.type === 'wo' ? (entry.workOrder?.Title || entry.raw) : entry.raw;
+  let titleSource;
+  if(entry.type === 'wo'){
+    titleSource = entry.workOrder?.Title || entry.raw;
+  }else if(entry.type === 'text'){
+    if(entry.displayText){
+      titleSource = entry.displayText;
+    }else if(entry.doneFromText){
+      titleSource = 'Completed';
+      card.setAttribute('aria-label', 'Completed task');
+    }else{
+      titleSource = entry.raw;
+    }
+  }else{
+    titleSource = entry.raw;
+  }
   body.appendChild(createTaskCardTitle(titleSource));
 
   if(entry.type === 'missing'){
