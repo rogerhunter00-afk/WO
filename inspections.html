@@ -1834,15 +1834,11 @@
     <section class="mobile-cards" data-role="mobile-cards" aria-live="polite" role="list"></section>
   </div>
 
-  <script>
-    // ===== Config =====
+    <script>
     const INSPECTIONS_SHEET_NAME = 'Inspections';
     const DEFAULT_INSPECTIONS_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhXb-392ExhOiESN5E6IqM5ScrrB4oFpPcLhf8yis6_ZhFqjanoHomQJcqL-feiPi-t-sygaGb85at/pub?gid=1634430248&output=csv';
     const DUE_SOON_DAYS = 30;
-    const DUE_SOON_THRESHOLD_DAYS = DUE_SOON_DAYS;
 
-    // Toggle via query params.
-    // Defaults: offline in file/sandbox; online in http(s).
     const PARAMS = new URLSearchParams(location.search);
     const FORCE_ONLINE = PARAMS.get('online') === '1';
     const FORCE_OFFLINE = PARAMS.get('offline') === '1';
@@ -1850,1166 +1846,192 @@
     const ALLOW_NETWORK = FORCE_ONLINE ? true : (FORCE_OFFLINE ? false : !DEFAULT_OFFLINE);
     const DEFAULT_ERROR_MESSAGE = 'We were unable to load the inspection sheet. Please check the network or sheet permissions and try again.';
 
-    const themeBtn = document.getElementById('dark-toggle');
-    const themeBtnLabel = themeBtn?.querySelector('.switch-label') || themeBtn?.querySelector('.label');
-    const layoutToggleBtn = document.getElementById('layout-toggle');
-    const LAYOUT_MODE_STORAGE_KEY = 'alsLayoutMode';
-
-    function currentForcedLayout(){
-      if(document.body.classList.contains('force-mobile')) return 'mobile';
-      if(document.body.classList.contains('force-desktop')) return 'desktop';
-      return 'auto';
-    }
-
-    function syncLayoutToggle(){
-      if(!layoutToggleBtn) return;
-      const mode = currentForcedLayout();
-      const labelEl = layoutToggleBtn.querySelector('.switch-label') || layoutToggleBtn.querySelector('.label');
-      if(labelEl){
-        if(mode === 'mobile') labelEl.textContent = 'Mobile view';
-        else if(mode === 'desktop') labelEl.textContent = 'Desktop view';
-        else {
-          const autoMobile = document.body.getAttribute('data-table-mode') === 'mobile';
-          labelEl.textContent = autoMobile ? 'Auto · Mobile' : 'Auto · Desktop';
-        }
-      }
-      const nextAction = mode === 'mobile'
-        ? 'Switch to desktop view'
-        : mode === 'desktop'
-          ? 'Return to automatic view'
-          : 'Switch to mobile view';
-      layoutToggleBtn.setAttribute('aria-checked', mode === 'mobile' ? 'true' : 'false');
-      layoutToggleBtn.setAttribute('aria-label', nextAction);
-      layoutToggleBtn.title = nextAction;
-    }
-
-    function getLayoutContainer(){
-      return document.querySelector('[data-component="inspections-table"]');
-    }
-
-    function applyLayoutMode(mode,{ persist=true, container } = {}){
-      const desired = mode === 'mobile' ? 'mobile' : mode === 'desktop' ? 'desktop' : 'auto';
-      const target = container || getLayoutContainer();
-
-      if(desired === 'mobile'){
-        document.body.classList.add('force-mobile');
-        document.body.classList.remove('force-desktop');
-        document.body.setAttribute('data-table-mode','mobile');
-        if(persist) localStorage.setItem(LAYOUT_MODE_STORAGE_KEY,'mobile');
-      }else if(desired === 'desktop'){
-        document.body.classList.add('force-desktop');
-        document.body.classList.remove('force-mobile');
-        document.body.removeAttribute('data-table-mode');
-        if(persist) localStorage.setItem(LAYOUT_MODE_STORAGE_KEY,'desktop');
-      }else{
-        document.body.classList.remove('force-mobile','force-desktop');
-        document.body.removeAttribute('data-table-mode');
-        if(persist) localStorage.removeItem(LAYOUT_MODE_STORAGE_KEY);
-      }
-
-      if(target){
-        if(desired === 'auto'){
-          updateResponsiveMode(target);
-        }
-        if(target.__rows){
-          refreshView(target);
-        }else{
-          updateResponsiveMode(target);
-        }
-      }else if(desired !== 'mobile'){
-        updateResponsiveMode(null);
-      }
-
-      updateStickyOffsets();
-      syncLayoutToggle();
-    }
-
-    function cycleLayoutMode(){
-      const mode = currentForcedLayout();
-      const next = mode === 'mobile' ? 'desktop' : mode === 'desktop' ? 'auto' : 'mobile';
-      applyLayoutMode(next, { container: getLayoutContainer() });
-    }
-
-    function restoreStoredLayoutMode(container){
-      const stored = localStorage.getItem(LAYOUT_MODE_STORAGE_KEY);
-      if(stored === 'mobile' || stored === 'desktop'){
-        applyLayoutMode(stored, { persist:false, container });
-      }else{
-        syncLayoutToggle();
-      }
-    }
-
-    layoutToggleBtn?.addEventListener('click', cycleLayoutMode);
-    const metaColorScheme = document.querySelector('meta[name="color-scheme"]');
-    const THEME_STORAGE_KEY = 'theme';
-
-    function setThemeButtonLabel(text){
-      if(!themeBtn) return;
-      if(themeBtnLabel){
-        themeBtnLabel.textContent = text;
-      }else{
-        themeBtn.textContent = text;
-      }
-    }
-
-    function applyTheme(theme){
-      const normalized = theme === 'dark' ? 'dark' : 'light';
-      const isDark = normalized === 'dark';
-      document.body.classList.toggle('dark', isDark);
-      document.body.classList.toggle('light', !isDark);
-      document.body.classList.toggle('theme-dark', isDark);
-      document.documentElement.setAttribute('color-scheme', normalized);
-      metaColorScheme?.setAttribute('content', normalized);
-      setThemeButtonLabel(isDark ? 'Light' : 'Dark');
-      const label = isDark ? 'Switch to light mode' : 'Switch to dark mode';
-      themeBtn?.setAttribute('aria-checked', isDark ? 'true' : 'false');
-      themeBtn?.setAttribute('aria-label', label);
-      themeBtn?.setAttribute('title', label);
-    }
-
-    const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    let hasStoredTheme = storedTheme === 'dark' || storedTheme === 'light';
-    let activeTheme = hasStoredTheme ? storedTheme : (prefersDark ? 'dark' : 'light');
-    applyTheme(activeTheme);
-
-    const colorSchemeQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
-    if(colorSchemeQuery && typeof colorSchemeQuery.addEventListener === 'function'){
-      colorSchemeQuery.addEventListener('change', (event) => {
-        if(hasStoredTheme) return;
-        activeTheme = event.matches ? 'dark' : 'light';
-        applyTheme(activeTheme);
-      });
-    }else if(colorSchemeQuery && typeof colorSchemeQuery.addListener === 'function'){
-      colorSchemeQuery.addListener((event) => {
-        if(hasStoredTheme) return;
-        activeTheme = event.matches ? 'dark' : 'light';
-        applyTheme(activeTheme);
-      });
-    }
-
-    themeBtn?.addEventListener('click', () => {
-      activeTheme = document.body.classList.contains('theme-dark') ? 'light' : 'dark';
-      applyTheme(activeTheme);
-      localStorage.setItem(THEME_STORAGE_KEY, activeTheme);
-      hasStoredTheme = true;
-    });
-
-    function sanitizeSheetUrl(v){
-      if(!v) return null;
-      const t = String(v).trim();
-      if(!t) return null;
-      const c = t.startsWith('//') ? `https:${t}` : t;
-      try {
-        const u = new URL(c, location.href);
-        if(u.protocol === 'http:') u.protocol = 'https:';
-        return u.protocol === 'https:' ? u.toString() : null;
-      } catch { return null; }
-    }
-
-    function ensureSheetName(url, sheetName){
-      if(!url || !sheetName) return url;
-      try {
-        const resolved = new URL(url, location.href);
-        if(!resolved.searchParams.has('gid')){
-          resolved.searchParams.set('sheet', sheetName);
-        }
-        return resolved.toString();
-      } catch {
-        return url;
-      }
-    }
-
-    function getSheetUrl(){
-      const p = new URLSearchParams(location.search);
-      const raw = p.get('sheetUrl') || p.get('sheet') || document.body?.dataset?.sheetUrl || DEFAULT_INSPECTIONS_SHEET_URL;
-      const sanitized = sanitizeSheetUrl(raw);
-      return sanitized ? ensureSheetName(sanitized, INSPECTIONS_SHEET_NAME) : sanitized;
-    }
-
-    function normalizeGoogleDocumentUrl(url){
-      if(!url) return '';
-      const host = (url.hostname || '').toLowerCase();
-      const path = (url.pathname || '').replace(/\/+$/, '');
-      const encodeId = (id) => encodeURIComponent(id || '');
-
-      if(host === 'drive.google.com'){
-        const folderMatch = path.match(/^\/drive\/folders\/([^/]+)/i);
-        if(folderMatch){
-          const id = encodeId(folderMatch[1]);
-          return new URL(`https://drive.google.com/embeddedfolderview?id=${id}#grid`);
-        }
-        const fileMatch = path.match(/^\/file\/d\/([^/]+)/i);
-        if(fileMatch){
-          const id = encodeId(fileMatch[1]);
-          return new URL(`https://drive.google.com/file/d/${id}/preview`);
-        }
-        const genericId = url.searchParams?.get('id');
-        if(genericId){
-          const id = encodeId(genericId);
-          return new URL(`https://drive.google.com/file/d/${id}/preview`);
-        }
-      }
-
-      if(host === 'docs.google.com'){
-        const docMatch = path.match(/^\/(document|spreadsheets|presentation|forms)\/d\/([^/]+)/i);
-        if(docMatch){
-          const type = docMatch[1].toLowerCase();
-          const id = encodeId(docMatch[2]);
-          if(type === 'forms'){
-            return new URL(`https://docs.google.com/forms/d/${id}/viewform?embedded=true`);
-          }
-          return new URL(`https://docs.google.com/${type}/d/${id}/preview`);
-        }
-      }
-
-      return url;
-    }
-
-    function normalizeDocumentUrl(raw){
-      if(!raw) return '';
-      const value = String(raw).trim();
-      if(!value) return '';
-      if(value.startsWith('data:') || value.startsWith('about:')){
-        return value;
-      }
-      try {
-        const url = new URL(value, location.href);
-        if(url.protocol === 'http:'){
-          url.protocol = 'https:';
-        }
-        if(url.protocol !== 'https:'){
-          return '';
-        }
-        const normalized = normalizeGoogleDocumentUrl(url);
-        return normalized ? normalized.toString() : '';
-      } catch {
-        return '';
-      }
-    }
-
-    function normalizeExternalUrl(raw){
-      if(!raw) return '';
-      const value = String(raw).trim();
-      if(!value) return '';
-      if(value.startsWith('mailto:')) return value;
-      try {
-        const url = new URL(value, location.href);
-        if(url.protocol === 'http:'){
-          url.protocol = 'https:';
-        }
-        if(url.protocol !== 'https:') return '';
-        return url.toString();
-      } catch {
-        return '';
-      }
-    }
-
-    function resolveSiteLabel(siteKey){
-      if(!siteKey) return SITE_LABELS.all;
-      const normalized = String(siteKey).trim().toLowerCase();
-      if(!normalized) return SITE_LABELS.all;
-      if(Object.prototype.hasOwnProperty.call(SITE_LABELS, normalized)){
-        return SITE_LABELS[normalized];
-      }
-      return normalized.split(/[\s_-]+/).map(part => part ? (part[0].toUpperCase() + part.slice(1)) : '').join(' ').trim() || SITE_LABELS.all;
-    }
-
-    function resolveCategoryLabel(categoryKey){
-      const normalized = normalizeCategoryKey(categoryKey);
-      if(!normalized || normalized === 'all') return 'All categories';
-      const select = document.querySelector('[data-role="category-select"]');
-      if(select){
-        const option = Array.from(select.options || []).find(opt => normalizeCategoryKey(opt.value) === normalized);
-        if(option){
-          const text = option.textContent?.trim();
-          if(text) return text.replace(/\s+\(\d+\)$/, '');
-        }
-      }
-      if(normalized === 'uncategorised') return 'Uncategorised';
-      return normalized.split('-').map(part => part ? (part[0].toUpperCase() + part.slice(1)) : '').join(' ').trim() || 'All categories';
-    }
-
-    function resolveRiskLabel(riskKey){
-      const normalized = normalizeRiskKey(riskKey);
-      if(!normalized || normalized === 'all') return RISK_LABELS.all;
-      if(Object.prototype.hasOwnProperty.call(RISK_LABELS, normalized)){
-        return RISK_LABELS[normalized];
-      }
-      return normalized.split(/[\s_-]+/).map(part => part ? (part[0].toUpperCase() + part.slice(1)) : '').join(' ').trim() || RISK_LABELS.all;
-    }
-
-    const SAMPLE = [
-      { Site:'Byron', Asset:'Compressed Air Receiver', Category:'Pressure Systems', 'Last Completed':'12/02/2024', 'Next Due':'12/08/2024', Status:'Due soon', 'WO/Link':'WO-48219', Notes:'Requalification scheduled alongside dryer swap.', 'Document URL':'about:blank' },
-      { Site:'Keith', Asset:'Steam Boiler 2', Category:'Steam Plant', 'Last Completed':'18/09/2023', 'Next Due':'18/03/2024', 'WO/Link':'https://example.com/workorders/123', Notes:'Coordinate statutory inspection with burner maintenance.' },
-      { Site:'Mugiemoss', Asset:'Tunnel Washer 2', Category:'Process Equipment', 'Last Completed':'20/11/2023', 'Next Due':'20/11/2025', Status:'On track', Notes:'Inspection aligned with OEM service interval.' },
-      { Site:'East Kilbride', Asset:'Calorifier 4', Category:'Water Systems', 'Last Completed':'22/08/2023', 'Next Due':'22/02/2024', Notes:'Monitor expansion vessel replacement before inspection.', 'Document URL':'about:blank' },
-      { Site:'Keith', Asset:'Air Receiver A', Category:'Pressure Systems', 'Last Completed':'02/06/2023', 'Next Due':'02/12/2023', Notes:'Receiver drained and ready for recertification.', Status:'' }
+    const CATEGORY_OPTIONS = [
+      'PPMs',
+      'PAT Testing',
+      'EICR',
+      'Gas Safety Inspection',
+      'Legionella',
+      'E-Stop Tests',
+      'LOLER',
+      'Compressor Servicing',
+      'Burner Servicing',
+      'Flue/Stack Inspection & Cleaning',
+      'Vent/Duct Cleaning'
     ];
 
-    const RESOLVED_INSPECTIONS_SHEET_URL = getSheetUrl();
-    if(RESOLVED_INSPECTIONS_SHEET_URL){
-      window.__INSPECTIONS_SHEET_URL = RESOLVED_INSPECTIONS_SHEET_URL;
-    }else{
-      console.warn('Inspections sheet URL could not be resolved. Update DEFAULT_INSPECTIONS_SHEET_URL or supply ?sheetUrl=.');
-    }
-
-    function banner(type, msg, detail=''){
-      const el = document.querySelector('#banner');
-      if(!el) return;
-      el.className = 'banner ' + (type || '');
-      el.hidden = false;
-      const msgNode = el.querySelector('[data-msg]');
-      const detailNode = el.querySelector('[data-detail]');
-      if(msgNode) msgNode.textContent = msg;
-      if(detailNode) detailNode.textContent = detail ? ' – ' + detail : '';
-    }
-
-    function hideBanner(){
-      const el = document.querySelector('#banner');
-      if(!el) return;
-      el.hidden = true;
-      el.className = 'banner';
-      const msgNode = el.querySelector('[data-msg]');
-      const detailNode = el.querySelector('[data-detail]');
-      if(msgNode) msgNode.textContent = '';
-      if(detailNode) detailNode.textContent = '';
-    }
-
-    function getViewerElements(){
-      const viewer = document.querySelector('#viewer');
-      if(!viewer) return { viewer:null, body:null, toggle:null };
-      const body = viewer.querySelector('[data-role="viewer-content"]') || viewer;
-      const toggle = viewer.querySelector('[data-role="viewer-toggle"]');
-      return { viewer, body, toggle };
-    }
-
-    function setViewerCollapsed(collapsed, { respectPreference = true } = {}){
-      const { viewer, body, toggle } = getViewerElements();
-      if(!viewer || !body) return;
-      let next = !!collapsed;
-      if(respectPreference){
-        const pref = viewer.dataset.viewerCollapsedPreference;
-        if(pref === 'true') next = true;
-        if(pref === 'false') next = false;
-      }
-      viewer.dataset.viewerCollapsed = next ? 'true' : 'false';
-      if(toggle){
-        const expanded = next ? 'false' : 'true';
-        toggle.setAttribute('aria-expanded', expanded);
-        toggle.setAttribute('aria-label', next ? 'Expand inspection document preview' : 'Collapse inspection document preview');
-        toggle.textContent = next ? 'Expand preview' : 'Collapse preview';
-      }
-      body.hidden = next;
-    }
-
-    function initViewerToggle(){
-      const { viewer, toggle } = getViewerElements();
-      if(!viewer || !toggle) return;
-      if(!viewer.dataset.viewerCollapsedPreference){
-        viewer.dataset.viewerCollapsedPreference = 'true';
-      }
-      toggle.addEventListener('click', () => {
-        const current = viewer.dataset.viewerCollapsed === 'true';
-        const next = !current;
-        viewer.dataset.viewerCollapsedPreference = next ? 'true' : 'false';
-        setViewerCollapsed(next, { respectPreference:false });
-      });
-    }
-
-    function setViewerPlaceholder(message, { reveal = false } = {}){
-      const { viewer, body } = getViewerElements();
-      if(!viewer || !body) return;
-      body.innerHTML = '';
-      const div = document.createElement('div');
-      div.className = 'placeholder';
-      div.textContent = message;
-      body.appendChild(div);
-      if(reveal){
-        viewer.hidden = false;
-        viewer.dataset.viewerState = 'visible';
-        setViewerCollapsed(false);
-      }else{
-        viewer.dataset.viewerState = 'hidden';
-        viewer.hidden = true;
-      }
-    }
-
-    const TABLE_WIDTH_TOLERANCE = 1;
-    const MOBILE_BREAKPOINT = 1248;
-    const SITE_LABELS = {
-      all:'All sites',
-      byron:'Byron',
-      keith:'Keith',
-      'east-kilbride':'East Kilbride',
-      mugiemoss:'Mugiemoss'
+    const CATEGORY_FREQUENCY = {
+      'PPMs': null,
+      'PAT Testing': 12,
+      'EICR': 60,
+      'Gas Safety Inspection': 12,
+      'Legionella': 12,
+      'E-Stop Tests': 3,
+      'LOLER': 12,
+      'Compressor Servicing': 6,
+      'Burner Servicing': 6,
+      'Flue/Stack Inspection & Cleaning': 12,
+      'Vent/Duct Cleaning': 6
     };
-    const FALLBACK_SITE_LABEL = 'Unassigned site';
-    const KNOWN_SITE_KEYS = Object.keys(SITE_LABELS).filter(key => key !== 'all');
-    const RISK_LABELS = {
-      all:'All statuses',
-      overdue:'Overdue',
-      due:'Due soon',
-      clear:'On track'
+
+    const SITE_KEY_TO_NAME = {
+      all: 'All sites',
+      byron: 'Byron',
+      keith: 'Keith',
+      'east-kilbride': 'Cathkin (East Kilbride)',
+      mugiemoss: 'Mugiemoss'
     };
-    const RISK_KEY_ALIASES = {
-      all:'all',
-      total:'all',
-      overdue:'overdue',
-      'past-due':'overdue',
-      'past due':'overdue',
-      due:'due',
-      'due-soon':'due',
-      'due soon':'due',
-      soon:'due',
-      clear:'clear',
-      'on-track':'clear',
-      'on track':'clear',
-      'ontrack':'clear'
+
+    const SITE_NAME_TO_KEY = Object.entries(SITE_KEY_TO_NAME).reduce((acc, [key, name]) => {
+      if(key !== 'all'){
+        acc[name.toLowerCase()] = key;
+      }
+      return acc;
+    }, {});
+
+    const OFFLINE_SAMPLE = [
+      {
+        'Site': 'Byron',
+        'Asset': 'Fire Alarm Panel',
+        'Category': 'E-Stop Tests',
+        'Last Done': '2024-02-12',
+        'Due Date': '2024-05-12',
+        'Frequency (Months)': '3',
+        'Owner/Team': 'HSE',
+        'Status': '',
+        'WO/Link': 'MX-4012',
+        'Notes': 'Quarterly test schedule.'
+      },
+      {
+        'Site': 'Keith',
+        'Asset': 'Main Compressor',
+        'Category': 'Compressor Servicing',
+        'Last Done': '2023-12-01',
+        'Due Date': '2024-06-01',
+        'Frequency (Months)': '6',
+        'Owner/Team': 'Engineering',
+        'Status': '',
+        'WO/Link': 'MX-3771',
+        'Notes': 'Check vibration levels.'
+      },
+      {
+        'Site': 'Cathkin (East Kilbride)',
+        'Asset': 'Legionella Flush',
+        'Category': 'Legionella',
+        'Last Done': '2024-01-15',
+        'Due Date': '2024-04-15',
+        'Frequency (Months)': '3',
+        'Owner/Team': 'Facilities',
+        'Status': '',
+        'WO/Link': 'MX-3905',
+        'Notes': 'Monthly flushing log attached.'
+      },
+      {
+        'Site': 'Mugiemoss',
+        'Asset': 'Boiler Burner',
+        'Category': 'Burner Servicing',
+        'Last Done': '2023-11-20',
+        'Due Date': '2024-05-20',
+        'Frequency (Months)': '6',
+        'Owner/Team': 'Maintenance',
+        'Status': '',
+        'WO/Link': 'MX-4120',
+        'Notes': 'Review combustion analysis.'
+      }
+    ];
+
+    const state = {
+      siteKey: 'all',
+      category: 'all',
+      search: '',
+      sortBy: 'Next Due',
+      sortDir: 'asc'
     };
-    const STATUS_KEY_ALIASES = {
-      overdue:'overdue',
-      'past due':'overdue',
-      'past-due':'overdue',
-      late:'overdue',
-      'overdue!':'overdue',
-      due:'due',
-      'due soon':'due',
-      'due-soon':'due',
-      upcoming:'due',
-      pending:'scheduled',
-      scheduled:'scheduled',
-      planning:'scheduled',
-      planned:'scheduled',
-      'not started':'scheduled',
-      'not-started':'scheduled',
-      open:'in-progress',
-      'in progress':'in-progress',
-      'in-progress':'in-progress',
-      active:'in-progress',
-      clear:'clear',
-      'on track':'clear',
-      'on-track':'clear',
-      ok:'clear',
-      complete:'completed',
-      completed:'completed',
-      done:'completed',
-      closed:'completed',
-      finished:'completed'
-    };
-    const STATUS_DISPLAY_LABELS = {
-      overdue:'Overdue',
-      due:'Due soon',
-      clear:'On track',
-      completed:'Completed',
-      'in-progress':'In progress',
-      scheduled:'Scheduled',
-      unknown:'Not set'
-    };
-    const STATUS_CLASS_MAP = {
-      overdue:'is-overdue',
-      due:'is-due',
-      clear:'is-clear',
-      completed:'is-completed',
-      'in-progress':'is-in-progress',
-      scheduled:'is-scheduled',
-      unknown:'is-unknown'
-    };
-    let __tableMinWidthCache = null;
 
-    async function safeFetch(url, {timeout=7000, retries=2} = {}){
-      if(!ALLOW_NETWORK) throw new Error('Network disabled in this environment');
-      let lastErr;
-      for(let attempt=0; attempt<=retries; attempt++){
-        const ctrl = new AbortController();
-        const t = setTimeout(()=>ctrl.abort(), timeout);
-        try {
-          const res = await fetch(url, { cache:'no-store', signal:ctrl.signal });
-          clearTimeout(t);
-          if(!res.ok) throw new Error(`HTTP ${res.status}`);
-          return await res.text();
-        } catch (err) {
-          lastErr = err;
-          clearTimeout(t);
-          if(attempt === retries) throw err;
-          await new Promise(r => setTimeout(r, 400 * (attempt+1)));
-        }
-      }
-      throw lastErr || new Error('Fetch failed');
+    let selectedRowId = '';
+    let rowLookup = new Map();
+
+    const DATE_DISPLAY_FORMATTER = new Intl.DateTimeFormat('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+
+    const STRING_COLLATOR = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
+
+    const themeBtn = document.getElementById('dark-toggle');
+    const layoutToggleBtn = document.getElementById('layout-toggle');
+    const themeBtnLabel = themeBtn?.querySelector('.switch-label') || themeBtn?.querySelector('.label');
+    const LAYOUT_MODE_STORAGE_KEY = 'alsLayoutMode';
+    const THEME_STORAGE_KEY = 'theme';
+
+    function esc(value){
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
     }
 
-    function getTableMinWidth(){
-      if (__tableMinWidthCache != null) return __tableMinWidthCache;
-      const raw = getComputedStyle(document.documentElement).getPropertyValue('--table-min-width');
-      const parsed = parseFloat(raw);
-      __tableMinWidthCache = Number.isFinite(parsed) ? parsed : 720;
-      return __tableMinWidthCache;
+    function toStartOfDay(date){
+      if(!(date instanceof Date) || isNaN(date)) return null;
+      const d = new Date(date);
+      d.setHours(0, 0, 0, 0);
+      return d;
     }
 
-    function pageAvailableWidth(){
-      const page = document.querySelector('.page');
-      return (page?.clientWidth || document.documentElement.clientWidth || window.innerWidth || 0);
-    }
-
-    function needsMobileLayout(container){
-      if(document.body.classList.contains('force-mobile')) return true;
-      if(document.body.classList.contains('force-desktop')) return false;
-      if (window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches) return true;
-
-      const minWidth = getTableMinWidth();
-      const wrap = container?.__scrollRegion;
-
-      if (wrap && !wrap.hidden && wrap.offsetParent !== null){
-        const available = wrap.clientWidth;
-        if (available > 0){
-          const table = wrap.querySelector('table');
-          const required = table ? (table.scrollWidth || table.offsetWidth || minWidth) : minWidth;
-          const delta = required - available;
-          if (delta > TABLE_WIDTH_TOLERANCE) return true;
-          if (delta < -TABLE_WIDTH_TOLERANCE) return false;
-        }
+    function parseDate(value){
+      if(value instanceof Date && !isNaN(value)) return new Date(value.getTime());
+      if(typeof value === 'number'){
+        const parsed = new Date(value);
+        return isNaN(parsed) ? null : parsed;
       }
-
-      return pageAvailableWidth() + TABLE_WIDTH_TOLERANCE < minWidth;
-    }
-
-    function updateResponsiveMode(container){
-      if(document.body.classList.contains('force-mobile')){
-        document.body.setAttribute('data-table-mode','mobile');
-        syncLayoutToggle();
-        return;
-      }
-
-      if(document.body.classList.contains('force-desktop')){
-        document.body.removeAttribute('data-table-mode');
-        syncLayoutToggle();
-        return;
-      }
-
-      if (!container){
-        document.body.removeAttribute('data-table-mode');
-        syncLayoutToggle();
-        return;
-      }
-
-      if (needsMobileLayout(container)){
-        document.body.setAttribute('data-table-mode','mobile');
-      } else {
-        document.body.removeAttribute('data-table-mode');
-      }
-      syncLayoutToggle();
-    }
-
-    function esc(str){
-      return String(str ?? '')
-        .replace(/&/g,'&amp;')
-        .replace(/</g,'&lt;')
-        .replace(/>/g,'&gt;')
-        .replace(/"/g,'&quot;')
-        .replace(/'/g,'&#39;');
-    }
-
-    function parseDateLoose(value){
-      if(value instanceof Date && !isNaN(value)) return value;
-      if(typeof value === 'number'){ const d = new Date(value); return isNaN(d) ? null : d; }
       if(!value) return null;
       const str = String(value).trim();
       if(!str) return null;
-      const ddmmyyyy = str.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})(?:\s+(\d{1,2}):(\d{2}))?$/);
-      if(ddmmyyyy){
-        let [,d,m,y,h='00',min='00'] = ddmmyyyy;
-        if(y.length === 2){ y = `20${y}`; }
-        const iso = `${y.padStart(4,'0')}-${m.padStart(2,'0')}-${d.padStart(2,'0')}T${h.padStart(2,'0')}:${min.padStart(2,'0')}:00`;
-        const parsed = new Date(iso);
+      const iso = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+      if(iso){
+        const [, y, m, d] = iso;
+        const parsed = new Date(Number(y), Number(m) - 1, Number(d));
+        return isNaN(parsed) ? null : parsed;
+      }
+      const european = str.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/);
+      if(european){
+        let [, d, m, y] = european;
+        if(y.length === 2){
+          const yearNum = Number(y);
+          y = yearNum >= 70 ? `19${y}` : `20${y}`;
+        }
+        const parsed = new Date(Number(y), Number(m) - 1, Number(d));
         return isNaN(parsed) ? null : parsed;
       }
       const parsed = new Date(str);
       return isNaN(parsed) ? null : parsed;
     }
 
-    function formatDisplayDate(date, fallback='—'){
-      if(!(date instanceof Date) || isNaN(date)) return fallback;
+    function formatDate(date){
+      if(!(date instanceof Date) || isNaN(date)) return '—';
       try {
         return DATE_DISPLAY_FORMATTER.format(date);
       } catch {
-        const d = date.getDate().toString().padStart(2,'0');
-        const m = (date.getMonth()+1).toString().padStart(2,'0');
+        const d = date.getDate().toString().padStart(2, '0');
+        const m = (date.getMonth() + 1).toString().padStart(2, '0');
         const y = date.getFullYear();
         return `${d}/${m}/${y}`;
       }
     }
 
-    function detectType(column, rows){
-      if(!column || !rows.length) return 'string';
-      const sample = rows.slice(0, 10).map(r => r[column]);
-      const allDates = sample.length && sample.every(v => !!parseDateLoose(v));
-      if(allDates) return 'date';
-      const allNumbers = sample.length && sample.every(v => v === '' || v == null || /^\s*[-+]?\d+(\.\d+)?\s*$/.test(String(v)));
-      if(allNumbers) return 'number';
-      return 'string';
-    }
-
-    const stringCollator = new Intl.Collator(undefined, { sensitivity:'base', numeric:false });
-    const DATE_DISPLAY_FORMATTER = new Intl.DateTimeFormat('en-GB', { day:'2-digit', month:'short', year:'numeric' });
-
-    function applySort(rows, column, direction){
-      const list = Array.isArray(rows) ? rows.slice() : [];
-      if(!column) return list;
-      const dir = direction === 'asc' ? 'asc' : 'desc';
-      const factor = dir === 'asc' ? 1 : -1;
-
-      if(column === 'Next Due'){
-        const fallback = dir === 'asc' ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
-        return list.sort((a,b) => {
-          const aTime = (a.__nextDate instanceof Date && !Number.isNaN(a.__nextDate.getTime())) ? a.__nextDate.getTime() : fallback;
-          const bTime = (b.__nextDate instanceof Date && !Number.isNaN(b.__nextDate.getTime())) ? b.__nextDate.getTime() : fallback;
-          return factor * (aTime - bTime);
-        });
-      }
-
-      if(column === 'Last Completed'){
-        const fallback = dir === 'asc' ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
-        return list.sort((a,b) => {
-          const aTime = (a.__lastDate instanceof Date && !Number.isNaN(a.__lastDate.getTime())) ? a.__lastDate.getTime() : fallback;
-          const bTime = (b.__lastDate instanceof Date && !Number.isNaN(b.__lastDate.getTime())) ? b.__lastDate.getTime() : fallback;
-          return factor * (aTime - bTime);
-        });
-      }
-
-      if(column === 'Status'){
-        const order = ['overdue','due','clear','completed','in-progress','scheduled','unknown'];
-        return list.sort((a,b) => {
-          const aKey = a.__statusKey || 'unknown';
-          const bKey = b.__statusKey || 'unknown';
-          const aIndex = order.indexOf(aKey);
-          const bIndex = order.indexOf(bKey);
-          const normalizedA = aIndex >= 0 ? aIndex : order.length;
-          const normalizedB = bIndex >= 0 ? bIndex : order.length;
-          if(normalizedA === normalizedB){
-            return factor * stringCollator.compare(String(a.Status ?? ''), String(b.Status ?? ''));
-          }
-          return factor * (normalizedA - normalizedB);
-        });
-      }
-
-      const type = detectType(column, list);
-      return list.sort((a,b) => {
-        const va = a[column];
-        const vb = b[column];
-        if(type === 'date'){
-          const da = parseDateLoose(va);
-          const db = parseDateLoose(vb);
-          return factor * (((da ? da.getTime() : 0) - (db ? db.getTime() : 0)));
-        }
-        if(type === 'number'){
-          return factor * (((parseFloat(va) || 0) - (parseFloat(vb) || 0)));
-        }
-        const normalizedA = String(va ?? '').trim();
-        const normalizedB = String(vb ?? '').trim();
-        return factor * stringCollator.compare(normalizedA, normalizedB);
-      });
-    }
-
-    function sortRows(rows, column, direction){
-      return applySort(Array.isArray(rows) ? rows.slice() : [], column, direction);
-    }
-
-    const SITE_SEPARATOR_PATTERN = /[\s/_\u2010-\u2015-]+/g;
-
-    function normalizeSiteBase(value){
-      if(!value) return '';
-      return String(value).toLowerCase().replace(/[\u2010-\u2015]/g, '-').trim();
-    }
-
-    function createSiteVariants(value){
-      const base = normalizeSiteBase(value);
-      if(!base){
-        return { base:'', hyphenated:'', collapsed:'' };
-      }
-      const hyphenated = base
-        .replace(SITE_SEPARATOR_PATTERN, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
-      const collapsed = base.replace(SITE_SEPARATOR_PATTERN, '');
-      return { base, hyphenated, collapsed };
-    }
-
-    function normalizeSiteKey(value){
-      const normalized = String(value ?? '').trim().toLowerCase();
-      return normalized || 'all';
-    }
-
-    function normalizeCategoryKey(value){
-      const normalized = String(value ?? '').trim().toLowerCase();
-      const cleaned = normalized.replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-      return cleaned || 'uncategorised';
-    }
-
-    function normalizeRiskKey(value){
-      const normalized = String(value ?? '').trim().toLowerCase();
-      if(!normalized) return 'all';
-      if(Object.prototype.hasOwnProperty.call(RISK_KEY_ALIASES, normalized)){
-        return RISK_KEY_ALIASES[normalized];
-      }
-      return normalized;
-    }
-
-    function normalizeStatusKey(value){
-      const normalized = String(value ?? '').trim().toLowerCase();
-      if(!normalized) return '';
-      if(Object.prototype.hasOwnProperty.call(STATUS_KEY_ALIASES, normalized)){
-        return STATUS_KEY_ALIASES[normalized];
-      }
-      return normalized.replace(/\s+/g, '-');
-    }
-
-    function deriveStatusKey(statusValue, diffDays){
-      const normalized = normalizeStatusKey(statusValue);
-      const fallback = () => {
-        if(typeof diffDays === 'number'){
-          if(diffDays < 0) return 'overdue';
-          if(diffDays <= DUE_SOON_DAYS) return 'due';
-          return 'clear';
-        }
-        return 'unknown';
-      };
-      if(!normalized || normalized === 'unknown' || normalized === 'n/a' || normalized === 'na'){
-        return fallback();
-      }
-      if(normalized === 'overdue' || normalized === 'due' || normalized === 'clear' || normalized === 'completed'){
-        return normalized;
-      }
-      if(normalized === 'scheduled' || normalized === 'planned' || normalized === 'planning' || normalized === 'pending' || normalized === 'not-started'){
-        const derived = fallback();
-        return derived === 'unknown' ? 'scheduled' : derived;
-      }
-      if(normalized === 'in-progress' || normalized === 'open' || normalized === 'active'){
-        const derived = fallback();
-        return derived === 'unknown' ? 'in-progress' : derived;
-      }
-      if(normalized === 'done' || normalized === 'closed' || normalized === 'finished'){
-        return 'completed';
-      }
-      return fallback();
-    }
-
-    function statusToRiskKey(statusKey, diffDays){
-      const key = statusKey || 'unknown';
-      if(key === 'overdue') return 'overdue';
-      if(key === 'due') return 'due';
-      if(typeof diffDays === 'number'){
-        if(diffDays < 0) return 'overdue';
-        if(diffDays <= DUE_SOON_DAYS) return 'due';
-      }
-      if(key === 'clear' || key === 'completed') return 'clear';
-      if(key === 'scheduled' || key === 'in-progress'){
-        if(typeof diffDays === 'number'){
-          if(diffDays < 0) return 'overdue';
-          if(diffDays <= DUE_SOON_DAYS) return 'due';
-        }
-        return 'clear';
-      }
-      return 'clear';
-    }
-
-    function matchesSite(row, siteKey){
-      if(!row || !siteKey || siteKey === 'all') return true;
-      const target = createSiteVariants(siteKey);
-      if(!target.base && !target.hyphenated && !target.collapsed) return true;
-      const values = [
-        row?.__raw?.Site,
-        row?.__raw?.Location,
-        row?.__raw?.Area,
-        row?.__siteName,
-        row?.Location
-      ];
-      return values.some(value => {
-        if(!value) return false;
-        const variants = createSiteVariants(value);
-        if(target.base && variants.base.includes(target.base)) return true;
-        if(target.hyphenated && variants.hyphenated.includes(target.hyphenated)) return true;
-        if(target.collapsed && variants.collapsed.includes(target.collapsed)) return true;
-        return false;
-      });
-    }
-
-    function deriveKnownSiteKey(row){
-      if(!row) return '';
-      for(const key of KNOWN_SITE_KEYS){
-        if(matchesSite(row, key)){
-          return key;
-        }
-      }
-      return '';
-    }
-
-    function applySiteFilter(rows, siteKey){
-      const list = Array.isArray(rows) ? rows.slice() : [];
-      if(!siteKey || siteKey === 'all') return list;
-      return list.filter(row => matchesSite(row, siteKey));
-    }
-
-    function applyCategoryFilter(rows, categoryKey){
-      const list = Array.isArray(rows) ? rows.slice() : [];
-      if(!categoryKey || categoryKey === 'all') return list;
-      const normalized = normalizeCategoryKey(categoryKey);
-      return list.filter(row => normalizeCategoryKey(row?.__categoryName) === normalized);
-    }
-
-    function applySearchFilter(rows, query){
-      const list = Array.isArray(rows) ? rows.slice() : [];
-      const raw = String(query ?? '').trim().toLowerCase();
-      if(!raw) return list;
-      const tokens = raw.split(/\s+/).filter(Boolean);
-      if(!tokens.length) return list;
-      return list.filter(row => {
-        const haystack = String(row?.__searchText ?? '').toLowerCase();
-        if(!haystack) return false;
-        return tokens.every(token => haystack.includes(token));
-      });
-    }
-
-    function applyRiskFilter(rows, riskKey){
-      const list = Array.isArray(rows) ? rows.slice() : [];
-      const normalized = normalizeRiskKey(riskKey);
-      if(!normalized || normalized === 'all') return list;
-      if(normalized === 'overdue'){
-        return list.filter(row => row?.__overdue);
-      }
-      if(normalized === 'due'){
-        return list.filter(row => !row?.__overdue && typeof row?.__countdownDays === 'number' && row.__countdownDays >= 0 && row.__countdownDays <= DUE_SOON_THRESHOLD_DAYS);
-      }
-      if(normalized === 'clear'){
-        return list.filter(row => {
-          if(row?.__overdue) return false;
-          const days = row?.__countdownDays;
-          if(typeof days === 'number' && days >= 0 && days <= DUE_SOON_THRESHOLD_DAYS){
-            return false;
-          }
-          return true;
-        });
-      }
-      return list;
-    }
-
-    function syncDesktopSortIndicators(container, column, direction){
-      const thead = container.__thead;
-      if(!thead) return;
-      thead.querySelectorAll('th').forEach(th => {
-        const col = th.getAttribute('data-col');
-        if(col === column){
-          th.setAttribute('data-sort', direction);
-          th.setAttribute('aria-sort', direction === 'asc' ? 'ascending' : 'descending');
-        }else{
-          th.removeAttribute('data-sort');
-          th.setAttribute('aria-sort','none');
-        }
-      });
-    }
-
-    function updateSortControls(container){
-      const state = container.__currentSort || { column:'Next Due', direction:'asc' };
-      const selects = Array.isArray(container.__sortSelects) ? container.__sortSelects : [];
-      selects.forEach(select => {
-        if(select){
-          select.value = state.column;
-        }
-      });
-      const buttons = Array.isArray(container.__sortDirectionButtons) ? container.__sortDirectionButtons : [];
-      buttons.forEach(button => {
-        if(!button) return;
-        const dir = state.direction === 'desc' ? 'desc' : 'asc';
-        button.dataset.direction = dir;
-        button.textContent = dir === 'asc' ? 'Ascending' : 'Descending';
-        button.setAttribute('aria-label', `Toggle sort direction (currently ${button.textContent.toLowerCase()})`);
-      });
-    }
-
-    function updateSiteFilterControls(container){
-      const nav = container.__siteFilterNav;
-      const activeKey = container.__siteFilter || 'all';
-      if(nav){
-        nav.querySelectorAll('[data-site-key]').forEach(btn => {
-          const key = btn.dataset.siteKey || 'all';
-          const isActive = key === activeKey;
-          btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-          if(isActive){
-            btn.setAttribute('aria-current','true');
-          }else{
-            btn.removeAttribute('aria-current');
-          }
-        });
-      }
-      const activeLabel = container.__siteFilterActiveLabel;
-      if(activeLabel){
-        const buttons = nav ? Array.from(nav.querySelectorAll('[data-site-key]')) : [];
-        const activeBtn = buttons.find(btn => (btn.dataset.siteKey || 'all') === activeKey);
-        const siteText = activeBtn?.textContent?.trim() || resolveSiteLabel(activeKey);
-        const riskKey = normalizeRiskKey(container.__riskFilter);
-        if(riskKey === 'all'){
-          activeLabel.textContent = siteText;
-        }else{
-          activeLabel.textContent = `${siteText} – ${resolveRiskLabel(riskKey)}`;
-        }
-      }
-    }
-
-    function syncSiteFilterAvailability(container){
-      const nav = container.__siteFilterNav;
-      if(!nav) return;
-      const rows = Array.isArray(container.__rows) ? container.__rows : [];
-      let current = container.__siteFilter || 'all';
-      let currentAvailable = current === 'all';
-      nav.querySelectorAll('[data-site-key]').forEach(btn => {
-        const key = btn.dataset.siteKey || 'all';
-        if(key === 'all'){
-          btn.disabled = false;
-          btn.removeAttribute('aria-disabled');
-          return;
-        }
-        const hasRows = rows.some(row => matchesSite(row, key));
-        btn.disabled = !hasRows;
-        if(btn.disabled){
-          btn.setAttribute('aria-disabled','true');
-        }else{
-          btn.removeAttribute('aria-disabled');
-        }
-        if(key === current && !hasRows){
-          currentAvailable = false;
-        }
-      });
-      if(!currentAvailable){
-        current = 'all';
-        container.__siteFilter = current;
-        container.__riskFilter = 'all';
-      }
-      updateSiteFilterControls(container);
-    }
-
-    function updateCategoryFilterControls(container){
-      const select = container.__categorySelect;
-      if(!select) return;
-      const value = container.__categoryFilter || 'all';
-      if(select.value !== value){
-        select.value = value;
-      }
-    }
-
-    function updateCategoryFilterOptions(container){
-      const select = container.__categorySelect;
-      if(!select) return;
-      const rows = Array.isArray(container.__rows) ? container.__rows : [];
-      const counts = new Map();
-      rows.forEach(row => {
-        const labelRaw = String(row?.__categoryName || '').trim();
-        const label = labelRaw || 'Uncategorised';
-        const key = normalizeCategoryKey(label);
-        if(!counts.has(key)){
-          counts.set(key, { key, label, count:0 });
-        }
-        counts.get(key).count += 1;
-      });
-      const sorted = Array.from(counts.values()).sort((a,b) => a.label.localeCompare(b.label));
-      const current = container.__categoryFilter || 'all';
-      let hasCurrent = current === 'all';
-      const options = ['<option value="all">All categories</option>'];
-      sorted.forEach(item => {
-        const optionLabel = `${item.label} (${item.count})`;
-        options.push(`<option value="${esc(item.key)}">${esc(optionLabel)}</option>`);
-        if(item.key === current){
-          hasCurrent = true;
-        }
-      });
-      select.innerHTML = options.join('');
-      if(!hasCurrent){
-        container.__categoryFilter = 'all';
-      }
-      updateCategoryFilterControls(container);
-    }
-
-    function attachCategoryFilterHandlers(container){
-      const select = container.__categorySelect;
-      if(!select) return;
-      select.addEventListener('change', () => {
-        const value = select.value || 'all';
-        container.__categoryFilter = value || 'all';
-        refreshView(container);
-      });
-    }
-
-    function updateSearchControl(container){
-      const input = container.__searchInput;
-      if(!input) return;
-      const value = container.__searchTerm || '';
-      if(input.value !== value){
-        input.value = value;
-      }
-    }
-
-    function attachSearchHandlers(container){
-      const input = container.__searchInput;
-      if(!input) return;
-      const apply = () => {
-        container.__searchTerm = input.value || '';
-        refreshView(container);
-      };
-      input.addEventListener('input', apply);
-      input.addEventListener('search', apply);
-    }
-
-    function refreshView(container){
-      if(!container) return;
-      const state = container.__currentSort || { column:'Next Due', direction:'asc' };
-      const allRows = Array.isArray(container.__rows) ? container.__rows : [];
-      const siteFiltered = applySiteFilter(allRows, container.__siteFilter);
-      const riskFiltered = applyRiskFilter(siteFiltered, container.__riskFilter);
-      const categoryFiltered = applyCategoryFilter(riskFiltered, container.__categoryFilter);
-      const searched = applySearchFilter(categoryFiltered, container.__searchTerm);
-      const sorted = applySort(searched, state.column, state.direction);
-      container.__viewRows = sorted;
-      renderTable(container, sorted);
-      if(container.__selectedDocUrl){
-        const stillExists = sorted.some(row => (row.__docUrl || '') === container.__selectedDocUrl);
-        if(!stillExists){
-          container.__selectedDocUrl = '';
-          setViewerPlaceholder('Select an inspection to preview documentation.');
-          if(container.__tbody){
-            container.__tbody.querySelectorAll('tr').forEach(row => row.classList.remove('is-active'));
-          }
-        }
-      }
-      renderMobileCards(container, sorted);
-      updateSummaryMetrics(searched, {
-        siteFilter: container.__siteFilter,
-        riskFilter: container.__riskFilter,
-        categoryFilter: container.__categoryFilter,
-        searchTerm: container.__searchTerm,
-        totalRowCount: allRows.length
-      });
-    }
-
-    function attachSiteFilterHandlers(container){
-      const nav = container.__siteFilterNav;
-      if(!nav) return;
-      nav.querySelectorAll('[data-site-key]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          if(btn.disabled) return;
-          const key = btn.dataset.siteKey || 'all';
-          if(container.__siteFilter === key) return;
-          container.__siteFilter = key;
-          container.__riskFilter = 'all';
-          updateSiteFilterControls(container);
-          refreshView(container);
-        });
-      });
-    }
-
-    function attachSiteKpiHandlers(container){
-      const list = document.querySelector('[data-role="inspections-site-breakdown"]');
-      if(!list) return;
-      list.addEventListener('click', event => {
-        const button = event.target.closest('[data-role="inspections-site-kpi"]');
-        if(!button) return;
-        const siteKey = normalizeSiteKey(button.dataset.siteKey);
-        const riskKey = normalizeRiskKey(button.dataset.riskKey);
-        const currentSite = normalizeSiteKey(container.__siteFilter);
-        const currentRisk = normalizeRiskKey(container.__riskFilter);
-        if(button.dataset.empty === 'true' && !(currentSite === siteKey && currentRisk === riskKey)){
-          return;
-        }
-        if(currentSite === siteKey && currentRisk === riskKey){
-          if(riskKey !== 'all'){
-            container.__riskFilter = 'all';
-            updateSiteFilterControls(container);
-            refreshView(container);
-            return;
-          }
-          if(siteKey !== 'all'){
-            container.__siteFilter = 'all';
-            updateSiteFilterControls(container);
-            refreshView(container);
-          }
-          return;
-        }
-        container.__siteFilter = siteKey;
-        container.__riskFilter = riskKey;
-        updateSiteFilterControls(container);
-        refreshView(container);
-      });
-    }
-
-    function normalizeCountdown(nextDate){
-      if(!(nextDate instanceof Date) || isNaN(nextDate)){
-        return { label:'Unknown', className:'is-unknown', diffDays:null, days:null, overdue:false };
-      }
-
-      const today = new Date();
-      const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-      const normalized = new Date(nextDate.getFullYear(), nextDate.getMonth(), nextDate.getDate()).getTime();
-      const diffDays = Math.round((normalized - startOfToday) / (1000 * 60 * 60 * 24));
-
-      const classify = () => {
-        if(diffDays <= DUE_SOON_DAYS){
-          return 'is-urgent';
-        }
-        if(diffDays <= 180){
-          return 'is-warning';
-        }
-        if(diffDays <= 540){
-          return 'is-healthy';
-        }
-        return 'is-excellent';
-      };
-
-      const formatValue = (value) => {
-        if(Number.isFinite(value) && Math.abs(value - Math.round(value)) > 0){
-          return value.toFixed(1).replace(/\.0$/, '');
-        }
-        return String(value);
-      };
-
-      const describe = (days) => {
-        if(days <= DUE_SOON_DAYS){
-          return { value: days, unit:'d' };
-        }
-        if(days < 365){
-          const months = days / 30;
-          const rounded = months < 3 ? Math.round(months * 10) / 10 : Math.round(months);
-          return { value: rounded, unit:'mo' };
-        }
-        const years = days / 365;
-        const roundedYears = years < 5 ? Math.round(years * 10) / 10 : Math.round(years);
-        return { value: roundedYears, unit:'yr' };
-      };
-
-      if(diffDays < 0){
-        const absDays = Math.abs(diffDays);
-        const { value, unit } = describe(absDays);
-        const formattedValue = formatValue(value);
-        const label = unit === 'd' ? `${formattedValue}d overdue` : `${formattedValue}${unit} overdue`;
-        return { label, className:'is-urgent', diffDays, days:diffDays, overdue:true };
-      }
-
-      if(diffDays === 0){
-        return { label:'Due today', className:'is-urgent', diffDays, days:diffDays, overdue:false };
-      }
-
-      const { value, unit } = describe(diffDays);
-      const formattedValue = formatValue(value);
-      const label = unit === 'd' ? `Due in ${formattedValue}d` : `Due in ${formattedValue}${unit}`;
-      return { label, className: classify(), diffDays, days:diffDays, overdue:false };
-    }
-
     function parseCsv(text){
       const rows = [];
-      let current = [];
       let field = '';
       let inQuotes = false;
-      for(let i=0;i<text.length;i++){
+      let current = [];
+      for(let i = 0; i < text.length; i++){
         const char = text[i];
         if(inQuotes){
           if(char === '"'){
-            if(text[i+1] === '"'){
+            if(text[i + 1] === '"'){
               field += '"';
               i++;
             }else{
@@ -3018,780 +2040,776 @@
           }else{
             field += char;
           }
+        }else if(char === '"'){
+          inQuotes = true;
+        }else if(char === ','){
+          current.push(field);
+          field = '';
+        }else if(char === '
+'){
+          continue;
+        }else if(char === '
+'){
+          current.push(field);
+          rows.push(current);
+          current = [];
+          field = '';
         }else{
-          if(char === '"'){
-            inQuotes = true;
-          }else if(char === ','){
-            current.push(field);
-            field='';
-          }else if(char === '\r'){
-            continue;
-          }else if(char === '\n'){
-            current.push(field);
-            rows.push(current);
-            current=[];
-            field='';
-          }else{
-            field += char;
-          }
+          field += char;
         }
       }
       if(field.length || current.length){
         current.push(field);
         rows.push(current);
       }
-      if(!rows.length) return { headers: [], rows: [] };
-      const headerRow = rows.shift();
-      const headers = headerRow.map((h,i)=>String(h??'').replace(/^\uFEFF/,'').trim() || `Column ${i+1}`);
-      const data = rows
-        .filter(r => r.some(cell => String(cell ?? '').trim().length))
+      if(!rows.length) return [];
+      const headers = rows.shift().map((header, index) => {
+        const clean = String(header ?? '').replace(/^﻿/, '').trim();
+        return clean || `Column ${index + 1}`;
+      });
+      return rows
+        .filter(row => row.some(cell => String(cell ?? '').trim().length))
         .map(row => headers.reduce((acc, header, idx) => {
           acc[header] = row[idx] ?? '';
           return acc;
         }, {}));
-      return { headers, rows: data };
     }
 
-    function normalizeFieldKeyName(name){
-      return String(name ?? '')
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, ' ')
-        .replace(/\s{2,}/g, ' ')
-        .trim();
-    }
-
-    function pickField(row, keys, options={}){
-      const { fuzzy=[], fallbackUrl=false } = options;
-      for(const key of keys){
-        if(key in row && row[key] !== undefined){
-          const value = row[key];
-          if(String(value).trim().length) return value;
-        }
+    function sanitizeSheetUrl(raw){
+      if(!raw) return null;
+      const text = String(raw).trim();
+      if(!text) return null;
+      const normalized = text.startsWith('//') ? `https:${text}` : text;
+      try {
+        const url = new URL(normalized, location.href);
+        if(url.protocol === 'http:') url.protocol = 'https:';
+        return url.toString();
+      } catch {
+        return null;
       }
-      const entries = row && typeof row === 'object' ? Object.entries(row) : [];
-      if(fuzzy.length && entries.length){
-        const tokenized = entries.map(([key, value]) => {
-          const normalized = normalizeFieldKeyName(key);
-          return {
-            key,
-            value,
-            normalized,
-            tokens: normalized.split(/\s+/).filter(Boolean)
-          };
-        });
-        for(const descriptor of fuzzy){
-          const match = tokenized.find(({ tokens, normalized }) => {
-            if(!tokens.length) return false;
-            if(typeof descriptor === 'function'){
-              try {
-                return !!descriptor({ tokens, normalized });
-              } catch { return false; }
-            }
-            const all = Array.isArray(descriptor?.all) ? descriptor.all : null;
-            const any = Array.isArray(descriptor?.any) ? descriptor.any : null;
-            const includesAll = all ? all.every(token => tokens.some(t => t === token || t.startsWith(token))) : true;
-            const includesAny = any ? any.some(token => tokens.some(t => t === token || t.startsWith(token))) : true;
-            return includesAll && includesAny;
-          });
-          if(match && String(match.value ?? '').trim().length){
-            return match.value;
+    }
+
+    function getSheetUrl(){
+      const paramUrl = sanitizeSheetUrl(PARAMS.get('sheet'));
+      if(paramUrl){
+        if(PARAMS.has('gid')){
+          try {
+            const url = new URL(paramUrl);
+            url.searchParams.set('gid', PARAMS.get('gid'));
+            url.searchParams.set('output', 'csv');
+            return url.toString();
+          } catch {
+            const sep = paramUrl.includes('?') ? '&' : '?';
+            return `${paramUrl}${sep}gid=${encodeURIComponent(PARAMS.get('gid'))}&output=csv`;
           }
         }
+        return paramUrl;
       }
-      if(fallbackUrl && entries.length){
-        const urlLike = entries.find(([key, value]) => {
-          if(value == null) return false;
-          const text = String(value).trim();
-          if(!text) return false;
-          if(/^https?:\/\//i.test(text)) return true;
-          if(/^www\./i.test(text)) return true;
-          if(/drive\.google\.com|docs\.google\.com/i.test(text)) return true;
-          return false;
-        });
-        if(urlLike){
-          return urlLike[1];
-        }
-      }
-      return '';
+      return DEFAULT_INSPECTIONS_SHEET_URL;
     }
 
-    async function fetchSheet(){
-      const url = getSheetUrl();
-      if(!url){
-        throw new Error('No inspections sheet URL is configured.');
+    function buildTabUrl(base, tabName){
+      if(!base) return null;
+      if(/^https?:/i.test(base)){
+        try {
+          const url = new URL(base, location.href);
+          if(tabName){
+            url.searchParams.set('sheet', tabName);
+            if(PARAMS.has('gid') && tabName === INSPECTIONS_SHEET_NAME){
+              url.searchParams.set('gid', PARAMS.get('gid'));
+            }else{
+              url.searchParams.delete('gid');
+            }
+          }
+          if(!url.searchParams.has('output')){
+            url.searchParams.set('output', 'csv');
+          }else{
+            url.searchParams.set('output', 'csv');
+          }
+          return url.toString();
+        } catch {
+          return null;
+        }
       }
-      const text = await safeFetch(url, { timeout:7000, retries:2 });
-      if(/^[\[{]/.test(text.trim())){
-        const json = JSON.parse(text);
-        const rows = Array.isArray(json) ? json : (Array.isArray(json.rows) ? json.rows : []);
-        const headers = rows.length ? Object.keys(rows[0]) : [];
-        return { headers, rows };
+      const sheetId = base.replace(/\s+/g, '');
+      if(!sheetId) return null;
+      const encoded = encodeURIComponent(tabName || INSPECTIONS_SHEET_NAME);
+      return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encoded}`;
+    }
+
+    async function fetchSheetCSV(url){
+      if(!ALLOW_NETWORK){
+        throw new Error('Network disabled in this environment');
       }
+      const response = await fetch(url, { cache: 'no-store' });
+      if(!response.ok){
+        throw new Error(`Unable to fetch sheet: ${response.status} ${response.statusText}`);
+      }
+      const text = await response.text();
       return parseCsv(text);
     }
 
-    function looksLikeFacilitiesSheet(headers, rows){
-      const normalize = list => (Array.isArray(list) ? list : []).map(h => String(h ?? '').trim().toLowerCase());
-      const headerSet = new Set(normalize(headers));
-      const facilityCols = ['id','title','status','priority'];
-      const hasFacilityHeader = facilityCols.every(col => headerSet.has(col));
-      if(hasFacilityHeader) return true;
-      if(Array.isArray(rows) && rows.length){
-        const sampleKeys = Object.keys(rows.find(r => r && typeof r === 'object') || {}).map(k => k.toLowerCase());
-        if(sampleKeys.length){
-          const sampleSet = new Set(sampleKeys);
-          if(facilityCols.slice(0,3).every(col => sampleSet.has(col))){
-            return true;
-          }
-        }
+    async function fetchTabByName(sheetUrlOrId, name){
+      const base = sheetUrlOrId || DEFAULT_INSPECTIONS_SHEET_URL;
+      const tabUrl = buildTabUrl(base, name);
+      if(!tabUrl){
+        return [];
       }
-      return false;
-    }
-
-    function ensureInspectionsSheet(headers, rows){
-      if(looksLikeFacilitiesSheet(headers, rows)){
-        throw new Error('The configured sheet appears to point to the Facilities work orders data. Please double-check the published Inspections sheet link.');
+      try {
+        return await fetchSheetCSV(tabUrl);
+      } catch (error){
+        console.warn('Failed to load tab', name, error);
+        return [];
       }
     }
 
-    function buildRowModel(raw){
-      const siteValue = pickField(raw, ['Site','Facility','Location','Plant','Area']);
-      const asset = pickField(raw, ['Asset','Asset ID','Asset Name','Equipment','Inspection Item','Title','Item']);
-      const categoryValue = pickField(raw, ['Category','Discipline','Programme','Type','Inspection Category','Categories']);
-      const lastRaw = pickField(raw, ['Last Completed','Last Inspection','Previous Inspection','Last Done','Last Date','Completed on']);
-      const nextRaw = pickField(raw, ['Next Due','Next Inspection','Inspection Due','Due Date','Next Date','Due','Due date']);
-      const statusRaw = pickField(raw, ['Status','Current Status','State','Risk','Condition']);
-      const workOrderRaw = pickField(
-        raw,
-        ['WO/Link','WO','Work Order','Work Order Link','Work Order URL','Link','URL','Reference','ID'],
-        {
-          fuzzy:[
-            { all:['work','order'], any:['link','url','ref'] },
-            { all:['wo'], any:['link','url'] }
-          ],
-          fallbackUrl:true
-        }
-      );
-      const documentRaw = pickField(
-        raw,
-        ['Document URL','Document','Attachment','Attachment URL','Evidence','Certificate','Supporting Document'],
-        {
-          fuzzy:[
-            { all:['document'], any:['link','url','hyperlink','href'] },
-            { all:['certificate'], any:['link','url'] },
-            { all:['inspection','report'], any:['link','url'] }
-          ],
-          fallbackUrl:true
-        }
-      );
-      const notesRaw = pickField(raw, ['Notes','Comments','Remarks','Summary','Details','Description','Comment']);
-      const titleRaw = pickField(raw, ['Title','Inspection Title','Inspection Name','Task','Summary Title']);
-      const priorityRaw = pickField(raw, ['Priority','Risk Priority','Priority Level']);
-      const assignedRaw = pickField(raw, ['Assigned to','Assigned','Assignee','Owner','Responsible']);
-      const createdRaw = pickField(raw, ['Created on','Created','Created Date','Date Created']);
-      const plannedRaw = pickField(raw, ['Planned Start Date','Planned Start','Scheduled Start','Start Date']);
-      const updatedRaw = pickField(raw, ['Last updated','Last Update','Updated on','Last Modified','Modified']);
-      const createdDate = parseDateLoose(createdRaw);
-      const plannedDate = parseDateLoose(plannedRaw);
-      const updatedDate = parseDateLoose(updatedRaw);
-      const createdDisplay = createdDate ? formatDisplayDate(createdDate) : (createdRaw || '');
-      const plannedDisplay = plannedDate ? formatDisplayDate(plannedDate) : (plannedRaw || '');
-      const updatedDisplay = updatedDate ? formatDisplayDate(updatedDate) : (updatedRaw || '');
-      const normalizedDocumentUrl = normalizeDocumentUrl(documentRaw || workOrderRaw);
-      const workOrderUrl = normalizeExternalUrl(workOrderRaw);
-      const lastDate = parseDateLoose(lastRaw);
-      const nextDate = parseDateLoose(nextRaw);
-      const countdown = normalizeCountdown(nextDate instanceof Date ? new Date(nextDate) : nextDate);
-      const diffDays = typeof countdown.diffDays === 'number' ? countdown.diffDays : null;
-      const statusKey = deriveStatusKey(statusRaw, diffDays);
-      const riskKey = statusToRiskKey(statusKey, diffDays);
-      const statusLabel = (() => {
-        const rawText = String(statusRaw ?? '').trim();
-        if(rawText) return rawText.replace(/\s+/g,' ').trim();
-        return STATUS_DISPLAY_LABELS[statusKey] || '—';
-      })();
-      const statusClass = STATUS_CLASS_MAP[statusKey] || STATUS_CLASS_MAP.unknown;
-      const siteDisplay = siteValue || FALLBACK_SITE_LABEL;
-      const categoryDisplay = categoryValue || 'Uncategorised';
-      const notesDisplay = (() => {
-        if(notesRaw) return notesRaw;
-        const meta = [];
-        if(titleRaw && String(titleRaw).trim().length){
-          const normalizedTitle = String(titleRaw).trim().toLowerCase();
-          const normalizedAsset = String(asset ?? '').trim().toLowerCase();
-          if(!normalizedAsset || normalizedAsset !== normalizedTitle){
-            meta.push(titleRaw);
-          }
-        }
-        const detailParts = [];
-        if(priorityRaw) detailParts.push(`Priority: ${priorityRaw}`);
-        if(assignedRaw) detailParts.push(`Assigned: ${assignedRaw}`);
-        const scheduleParts = [];
-        if(plannedDisplay) scheduleParts.push(`Planned: ${plannedDisplay}`);
-        if(createdDisplay) scheduleParts.push(`Created: ${createdDisplay}`);
-        if(updatedDisplay) scheduleParts.push(`Updated: ${updatedDisplay}`);
-        return [...meta, ...detailParts, ...scheduleParts].filter(Boolean).join(' • ') || '—';
-      })();
-      const workOrderLabel = (() => {
-        const text = String(workOrderRaw ?? '').trim();
-        if(text) return text;
-        if(workOrderUrl){
-          try {
-            const host = new URL(workOrderUrl).hostname.replace(/^www\./i,'');
-            return host || 'Open link';
-          } catch {
-            return 'Open link';
-          }
-        }
-        return '—';
-      })();
-      const searchParts = [
-        siteValue,
-        asset,
-        categoryValue,
-        statusLabel,
-        notesRaw,
-        notesDisplay,
-        workOrderRaw,
-        titleRaw,
-        priorityRaw,
-        assignedRaw,
-        plannedRaw,
-        createdRaw,
-        updatedRaw
-      ]
+    function getSiteKeyFromName(name){
+      const normalized = String(name ?? '').trim().toLowerCase();
+      if(SITE_NAME_TO_KEY[normalized]) return SITE_NAME_TO_KEY[normalized];
+      return 'all';
+    }
+
+    function normalizeWorkOrder(value){
+      const text = String(value ?? '').trim();
+      if(!text) return { label: '—', href: '' };
+      if(/^https?:\/\//i.test(text)){
+        return { label: text, href: text };
+      }
+      return { label: text, href: '' };
+    }
+
+    function buildSearchText(parts){
+      return parts
         .filter(Boolean)
         .map(part => String(part).toLowerCase())
         .join(' ');
-      return {
-        Site: siteDisplay || '—',
-        Asset: asset || '—',
-        Category: categoryDisplay,
-        'Last Completed': lastDate ? formatDisplayDate(lastDate) : (lastRaw || '—'),
-        'Next Due': nextDate ? formatDisplayDate(nextDate) : (nextRaw || '—'),
-        Status: statusLabel || STATUS_DISPLAY_LABELS[statusKey] || '—',
-        'WO/Link': workOrderLabel,
-        Notes: notesDisplay,
-        __lastDate: lastDate,
-        __nextDate: nextDate,
-        __countdownClass: countdown.className,
-        __countdownDays: diffDays,
-        __overdue: statusKey === 'overdue' || countdown.overdue,
-        __siteName: siteValue || '',
-        __categoryName: categoryDisplay,
-        __categoryKey: normalizeCategoryKey(categoryDisplay),
-        __statusKey: statusKey,
-        __statusClass: statusClass,
-        __riskKey: riskKey,
-        __docUrl: normalizedDocumentUrl,
-        __workOrderUrl: workOrderUrl,
-        __searchText: searchParts,
-        __title: titleRaw || '',
-        __priority: priorityRaw || '',
-        __assigned: assignedRaw || '',
-        __planned: plannedDisplay || '',
-        __created: createdDisplay || '',
-        __updated: updatedDisplay || '',
-        __raw: raw
-      };
     }
 
-    function renderTable(container, rows){
-      const tbody = container.__tbody;
-      const scrollRegion = container.__scrollRegion;
-      if(!tbody) return;
-      if(!Array.isArray(rows) || !rows.length){
-        const hasSource = Array.isArray(container?.__rows) && container.__rows.length > 0;
-        const message = hasSource ? 'No inspections match your filters.' : 'No inspections are currently scheduled.';
-        tbody.innerHTML = `<tr><td colspan="8" class="empty-state">${esc(message)}</td></tr>`;
-        scrollRegion?.setAttribute('data-loading','false');
-        updateResponsiveMode(container);
-        return;
+    function computeStatus(row, lastDate, dueDate, frequencyMonths){
+      const today = toStartOfDay(new Date());
+      let displayStatus = String(row.Status ?? '').trim();
+      let statusKey = '';
+      let effectiveDue = dueDate instanceof Date && !isNaN(dueDate) ? new Date(dueDate) : null;
+
+      if(!effectiveDue && lastDate instanceof Date && !isNaN(lastDate) && frequencyMonths){
+        const derived = new Date(lastDate);
+        derived.setMonth(derived.getMonth() + frequencyMonths);
+        if(!isNaN(derived)){
+          effectiveDue = derived;
+        }
       }
-      const html = rows.map(row => {
-        const overdueClass = row.__overdue ? 'row-overdue' : '';
-        const docAttr = row.__docUrl ? ` data-doc="${esc(row.__docUrl)}"` : '';
-        const statusKey = row.__statusKey || 'unknown';
-        const statusClass = row.__statusClass || STATUS_CLASS_MAP.unknown;
-        const statusPill = `<span class="status-pill ${statusClass}" data-status="${esc(statusKey)}">${esc(row.Status)}</span>`;
-        const woLabel = String(row['WO/Link'] ?? '—').trim() || '—';
-        let woCell = esc(woLabel);
-        if(row.__workOrderUrl){
-          woCell = `<a href="${esc(row.__workOrderUrl)}" target="_blank" rel="noopener">${esc(woLabel)}</a>`;
-        }else if(/^https?:\/\//i.test(woLabel)){
-          const safe = normalizeExternalUrl(woLabel);
-          if(safe){
-            woCell = `<a href="${esc(safe)}" target="_blank" rel="noopener">${esc(woLabel)}</a>`;
+
+      if(displayStatus){
+        const normalized = displayStatus.toLowerCase();
+        if(normalized.includes('overdue')) statusKey = 'overdue';
+        else if(normalized.includes('due')) statusKey = 'due';
+        else if(normalized.includes('track') || normalized.includes('complete') || normalized.includes('ok') || normalized.includes('clear')) statusKey = 'clear';
+      }
+
+      let diffDays = null;
+      if(effectiveDue && today){
+        diffDays = Math.floor((toStartOfDay(effectiveDue).getTime() - today.getTime()) / 86400000);
+      }
+
+      if(!statusKey){
+        if(diffDays != null){
+          if(diffDays < 0){
+            statusKey = 'overdue';
+          }else if(diffDays <= DUE_SOON_DAYS){
+            statusKey = 'due';
+          }else{
+            statusKey = 'clear';
           }
-        }
-        return `
-          <tr class="${overdueClass}" tabindex="0"${docAttr}>
-            <td data-col="Site" title="${esc(row.Site)}"><span>${esc(row.Site)}</span></td>
-            <td data-col="Asset" title="${esc(row.Asset)}"><span>${esc(row.Asset)}</span></td>
-            <td data-col="Category" title="${esc(row.Category)}"><span>${esc(row.Category)}</span></td>
-            <td data-col="Last Completed" title="${esc(row['Last Completed'])}"><span>${esc(row['Last Completed'])}</span></td>
-            <td data-col="Next Due" title="${esc(row['Next Due'])}"><span>${esc(row['Next Due'])}</span></td>
-            <td data-col="Status" title="${esc(row.Status)}"><span>${statusPill}</span></td>
-            <td data-col="WO/Link" title="${esc(woLabel)}"><span>${woCell}</span></td>
-            <td data-col="Notes" title="${esc(row.Notes)}"><span>${esc(row.Notes)}</span></td>
-          </tr>
-        `;
-      }).join('');
-      tbody.innerHTML = html;
-      if(container.__selectedDocUrl){
-        const active = Array.from(tbody.querySelectorAll('tr')).find(tr => (tr.dataset.doc || '') === container.__selectedDocUrl);
-        if(active){
-          active.classList.add('is-active');
+        }else{
+          statusKey = 'due';
         }
       }
-      scrollRegion?.setAttribute('data-loading','false');
-      updateResponsiveMode(container);
+
+      if(!displayStatus){
+        displayStatus = statusKey === 'overdue' ? 'Overdue' : statusKey === 'due' ? 'Due Soon' : 'On Track';
+      }
+
+      return { statusKey, displayStatus, effectiveDue, diffDays };
     }
 
-    function wireViewer(container){
-      const { viewer, body } = getViewerElements();
-      if(!viewer || !body || !container?.__tbody) return;
-      const tbody = container.__tbody;
-      const highlight = (tr) => {
-        if(!tbody) return;
-        tbody.querySelectorAll('tr').forEach(row => row.classList.remove('is-active'));
-        if(tr) tr.classList.add('is-active');
+    function normalizeRow(raw, index){
+      const site = String(raw['Site'] ?? '').trim();
+      const asset = String(raw['Asset'] ?? '').trim();
+      const category = String(raw['Category'] ?? '').trim();
+      const lastDate = parseDate(raw['Last Done']);
+      const dueDate = parseDate(raw['Due Date']);
+      const frequencyText = String(raw['Frequency (Months)'] ?? '').trim();
+      const frequencyMonths = frequencyText ? Number(frequencyText) : null;
+      const owner = String(raw['Owner/Team'] ?? '').trim();
+      const notes = String(raw['Notes'] ?? '').trim();
+      const workOrder = normalizeWorkOrder(raw['WO/Link']);
+      const statusInfo = computeStatus(raw, lastDate, dueDate, frequencyMonths || CATEGORY_FREQUENCY[category] || null);
+      const dueDisplay = statusInfo.effectiveDue || dueDate;
+      const id = `ins-${index + 1}`;
+
+      return {
+        __id: id,
+        __source: raw,
+        Site: site || '—',
+        Asset: asset || '—',
+        Category: category || 'Uncategorised',
+        'Last Completed': lastDate ? formatDate(lastDate) : (String(raw['Last Done'] ?? '').trim() || '—'),
+        'Next Due': dueDisplay ? formatDate(dueDisplay) : (String(raw['Due Date'] ?? '').trim() || '—'),
+        Status: statusInfo.displayStatus,
+        'WO/Link': workOrder.label || '—',
+        Notes: notes || '—',
+        Owner: owner,
+        FrequencyMonths: frequencyMonths || CATEGORY_FREQUENCY[category] || null,
+        __lastDate: lastDate,
+        __dueDate: dueDate,
+        __effectiveDue: dueDisplay,
+        __statusKey: statusInfo.statusKey,
+        __statusLabel: statusInfo.displayStatus,
+        __countdownDays: statusInfo.diffDays,
+        __workOrderHref: workOrder.href,
+        __siteKey: getSiteKeyFromName(site),
+        __categoryKey: category ? category.toLowerCase() : 'uncategorised',
+        __searchText: buildSearchText([site, asset, category, owner, notes, workOrder.label])
       };
-      const open = (url) => {
-        if(!url){
-          setViewerPlaceholder('No document link on this row.', { reveal:true });
-          return;
-        }
-        const raw = typeof url === 'string' ? url.trim() : '';
-        const safeUrl = normalizeDocumentUrl(raw);
-        if(!safeUrl){
-          setViewerPlaceholder('No document link on this row.', { reveal:true });
-          return;
-        }
-        const offline = !ALLOW_NETWORK && !safeUrl.startsWith('data:') && !safeUrl.startsWith('about:');
-        if(offline){
-          setViewerPlaceholder('Document preview disabled offline.', { reveal:true });
-          return;
-        }
-        body.innerHTML = '';
-        const frame = document.createElement('iframe');
-        frame.src = safeUrl;
-        frame.loading = 'lazy';
-        frame.title = 'Inspection document preview';
-        body.appendChild(frame);
-        viewer.hidden = false;
-        viewer.dataset.viewerState = 'visible';
-        setViewerCollapsed(false);
-      };
-      const selectRow = (tr) => {
-        if(!tr) return;
-        container.__selectedDocUrl = tr.dataset.doc || '';
-        highlight(tr);
-        open(container.__selectedDocUrl);
-      };
-      tbody.addEventListener('click', event => {
-        const tr = event.target.closest('tr');
-        if(!tr) return;
-        selectRow(tr);
-      });
-      tbody.addEventListener('keydown', event => {
-        if(event.key === 'Enter' || event.key === ' '){
-          const tr = event.target.closest('tr');
-          if(!tr) return;
-          selectRow(tr);
-          event.preventDefault();
-        }
-      });
-      container.__openDocument = open;
     }
 
-    function renderMobileCards(container, rows){
-      const mobile = container.__mobileCards;
-      if(!mobile) return;
+    function normalizeInspectionsRows(rows){
       const list = Array.isArray(rows) ? rows : [];
-      mobile.dataset.state = list.length ? 'ready' : 'empty';
-      mobile.setAttribute('aria-busy','false');
-      if(!list.length){
-        mobile.innerHTML = '<div class="mobile-card mobile-card--status empty-state" role="listitem">No inspections match your filters.</div>';
+      return list.map((row, index) => normalizeRow(row, index));
+    }
+
+    function normalizeMaintainXToInspections(mxRows){
+      const rows = Array.isArray(mxRows) ? mxRows : [];
+      const mapped = rows.map((raw) => {
+        const title = String(raw['Title'] ?? '').trim();
+        const asset = String(raw['Asset'] ?? '').trim() || title;
+        const location = String(raw['Location'] ?? '').trim();
+        const categories = String(raw['Categories'] ?? '').trim();
+        const combined = `${categories} ${title}`.toLowerCase();
+        const category = (() => {
+          if(/\bpat\b|pat testing/i.test(combined)) return 'PAT Testing';
+          if(/\beicr\b/i.test(combined)) return 'EICR';
+          if(/gas safety/i.test(combined)) return 'Gas Safety Inspection';
+          if(/legionella/i.test(combined)) return 'Legionella';
+          if(/e-?stop/i.test(combined)) return 'E-Stop Tests';
+          if(/\bloler\b/i.test(combined)) return 'LOLER';
+          if(/compressor/i.test(combined)) return 'Compressor Servicing';
+          if(/burner/i.test(combined)) return 'Burner Servicing';
+          if(/flue|stack/i.test(combined)) return 'Flue/Stack Inspection & Cleaning';
+          if(/vent|duct/i.test(combined)) return 'Vent/Duct Cleaning';
+          return 'PPMs';
+        })();
+        const frequency = CATEGORY_FREQUENCY[category] || null;
+        const assignedRaw = String(raw['Assigned to'] ?? '').trim();
+        const owner = assignedRaw.includes(',') ? assignedRaw.split(',')[0].trim() : assignedRaw;
+        return {
+          'Site': location,
+          'Asset': asset,
+          'Category': category,
+          'Last Done': String(raw['Completed on'] ?? '').trim(),
+          'Due Date': String(raw['Due date'] ?? '').trim(),
+          'Frequency (Months)': frequency ? String(frequency) : '',
+          'Owner/Team': owner,
+          'Status': '',
+          'WO/Link': String(raw['ID'] ?? '').trim(),
+          'Notes': ''
+        };
+      });
+      return normalizeInspectionsRows(mapped);
+    }
+
+    function computeCounts(rows){
+      const summary = { total: 0, overdue: 0, due: 0, clear: 0, sites: {} };
+      rows.forEach(row => {
+        summary.total += 1;
+        if(row.__statusKey === 'overdue') summary.overdue += 1;
+        else if(row.__statusKey === 'due') summary.due += 1;
+        else if(row.__statusKey === 'clear') summary.clear += 1;
+        const siteName = row.Site;
+        if(!summary.sites[siteName]){
+          summary.sites[siteName] = { total: 0, overdue: 0, due: 0, clear: 0, siteKey: row.__siteKey };
+        }
+        const site = summary.sites[siteName];
+        site.total += 1;
+        if(row.__statusKey === 'overdue') site.overdue += 1;
+        else if(row.__statusKey === 'due') site.due += 1;
+        else if(row.__statusKey === 'clear') site.clear += 1;
+      });
+      return summary;
+    }
+
+    function rowMatchesFilters(row, { ignoreSite = false } = {}){
+      if(!ignoreSite && state.siteKey !== 'all' && row.__siteKey !== state.siteKey){
+        return false;
+      }
+      if(state.category !== 'all'){
+        const rowKey = row.__categoryKey || row.Category.toLowerCase();
+        if(rowKey !== state.category) return false;
+      }
+      if(state.search){
+        if(!row.__searchText.includes(state.search.toLowerCase())) return false;
+      }
+      return true;
+    }
+
+    function applyFilters(rows){
+      const filtered = rows.filter(row => rowMatchesFilters(row));
+      return sortRows(filtered, state.sortBy, state.sortDir);
+    }
+
+    function sortRows(rows, column, direction){
+      const list = rows.slice();
+      const dir = direction === 'desc' ? -1 : 1;
+      const col = column || 'Next Due';
+      const compareString = (a, b) => dir * STRING_COLLATOR.compare(String(a ?? '').toLowerCase(), String(b ?? '').toLowerCase());
+      list.sort((a, b) => {
+        if(col === 'Next Due'){
+          const da = a.__effectiveDue instanceof Date ? a.__effectiveDue.getTime() : 0;
+          const db = b.__effectiveDue instanceof Date ? b.__effectiveDue.getTime() : 0;
+          if(da !== db) return dir * (da - db);
+        }else if(col === 'Last Completed'){
+          const da = a.__lastDate instanceof Date ? a.__lastDate.getTime() : 0;
+          const db = b.__lastDate instanceof Date ? b.__lastDate.getTime() : 0;
+          if(da !== db) return dir * (da - db);
+        }else{
+          const va = a[col] ?? '';
+          const vb = b[col] ?? '';
+          if(va !== vb) return compareString(va, vb);
+        }
+        return compareString(a.Asset, b.Asset);
+      });
+      return list;
+    }
+
+    function countdownChip(row){
+      const days = row.__countdownDays;
+      if(typeof days !== 'number'){
+        return { label: 'Due soon', className: 'countdown-chip is-unknown' };
+      }
+      if(days < 0){
+        return { label: `${Math.abs(days)} days overdue`, className: 'countdown-chip is-urgent' };
+      }
+      if(days === 0){
+        return { label: 'Due today', className: 'countdown-chip is-warning' };
+      }
+      if(days <= DUE_SOON_DAYS){
+        return { label: `${days} day${days === 1 ? '' : 's'}`, className: 'countdown-chip is-warning' };
+      }
+      if(days <= DUE_SOON_DAYS * 2){
+        return { label: `${days} days`, className: 'countdown-chip is-healthy' };
+      }
+      return { label: `${days} days`, className: 'countdown-chip is-excellent' };
+    }
+
+    function statusClass(key){
+      if(key === 'overdue') return 'status-pill is-overdue';
+      if(key === 'due') return 'status-pill is-due';
+      if(key === 'clear') return 'status-pill is-clear';
+      return 'status-pill is-unknown';
+    }
+
+    function updateSortIndicators(){
+      const headers = document.querySelectorAll('thead th[data-col]');
+      headers.forEach(th => {
+        const col = th.getAttribute('data-col');
+        if(col === state.sortBy){
+          th.setAttribute('aria-sort', state.sortDir === 'asc' ? 'ascending' : 'descending');
+          th.dataset.sort = state.sortDir;
+        }else{
+          th.setAttribute('aria-sort', 'none');
+          delete th.dataset.sort;
+        }
+      });
+      const sortSelects = document.querySelectorAll('[data-role="sort-select"], [data-role="mobile-sort-select"]');
+      sortSelects.forEach(select => {
+        if(select.value !== state.sortBy){
+          select.value = state.sortBy;
+        }
+      });
+      const sortButtons = document.querySelectorAll('[data-role="sort-direction"], [data-role="mobile-sort-direction"]');
+      sortButtons.forEach(button => {
+        button.dataset.direction = state.sortDir;
+        button.textContent = state.sortDir === 'asc' ? 'Ascending' : 'Descending';
+        button.setAttribute('aria-label', `Toggle sort direction (currently ${state.sortDir === 'asc' ? 'ascending' : 'descending'})`);
+      });
+    }
+
+    function renderPostureAndRisk(rows){
+      const signal = document.querySelector('[data-role="inspections-signal"]');
+      const signalValue = document.querySelector('[data-role="inspections-signal-value"]');
+      const signalNote = document.querySelector('[data-role="inspections-signal-note"]');
+      const riskPanel = document.querySelector('[data-role="inspections-risk"]');
+      const riskMsg = document.querySelector('[data-role="inspections-risk-message"]');
+      const segmentOverdue = document.querySelector('[data-role="inspections-risk-overdue"]');
+      const segmentDue = document.querySelector('[data-role="inspections-risk-due"]');
+      const segmentClear = document.querySelector('[data-role="inspections-risk-clear"]');
+      const labelOverdue = document.querySelector('[data-role="inspections-risk-label-overdue"]');
+      const labelDue = document.querySelector('[data-role="inspections-risk-label-due"]');
+      const labelClear = document.querySelector('[data-role="inspections-risk-label-clear"]');
+
+      const counts = computeCounts(rows);
+      const total = counts.total;
+
+      if(total === 0){
+        signal?.setAttribute('data-state', 'empty');
+        if(signalValue) signalValue.textContent = '—';
+        if(signalNote) signalNote.textContent = 'No inspections match the current filters.';
+        riskPanel?.setAttribute('data-state', 'stable');
+        if(riskMsg) riskMsg.textContent = 'No inspections to display.';
+        [segmentOverdue, segmentDue, segmentClear].forEach(seg => { if(seg) seg.style.width = '0%'; });
+        [segmentOverdue, segmentDue, segmentClear].forEach(seg => { if(seg) seg.style.left = '0%'; });
+        if(labelOverdue) labelOverdue.textContent = '0 overdue';
+        if(labelDue) labelDue.textContent = '0 due soon';
+        if(labelClear) labelClear.textContent = '0 on track';
         return;
       }
-      const html = list.map(row => {
-        const overdueClass = row.__overdue ? 'row-overdue' : '';
-        const cardTitle = row.__title && String(row.__title).trim().length ? row.__title : row.Asset;
-        const subtitleParts = [];
-        if(row.Site) subtitleParts.push(row.Site);
-        if(row.Asset && cardTitle !== row.Asset) subtitleParts.push(row.Asset);
-        if(row.Category) subtitleParts.push(row.Category);
-        const subtitle = subtitleParts.length
-          ? `<div class="mobile-card__subtitle">${subtitleParts.map(part => `<span>${esc(part)}</span>`).join('')}</div>`
-          : '';
-        const statusClass = row.__statusClass || STATUS_CLASS_MAP.unknown;
-        const statusKey = row.__statusKey || 'unknown';
-        const statusPill = `<span class="status-pill ${statusClass}" data-status="${esc(statusKey)}">${esc(row.Status)}</span>`;
-        const notesRaw = String(row.Notes ?? '').trim();
-        const notesText = notesRaw || 'No notes provided.';
-        const linkBlock = row.__workOrderUrl
-          ? `<div class="mobile-card__actions"><a class="mobile-card__action" href="${esc(row.__workOrderUrl)}" target="_blank" rel="noopener">Open link</a></div>`
-          : '';
-          return `
-          <article class="mobile-card ${overdueClass}" aria-label="Inspection for ${esc(cardTitle)}" role="listitem">
+
+      const overdue = counts.overdue;
+      const due = counts.due;
+      const clear = counts.clear;
+      let posture = 'Good';
+      let postureState = 'stable';
+      let note = 'All inspections are on track.';
+      if(overdue > 0){
+        posture = 'Critical';
+        postureState = 'critical';
+        note = `${overdue} inspection${overdue === 1 ? '' : 's'} are overdue and need immediate action.`;
+      }else if(due > 0){
+        posture = 'Caution';
+        postureState = 'warning';
+        note = `${due} inspection${due === 1 ? '' : 's'} are due soon.`;
+      }
+
+      signal?.setAttribute('data-state', postureState);
+      if(signalValue) signalValue.textContent = posture;
+      if(signalNote) signalNote.textContent = note;
+
+      riskPanel?.setAttribute('data-state', postureState);
+      if(riskMsg){
+        riskMsg.textContent = postureState === 'critical'
+          ? 'Address overdue inspections immediately.'
+          : postureState === 'warning'
+            ? 'Upcoming inspections need scheduling attention.'
+            : 'All scheduled inspections are currently on track.';
+      }
+
+      const toPercent = (value) => (total ? Math.max(0, Math.min(100, (value / total) * 100)) : 0);
+      const pOverdue = toPercent(overdue);
+      const pDue = toPercent(due);
+      const pClear = Math.max(0, 100 - pOverdue - pDue);
+
+      if(segmentOverdue){
+        segmentOverdue.style.left = '0%';
+        segmentOverdue.style.width = `${pOverdue}%`;
+      }
+      if(segmentDue){
+        segmentDue.style.left = `${pOverdue}%`;
+        segmentDue.style.width = `${pDue}%`;
+      }
+      if(segmentClear){
+        segmentClear.style.left = `${pOverdue + pDue}%`;
+        segmentClear.style.width = `${pClear}%`;
+      }
+
+      if(labelOverdue) labelOverdue.textContent = `${overdue} overdue`;
+      if(labelDue) labelDue.textContent = `${due} due soon`;
+      if(labelClear) labelClear.textContent = `${clear} on track`;
+    }
+
+    function renderSiteCards(allRows){
+      const hint = document.querySelector('[data-role="inspections-site-hint"]');
+      const list = document.querySelector('[data-role="inspections-site-breakdown"]');
+      if(!list) return;
+
+      const filteredForSiteCards = allRows.filter(row => rowMatchesFilters(row, { ignoreSite: true }));
+      const countsBySite = computeCounts(filteredForSiteCards).sites;
+      const order = ['Byron', 'Keith', 'Cathkin (East Kilbride)', 'Mugiemoss'];
+      const items = order.map(name => {
+        const metrics = countsBySite[name] || { total: 0, overdue: 0, due: 0, clear: 0, siteKey: getSiteKeyFromName(name) };
+        return { name, metrics };
+      });
+
+      const siteHtml = items.map(({ name, metrics }) => {
+        const siteKey = metrics.siteKey;
+        const isActive = state.siteKey === siteKey;
+        const badge = (label, value, className) => `
+          <button type="button" class="pssr-site-breakdown__badge ${className}" data-role="inspections-site-kpi" data-site-key="${esc(siteKey)}" data-empty="${value === 0}" aria-pressed="${isActive ? 'true' : 'false'}">
+            <span class="pssr-site-breakdown__count">${esc(value)}</span>
+            <span class="pssr-site-breakdown__label">${esc(label)}</span>
+          </button>`;
+        return `
+          <li class="pssr-site-breakdown__item" data-site="${esc(siteKey)}" data-selected="${isActive}">
+            <div class="pssr-site-breakdown__header">
+              <span class="pssr-site-breakdown__name">${esc(name)}</span>
+            </div>
+            <div class="pssr-site-breakdown__status">
+              ${badge('total', metrics.total, 'is-total')}
+              ${badge('overdue', metrics.overdue, 'is-alert')}
+              ${badge('due soon', metrics.due, 'is-warning')}
+              ${badge('on track', metrics.clear, 'is-ok')}
+            </div>
+          </li>`;
+      }).join('');
+
+      list.innerHTML = siteHtml;
+
+      if(hint){
+        hint.textContent = state.siteKey === 'all'
+          ? 'Select a site to filter.'
+          : `Filtering by ${SITE_KEY_TO_NAME[state.siteKey] || 'selected site'}.`;
+      }
+    }
+
+    function renderCategoryOptions(allRows){
+      const select = document.querySelector('[data-role="category-select"]');
+      if(!select) return;
+      const counts = new Map();
+      allRows.forEach(row => {
+        const key = row.Category.toLowerCase();
+        if(!counts.has(key)) counts.set(key, { key, label: row.Category, count: 0 });
+        counts.get(key).count += 1;
+      });
+      CATEGORY_OPTIONS.forEach(label => {
+        const key = label.toLowerCase();
+        if(!counts.has(key)) counts.set(key, { key, label, count: 0 });
+      });
+      const options = ['<option value="all">All categories</option>'];
+      const sorted = Array.from(counts.values()).sort((a, b) => a.label.localeCompare(b.label));
+      sorted.forEach(item => {
+        const display = item.count ? `${item.label} (${item.count})` : item.label;
+        options.push(`<option value="${esc(item.key)}">${esc(display)}</option>`);
+      });
+      select.innerHTML = options.join('');
+      if(select.value !== state.category){
+        select.value = state.category;
+      }
+    }
+
+    function renderTable(rows){
+      const tbody = document.querySelector('tbody');
+      const scroll = document.querySelector('[data-role="scroll-region"]');
+      if(!tbody) return;
+      window.__INSPECTIONS_VIEW__ = rows.slice();
+      const html = rows.length ? rows.map(row => {
+        const chip = countdownChip(row);
+        const statusCls = statusClass(row.__statusKey);
+        const classes = [];
+        if(row.__statusKey === 'overdue') classes.push('row-overdue');
+        if(row.__id === selectedRowId) classes.push('is-active');
+        const classAttr = classes.length ? ` class="${esc(classes.join(' '))}"` : '';
+        const workOrder = row.__workOrderHref
+          ? `<a href="${esc(row.__workOrderHref)}" target="_blank" rel="noopener">${esc(row['WO/Link'])}</a>`
+          : esc(row['WO/Link']);
+        return `
+          <tr data-row-id="${esc(row.__id)}"${classAttr}>
+            <td data-col="Site">${esc(row.Site)}</td>
+            <td data-col="Asset">${esc(row.Asset)}</td>
+            <td data-col="Category">${esc(row.Category)}</td>
+            <td data-col="Last Completed">${esc(row['Last Completed'])}</td>
+            <td data-col="Next Due"><span class="${chip.className}">${esc(chip.label)}</span> <span class="table-date">${esc(row['Next Due'])}</span></td>
+            <td data-col="Status"><span class="${statusCls}">${esc(row.Status)}</span></td>
+            <td data-col="WO/Link">${workOrder}</td>
+            <td data-col="Notes">${esc(row.Notes)}</td>
+          </tr>`;
+      }).join('') : '<tr><td colspan="8" class="empty-state">No inspections match the current filters.</td></tr>';
+      tbody.innerHTML = html;
+      scroll?.setAttribute('aria-busy', 'false');
+      updateSortIndicators();
+      highlightSelectedRow();
+    }
+
+    function renderMobileCards(rows){
+      const container = document.querySelector('[data-role="mobile-cards"]');
+      if(!container) return;
+      container.innerHTML = rows.length ? rows.map(row => {
+        const chip = countdownChip(row);
+        const statusCls = statusClass(row.__statusKey);
+        const isActive = row.__id === selectedRowId;
+        const notes = row.Notes && row.Notes !== '—' ? row.Notes : 'No additional notes.';
+        const workOrder = row.__workOrderHref
+          ? `<a class="mobile-card__action" href="${esc(row.__workOrderHref)}" target="_blank" rel="noopener">Open link</a>`
+          : (row['WO/Link'] && row['WO/Link'] !== '—' ? `<span class="mobile-card__action" role="text">${esc(row['WO/Link'])}</span>` : '');
+        return `
+          <article class="mobile-card ${row.__statusKey === 'overdue' ? 'row-overdue' : ''} ${isActive ? 'is-active' : ''}" data-row-id="${esc(row.__id)}" role="listitem">
             <header class="mobile-card__header">
               <div class="mobile-card__heading">
-                <div class="mobile-card__title">${esc(cardTitle)}</div>
-                ${subtitle}
+                <div class="mobile-card__title">${esc(row.Asset)}</div>
+                <div class="mobile-card__subtitle"><span>${esc(row.Site)}</span><span>${esc(row.Category)}</span></div>
               </div>
-              ${statusPill}
+              <span class="${statusCls}">${esc(row.Status)}</span>
             </header>
+            <div class="mobile-card__chip ${chip.className}">${esc(chip.label)}</div>
             <dl class="mobile-card__details">
-              <dt class="mobile-card__detail-label">Last</dt><dd class="mobile-card__detail-value">${esc(row['Last Completed'])}</dd>
-              <dt class="mobile-card__detail-label">Next</dt><dd class="mobile-card__detail-value">${esc(row['Next Due'])}</dd>
+              <dt class="mobile-card__detail-label">Last</dt>
+              <dd class="mobile-card__detail-value">${esc(row['Last Completed'])}</dd>
+              <dt class="mobile-card__detail-label">Next</dt>
+              <dd class="mobile-card__detail-value">${esc(row['Next Due'])}</dd>
+              <dt class="mobile-card__detail-label">Owner</dt>
+              <dd class="mobile-card__detail-value">${esc(row.Owner || '—')}</dd>
             </dl>
-            ${linkBlock}
             <div class="mobile-card__note">
               <span class="mobile-card__note-label">Notes</span>
-              <p class="mobile-card__note-text">${esc(notesText)}</p>
+              <p class="mobile-card__note-text">${esc(notes)}</p>
             </div>
-          </article>
-        `;
-      }).join('');
-      mobile.innerHTML = html;
+            ${workOrder ? `<div class="mobile-card__actions">${workOrder}</div>` : ''}
+          </article>`;
+      }).join('') : '<div class="mobile-card mobile-card--status" role="listitem">No inspections match the current filters.</div>';
     }
 
-    function updateSummaryMetrics(rows, context={}){
-      const signalRoot = document.querySelector('[data-role="inspections-signal"]');
-      const signalValueNode = document.querySelector('[data-role="inspections-signal-value"]');
-      const signalNoteNode = document.querySelector('[data-role="inspections-signal-note"]');
-      const riskPanel = document.querySelector('[data-role="inspections-risk"]');
-      const riskMessageNode = document.querySelector('[data-role="inspections-risk-message"]');
-      const riskSegments = {
-        overdue: document.querySelector('[data-role="inspections-risk-overdue"]'),
-        due: document.querySelector('[data-role="inspections-risk-due"]'),
-        clear: document.querySelector('[data-role="inspections-risk-clear"]')
-      };
-      const riskLabels = {
-        overdue: document.querySelector('[data-role="inspections-risk-label-overdue"]'),
-        due: document.querySelector('[data-role="inspections-risk-label-due"]'),
-        clear: document.querySelector('[data-role="inspections-risk-label-clear"]')
-      };
-      const siteListRoot = document.querySelector('[data-role="inspections-site-breakdown"]');
-      const siteHintNode = document.querySelector('[data-role="inspections-site-hint"]');
-
-      const list = Array.isArray(rows) ? rows : [];
-      const total = list.length;
-      const dueSoonThreshold = DUE_SOON_DAYS;
-      const siteFilter = normalizeSiteKey(context.siteFilter);
-      const riskFilter = normalizeRiskKey(context.riskFilter);
-      const categoryFilter = normalizeCategoryKey(context.categoryFilter);
-      const searchTermRaw = String(context.searchTerm ?? '').trim();
-      const overallCount = typeof context.totalRowCount === 'number' ? context.totalRowCount : total;
-      const isFiltered = siteFilter !== 'all';
-      const isRiskFiltered = riskFilter !== 'all';
-      const isCategoryFiltered = categoryFilter !== 'all';
-      const isSearchFiltered = searchTermRaw.length > 0;
-      const categoryLabel = resolveCategoryLabel(context.categoryFilter);
-      const filterLabelParts = [];
-      if(isFiltered){
-        filterLabelParts.push(resolveSiteLabel(siteFilter));
-      }
-      if(isCategoryFiltered){
-        filterLabelParts.push(categoryLabel);
-      }
-      const filterLabel = filterLabelParts.join(' · ');
-      const appliedFilters = [];
-      if(filterLabelParts.length){
-        appliedFilters.push(filterLabel);
-      }
-      if(isRiskFiltered){
-        appliedFilters.push(resolveRiskLabel(riskFilter).toLowerCase());
-      }
-      if(isSearchFiltered){
-        appliedFilters.push(`search “${searchTermRaw}”`);
-      }
-      const filterSummaryText = appliedFilters.length ? appliedFilters.join(' · ') : '';
-      const hasActiveFilters = (isFiltered || isRiskFiltered || isCategoryFiltered || isSearchFiltered) && overallCount > 0;
-      const dueSoonRows = list.filter(row => typeof row?.__countdownDays === 'number' && row.__countdownDays >= 0 && row.__countdownDays <= dueSoonThreshold);
-      const overdueRows = list.filter(row => row?.__overdue);
-      const compliantCount = Math.max(total - overdueRows.length - dueSoonRows.length, 0);
-
-      const riskState = total === 0
-        ? 'empty'
-        : (overdueRows.length > 0 ? 'critical' : (dueSoonRows.length > 0 ? 'warning' : 'stable'));
-
-      if(signalRoot){
-        let signalValue = '—';
-        let signalNote;
-
-        if(total === 0){
-          if(hasActiveFilters){
-            const summary = filterSummaryText || 'selected';
-            signalValue = 'Filtered';
-            signalNote = `No inspections currently match the ${summary} filter.`;
-          }else{
-            signalNote = 'Awaiting data from the published schedule.';
-          }
-        }else if(riskState === 'critical'){
-          signalValue = 'Critical';
-          signalNote = overdueRows.length === 1
-            ? '1 inspection is overdue and needs immediate action.'
-            : `${overdueRows.length} inspections are overdue and need immediate action.`;
-        }else if(riskState === 'warning'){
-          signalValue = 'Caution';
-          signalNote = dueSoonRows.length === 1
-            ? `1 inspection is due within the next ${dueSoonThreshold} days.`
-            : `${dueSoonRows.length} inspections are due within the next ${dueSoonThreshold} days.`;
-        }else{
-          signalValue = 'Stable';
-          signalNote = `All inspections are currently outside the next ${dueSoonThreshold} days.`;
-        }
-
-        signalRoot.setAttribute('data-state', riskState);
-        if(signalValueNode){
-          signalValueNode.textContent = signalValue;
-        }
-        if(signalNoteNode){
-          signalNoteNode.textContent = signalNote;
-        }
-      }
-
-      if(riskPanel){
-        riskPanel.removeAttribute('data-state');
-        if(riskState === 'critical' || riskState === 'warning' || riskState === 'stable'){
-          riskPanel.setAttribute('data-state', riskState);
-        }
-      }
-
-      if(riskMessageNode){
-        let message = 'Awaiting inspection data.';
-        if(total === 0){
-          message = hasActiveFilters
-            ? `No inspections fall under the ${filterSummaryText || 'selected'} filter.`
-            : 'Awaiting inspection data.';
-        }else if(riskState === 'critical'){
-          message = overdueRows.length === 1
-            ? '1 inspection is overdue and needs immediate action.'
-            : `${overdueRows.length} inspections are overdue and need immediate action.`;
-        }else if(riskState === 'warning'){
-          message = dueSoonRows.length === 1
-            ? `1 inspection is due within the next ${dueSoonThreshold} days.`
-            : `${dueSoonRows.length} inspections are due within the next ${dueSoonThreshold} days.`;
-        }else if(riskState === 'stable'){
-          message = `All inspections are currently outside the next ${dueSoonThreshold} days.`;
-        }
-        riskMessageNode.textContent = message;
-      }
-
-      const percent = (count) => {
-        if(total <= 0) return 0;
-        const value = (count / total) * 100;
-        return Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
-      };
-
-      const formatLegend = (count, singular, plural=null) => {
-        const label = count === 1 ? singular : (plural || `${singular}s`);
-        if(total <= 0){
-          return `${count} ${label}`;
-        }
-        const pct = Math.round(percent(count));
-        return `${count} ${label} (${pct}%)`;
-      };
-
-      const overdueWidth = percent(overdueRows.length);
-      const dueWidth = Math.max(0, Math.min(100 - overdueWidth, percent(dueSoonRows.length)));
-      const startClear = overdueWidth + dueWidth;
-      const clearWidth = total > 0 ? Math.max(0, Math.min(100, 100 - startClear)) : 0;
-
-      if(riskSegments.overdue){
-        riskSegments.overdue.style.left = '0%';
-        riskSegments.overdue.style.width = `${overdueWidth}%`;
-      }
-      if(riskSegments.due){
-        riskSegments.due.style.left = `${overdueWidth}%`;
-        riskSegments.due.style.width = `${dueWidth}%`;
-      }
-      if(riskSegments.clear){
-        riskSegments.clear.style.left = `${startClear}%`;
-        riskSegments.clear.style.width = `${clearWidth}%`;
-      }
-
-      if(riskLabels.overdue){
-        riskLabels.overdue.textContent = formatLegend(overdueRows.length, 'overdue', 'overdue');
-      }
-      if(riskLabels.due){
-        riskLabels.due.textContent = formatLegend(dueSoonRows.length, 'due soon', 'due soon');
-      }
-      if(riskLabels.clear){
-        riskLabels.clear.textContent = formatLegend(compliantCount, 'on track', 'on track');
-      }
-
-      if(siteHintNode){
-        if(total === 0){
-          siteHintNode.textContent = hasActiveFilters
-            ? `No inspections currently align with the ${filterSummaryText || 'selected'} filter.`
-            : 'Awaiting inspection data.';
-        }else if(filterLabel && isRiskFiltered){
-          siteHintNode.textContent = `Viewing ${resolveRiskLabel(riskFilter).toLowerCase()} inspections for ${filterLabel}${isSearchFiltered ? ` matching “${searchTermRaw}”` : ''}.`;
-        }else if(filterLabel){
-          siteHintNode.textContent = `Status for ${filterLabel}${isSearchFiltered ? ` matching “${searchTermRaw}”` : ''}.`;
-        }else if(isRiskFiltered){
-          siteHintNode.textContent = `${resolveRiskLabel(riskFilter)} inspections across all sites${isCategoryFiltered ? ` – ${categoryLabel}` : ''}${isSearchFiltered ? ` matching “${searchTermRaw}”` : ''}.`;
-        }else if(isSearchFiltered){
-          siteHintNode.textContent = `Results matching “${searchTermRaw}”.`;
-        }else{
-          siteHintNode.textContent = 'Sites ordered by highest risk first.';
-        }
-      }
-
-      if(siteListRoot){
-        if(!list.length){
-          const message = hasActiveFilters
-            ? `No inspections match the ${filterSummaryText || 'selected'} filter.`
-            : 'Awaiting inspection data.';
-          siteListRoot.innerHTML = `<li class="pssr-site-breakdown__item is-empty">${esc(message)}</li>`;
-        }else{
-          const siteStats = new Map();
-          list.forEach(row => {
-            const rawValue = String(row?.__siteName || '').trim();
-            const normalizedName = rawValue && rawValue !== '—' ? rawValue : '';
-            const name = normalizedName || FALLBACK_SITE_LABEL;
-            const knownKey = deriveKnownSiteKey(row);
-            const variants = createSiteVariants(name);
-            const fallbackKey = variants.hyphenated || variants.base || name.toLowerCase();
-            const mapKey = (knownKey || fallbackKey || name).toLowerCase();
-            if(!siteStats.has(mapKey)){
-              siteStats.set(mapKey, {
-                name,
-                displayName: name,
-                total:0,
-                overdue:0,
-                dueSoon:0,
-                clear:0,
-                siteKey: knownKey || fallbackKey || mapKey,
-                fallbackKey,
-                knownKey: knownKey || ''
-              });
-            }
-            const stat = siteStats.get(mapKey);
-            if(stat){
-              if(name && name !== FALLBACK_SITE_LABEL && stat.displayName === FALLBACK_SITE_LABEL){
-                stat.displayName = name;
-              }
-              if(stat.name === FALLBACK_SITE_LABEL && name !== FALLBACK_SITE_LABEL){
-                stat.name = name;
-              }
-              if(!stat.knownKey && knownKey){
-                stat.knownKey = knownKey;
-                stat.siteKey = knownKey;
-              }
-              stat.total += 1;
-              if(row?.__overdue){
-                stat.overdue += 1;
-              }else if(typeof row?.__countdownDays === 'number' && row.__countdownDays >= 0 && row.__countdownDays <= dueSoonThreshold){
-                stat.dueSoon += 1;
-              }else{
-                stat.clear += 1;
-              }
-            }
-          });
-
-          const ordered = Array.from(siteStats.values()).map(stat => {
-            const siteKey = normalizeSiteKey(stat.siteKey || stat.fallbackKey || stat.name);
-            const displayName = stat.displayName || stat.name || FALLBACK_SITE_LABEL;
-            return {
-              ...stat,
-              siteKey,
-              displayName
-            };
-          }).sort((a,b) => {
-            if(b.overdue !== a.overdue) return b.overdue - a.overdue;
-            if(b.dueSoon !== a.dueSoon) return b.dueSoon - a.dueSoon;
-            if(b.total !== a.total) return b.total - a.total;
-            return a.displayName.localeCompare(b.displayName);
-          });
-
-          const limit = isFiltered ? 1 : Math.min(4, ordered.length);
-          const visible = ordered.slice(0, limit);
-          const activeSiteKey = siteFilter;
-          const activeRiskKey = riskFilter;
-          const siteHtml = visible.map(stat => {
-            const buildBadge = (count, className, label, { isEmpty = count === 0, riskKey = 'all' } = {}) => {
-              const normalizedSite = normalizeSiteKey(stat.siteKey);
-              const normalizedRisk = normalizeRiskKey(riskKey);
-              const isActive = activeSiteKey === normalizedSite && activeRiskKey === normalizedRisk;
-              const ariaLabel = `${stat.displayName}: ${count} ${label}`;
-              return `
-                <button type="button" class="pssr-site-breakdown__badge ${className}" data-role="inspections-site-kpi" data-site-key="${esc(normalizedSite)}" data-risk-key="${esc(normalizedRisk)}" data-empty="${isEmpty}" aria-label="${esc(ariaLabel)}" title="${esc(ariaLabel)}" aria-pressed="${isActive ? 'true' : 'false'}">
-                  <span class="pssr-site-breakdown__count">${esc(count)}</span>
-                  <span class="pssr-site-breakdown__label">${esc(label)}</span>
-                </button>
-              `;
-            };
-            const totalBadge = buildBadge(stat.total, 'is-total', 'total', { isEmpty: false, riskKey:'all' });
-            const overdueBadge = buildBadge(stat.overdue, 'is-alert', 'overdue', { riskKey:'overdue' });
-            const dueBadge = buildBadge(stat.dueSoon, 'is-warning', 'due soon', { riskKey:'due' });
-            const clearBadge = buildBadge(stat.clear, 'is-ok', 'on track', { riskKey:'clear' });
-            return `
-              <li class="pssr-site-breakdown__item">
-                <div class="pssr-site-breakdown__header">
-                  <span class="pssr-site-breakdown__name">${esc(stat.displayName)}</span>
-                </div>
-                <div class="pssr-site-breakdown__status">
-                  ${totalBadge}
-                  ${overdueBadge}
-                  ${dueBadge}
-                  ${clearBadge}
-                </div>
-              </li>
-            `;
-          }).join('');
-
-          siteListRoot.innerHTML = siteHtml;
-        }
-      }
-    }
-
-    function setSort(container, column, direction){
-      const dir = direction === 'asc' ? 'asc' : 'desc';
-      container.__currentSort = { column, direction: dir };
-      syncDesktopSortIndicators(container, column, dir);
-      updateSortControls(container);
-      refreshView(container);
-    }
-
-    function attachSortHandlers(container){
-      const thead = container.__thead;
-      if(!thead) return;
-      thead.querySelectorAll('th').forEach(th => {
-        th.addEventListener('click', () => {
-          const column = th.getAttribute('data-col');
-          const current = container.__currentSort;
-          const nextDirection = current && current.column === column && current.direction === 'asc' ? 'desc' : 'asc';
-          setSort(container, column, nextDirection);
-        });
+    function highlightSelectedRow(){
+      const rows = document.querySelectorAll('tbody tr[data-row-id]');
+      rows.forEach(tr => {
+        const isActive = tr.getAttribute('data-row-id') === selectedRowId;
+        tr.classList.toggle('is-active', isActive);
+      });
+      const cards = document.querySelectorAll('[data-role="mobile-cards"] [data-row-id]');
+      cards.forEach(card => {
+        const isActive = card.getAttribute('data-row-id') === selectedRowId;
+        card.classList.toggle('is-active', isActive);
       });
     }
 
-    function attachSortControlHandlers(container){
-      const selects = Array.isArray(container.__sortSelects) ? container.__sortSelects : [];
-      selects.forEach(select => {
-        if(!select) return;
-        select.addEventListener('change', () => {
-          const column = select.value;
-          const current = container.__currentSort;
-          const direction = current && current.column === column ? current.direction : 'asc';
-          setSort(container, column, direction);
-        });
+    function updateViewerContent(row){
+      const viewer = document.getElementById('viewer');
+      const toggle = document.querySelector('[data-role="viewer-toggle"]');
+      const body = document.querySelector('[data-role="viewer-content"]');
+      const heading = viewer?.querySelector('.document-viewer__title');
+      if(!viewer || !toggle || !body) return;
+      if(!row){
+        body.innerHTML = '<div class="placeholder">Select an inspection to preview documentation.</div>';
+        toggle.setAttribute('aria-expanded', 'false');
+        body.hidden = true;
+        viewer.setAttribute('data-viewer-collapsed', 'true');
+        viewer.hidden = true;
+        if(heading) heading.textContent = 'Inspection document preview';
+        return;
+      }
+      const notes = row.Notes && row.Notes !== '—' ? row.Notes : 'No additional notes.';
+      const link = row.__workOrderHref
+        ? `<a href="${esc(row.__workOrderHref)}" target="_blank" rel="noopener">${esc(row['WO/Link'])}</a>`
+        : (row['WO/Link'] && row['WO/Link'] !== '—' ? esc(row['WO/Link']) : '—');
+      if(heading){
+        heading.textContent = `${row.Category} – ${row.Asset}`;
+      }
+      body.innerHTML = `<p><strong>Link/WO:</strong> ${link}</p><p>${esc(notes)}</p>`;
+      viewer.hidden = false;
+      toggle.setAttribute('aria-expanded', 'true');
+      viewer.setAttribute('data-viewer-collapsed', 'false');
+      body.hidden = false;
+    }
+
+    function selectRow(id){
+      if(!id){
+        selectedRowId = '';
+        updateViewerContent(null);
+        highlightSelectedRow();
+        return;
+      }
+      const row = rowLookup.get(id);
+      if(!row){
+        selectedRowId = '';
+        updateViewerContent(null);
+        highlightSelectedRow();
+        return;
+      }
+      selectedRowId = id;
+      updateViewerContent(row);
+      highlightSelectedRow();
+    }
+
+    let clicksWired = false;
+    function wireRowClicks(){
+      if(clicksWired) return;
+      clicksWired = true;
+      const tbody = document.querySelector('tbody');
+      const cards = document.querySelector('[data-role="mobile-cards"]');
+      tbody?.addEventListener('click', event => {
+        const row = event.target.closest('tr[data-row-id]');
+        if(!row) return;
+        const id = row.getAttribute('data-row-id');
+        selectRow(selectedRowId === id ? '' : id);
       });
-      const buttons = Array.isArray(container.__sortDirectionButtons) ? container.__sortDirectionButtons : [];
-      buttons.forEach(button => {
-        if(!button) return;
-        button.addEventListener('click', () => {
-          const fallbackColumn = container.__currentSort?.column || container.__sortSelects?.[0]?.value || 'Next Due';
-          const current = container.__currentSort || { column:fallbackColumn, direction:'asc' };
-          const direction = current.direction === 'asc' ? 'desc' : 'asc';
-          setSort(container, current.column || fallbackColumn, direction);
-        });
+      cards?.addEventListener('click', event => {
+        const card = event.target.closest('[data-row-id]');
+        if(!card) return;
+        const id = card.getAttribute('data-row-id');
+        selectRow(selectedRowId === id ? '' : id);
       });
+    }
+
+    function renderAll(rawRows){
+      const rows = applyFilters(rawRows);
+      if(selectedRowId && !rows.some(row => row.__id === selectedRowId)){
+        selectRow('');
+      }
+      renderPostureAndRisk(rows);
+      renderSiteCards(rawRows);
+      renderCategoryOptions(rawRows);
+      renderTable(rows);
+      renderMobileCards(rows);
+      wireRowClicks();
+      updateSiteChips();
+    }
+
+    async function loadInspectionsRows(){
+      const sheetUrl = getSheetUrl();
+      const rows = await fetchTabByName(sheetUrl, INSPECTIONS_SHEET_NAME);
+      if(rows.length){
+        return normalizeInspectionsRows(rows);
+      }
+      const mxRows = await fetchTabByName(sheetUrl, 'MX_Raw');
+      return normalizeMaintainXToInspections(mxRows);
+    }
+
+    function showBanner(message, detail = '', level = 'ok'){
+      const banner = document.getElementById('banner');
+      if(!banner) return;
+      if(!message){
+        banner.hidden = true;
+        return;
+      }
+      banner.classList.remove('ok', 'warn', 'err');
+      banner.classList.add(level);
+      const msgEl = banner.querySelector('[data-msg]');
+      const detailEl = banner.querySelector('[data-detail]');
+      if(msgEl) msgEl.textContent = message;
+      if(detailEl) detailEl.textContent = detail ? ` – ${detail}` : '';
+      banner.hidden = false;
+    }
+
+    function hideBanner(){
+      showBanner('', '');
+    }
+
+    function updateSearchInput(){
+      const input = document.querySelector('[data-role="search-input"]');
+      if(input && input.value !== state.search){
+        input.value = state.search;
+      }
+    }
+
+    function updateSiteChips(){
+      const nav = document.querySelector('[data-role="site-nav"]');
+      const label = document.querySelector('[data-role="site-filter-active"]');
+      if(label){
+        label.textContent = SITE_KEY_TO_NAME[state.siteKey] || 'All sites';
+      }
+      if(!nav) return;
+      nav.querySelectorAll('[data-site-key]').forEach(btn => {
+        const key = btn.getAttribute('data-site-key') || 'all';
+        const active = key === state.siteKey;
+        btn.classList.toggle('is-active', active);
+        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+    }
+
+    function setSort(column, direction){
+      state.sortBy = column;
+      state.sortDir = direction;
+      updateSortIndicators();
+      if(window.__INSPECTIONS_ALL__){
+        renderAll(window.__INSPECTIONS_ALL__);
+      }
     }
 
     function updateStickyOffsets(){
@@ -3801,118 +2819,253 @@
       document.documentElement.style.setProperty('--sticky-controls-offset', `${Math.ceil(height)}px`);
     }
 
-    async function refreshInspections(containerOverride){
-      const container = containerOverride || document.querySelector('[data-component="inspections-table"]');
-      if(!container) return;
-      banner('', 'Fetching latest inspections…');
-      container.__scrollRegion?.setAttribute('data-loading','true');
-      container.__selectedDocUrl = '';
-      setViewerPlaceholder('Select an inspection to preview documentation.');
-      if(container.__mobileCards){
-        container.__mobileCards.dataset.state = 'loading';
-        container.__mobileCards.setAttribute('aria-busy','true');
-        container.__mobileCards.innerHTML = '<div class="mobile-card mobile-card--status" role="listitem" aria-live="polite">Loading inspection data…</div>';
+    function needsMobileLayout(){
+      return window.innerWidth <= 1248;
+    }
+
+    function getLayoutContainer(){
+      return document.querySelector('[data-component="inspections-table"]');
+    }
+
+    function syncLayoutToggle(){
+      if(!layoutToggleBtn) return;
+      const mode = document.body.classList.contains('force-mobile') ? 'mobile'
+        : document.body.classList.contains('force-desktop') ? 'desktop'
+          : 'auto';
+      const label = layoutToggleBtn.querySelector('.switch-label') || layoutToggleBtn.querySelector('.label');
+      if(label){
+        if(mode === 'mobile') label.textContent = 'Mobile view';
+        else if(mode === 'desktop') label.textContent = 'Desktop view';
+        else label.textContent = needsMobileLayout() ? 'Auto · Mobile' : 'Auto · Desktop';
       }
-      try {
-        if(!ALLOW_NETWORK){
-          throw new Error('Network disabled in this environment');
-        }
-        const { headers, rows } = await fetchSheet();
-        ensureInspectionsSheet(headers, rows);
-        const hasRows = Array.isArray(rows) && rows.length > 0;
-        const sourceRows = hasRows ? rows : SAMPLE;
-        const mapped = sourceRows.map(buildRowModel);
-        container.__rows = mapped;
-        updateCategoryFilterOptions(container);
-        syncSiteFilterAvailability(container);
-        setSort(container, container.__currentSort.column, container.__currentSort.direction);
-        if(hasRows){
-          hideBanner();
+      layoutToggleBtn.setAttribute('aria-checked', mode === 'mobile' ? 'true' : 'false');
+    }
+
+    function applyLayoutMode(mode, { persist = true } = {}){
+      if(mode === 'mobile'){
+        document.body.classList.add('force-mobile');
+        document.body.classList.remove('force-desktop');
+        document.body.setAttribute('data-table-mode', 'mobile');
+      }else if(mode === 'desktop'){
+        document.body.classList.add('force-desktop');
+        document.body.classList.remove('force-mobile');
+        document.body.removeAttribute('data-table-mode');
+      }else{
+        document.body.classList.remove('force-mobile', 'force-desktop');
+        if(needsMobileLayout()){
+          document.body.setAttribute('data-table-mode', 'mobile');
         }else{
-          banner('warn', 'Showing sample data', 'sheet returned no rows');
+          document.body.removeAttribute('data-table-mode');
         }
-      } catch (error) {
-        console.warn('Falling back to SAMPLE. Reason:', error?.message || error);
-        const message = (error && typeof error.message === 'string' && error.message.trim()) ? error.message.trim() : DEFAULT_ERROR_MESSAGE;
-        const fallback = SAMPLE.map(buildRowModel);
-        container.__rows = fallback;
-        updateCategoryFilterOptions(container);
-        syncSiteFilterAvailability(container);
-        setSort(container, container.__currentSort.column, container.__currentSort.direction);
-        banner('warn', 'Showing sample data', message);
-      } finally {
-        container.__scrollRegion?.setAttribute('data-loading','false');
+      }
+      if(persist){
+        if(mode === 'mobile' || mode === 'desktop'){
+          localStorage.setItem(LAYOUT_MODE_STORAGE_KEY, mode);
+        }else{
+          localStorage.removeItem(LAYOUT_MODE_STORAGE_KEY);
+        }
+      }
+      syncLayoutToggle();
+    }
+
+    function restoreStoredLayoutMode(){
+      const stored = localStorage.getItem(LAYOUT_MODE_STORAGE_KEY);
+      if(stored === 'mobile' || stored === 'desktop'){
+        applyLayoutMode(stored, { persist: false });
+      }else{
+        applyLayoutMode('auto', { persist: false });
       }
     }
 
-    function initInspections(){
-      const container = document.querySelector('[data-component="inspections-table"]');
-
-      restoreStoredLayoutMode(container);
-
-      const handleResize = () => {
-        updateStickyOffsets();
-        updateResponsiveMode(container);
-      };
-
-      updateStickyOffsets();
-      updateResponsiveMode(container);
-      window.addEventListener('resize', () => window.requestAnimationFrame(handleResize));
-
-      initViewerToggle();
-      setViewerCollapsed(true, { respectPreference:false });
-
-      if(!container) return null;
-      container.__thead = container.querySelector('thead');
-      container.__tbody = container.querySelector('tbody');
-      container.__scrollRegion = container.querySelector('[data-role="scroll-region"]');
-      container.__mobileCards = document.querySelector('[data-role="mobile-cards"]');
-      container.__sortSelects = Array.from(document.querySelectorAll('[data-role="sort-select"], [data-role="mobile-sort-select"]'));
-      container.__sortDirectionButtons = Array.from(document.querySelectorAll('[data-role="sort-direction"], [data-role="mobile-sort-direction"]'));
-      container.__siteFilterNav = document.querySelector('[data-role="site-nav"]');
-      container.__siteFilterActiveLabel = document.querySelector('[data-role="site-filter-active"]');
-      container.__categorySelect = document.querySelector('[data-role="category-select"]');
-      container.__searchInput = document.querySelector('[data-role="search-input"]');
-      container.__rows = [];
-      container.__viewRows = [];
-      container.__currentSort = { column:'Next Due', direction:'asc' };
-      container.__siteFilter = 'all';
-      container.__riskFilter = 'all';
-      container.__categoryFilter = 'all';
-      container.__searchTerm = '';
-      container.__selectedDocUrl = '';
-
-      setViewerPlaceholder('Select an inspection to preview documentation.');
-      wireViewer(container);
-
-      attachSortHandlers(container);
-      updateSortControls(container);
-      attachSortControlHandlers(container);
-      updateSiteFilterControls(container);
-      attachSiteFilterHandlers(container);
-      attachSiteKpiHandlers(container);
-      updateCategoryFilterControls(container);
-      attachCategoryFilterHandlers(container);
-      updateSearchControl(container);
-      attachSearchHandlers(container);
-
-      const refreshButton = document.querySelector('[data-action="refresh"]');
-      if(refreshButton){
-        refreshButton.addEventListener('click', () => refreshInspections(container));
+    function updateResponsiveState(){
+      if(document.body.classList.contains('force-mobile')){
+        document.body.setAttribute('data-table-mode', 'mobile');
+      }else if(document.body.classList.contains('force-desktop')){
+        document.body.removeAttribute('data-table-mode');
+      }else{
+        if(needsMobileLayout()){
+          document.body.setAttribute('data-table-mode', 'mobile');
+        }else{
+          document.body.removeAttribute('data-table-mode');
+        }
       }
+      syncLayoutToggle();
+    }
 
-      refreshInspections(container);
-      return container;
+    function applyTheme(theme){
+      const normalized = theme === 'dark' ? 'dark' : 'light';
+      document.body.classList.toggle('dark', normalized === 'dark');
+      document.body.classList.toggle('light', normalized !== 'dark');
+      document.body.classList.toggle('theme-dark', normalized === 'dark');
+      document.documentElement.setAttribute('color-scheme', normalized);
+      const meta = document.querySelector('meta[name="color-scheme"]');
+      meta?.setAttribute('content', normalized);
+      const label = normalized === 'dark' ? 'Light' : 'Dark';
+      if(themeBtnLabel){
+        themeBtnLabel.textContent = label;
+      }else if(themeBtn){
+        themeBtn.textContent = label;
+      }
+      themeBtn?.setAttribute('aria-checked', normalized === 'dark' ? 'true' : 'false');
+      themeBtn?.setAttribute('aria-label', `Switch to ${normalized === 'dark' ? 'light' : 'dark'} mode`);
+    }
+
+    function initTheme(){
+      const stored = localStorage.getItem(THEME_STORAGE_KEY);
+      const prefersDarkQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+      const prefersDark = prefersDarkQuery ? prefersDarkQuery.matches : false;
+      let hasStoredTheme = stored === 'dark' || stored === 'light';
+      const initial = hasStoredTheme ? stored : (prefersDark ? 'dark' : 'light');
+      applyTheme(initial);
+      themeBtn?.addEventListener('click', () => {
+        const next = document.body.classList.contains('theme-dark') ? 'light' : 'dark';
+        applyTheme(next);
+        localStorage.setItem(THEME_STORAGE_KEY, next);
+        hasStoredTheme = true;
+      });
+      if(prefersDarkQuery){
+        const handler = (event) => {
+          if(hasStoredTheme) return;
+          applyTheme(event.matches ? 'dark' : 'light');
+        };
+        if(typeof prefersDarkQuery.addEventListener === 'function'){
+          prefersDarkQuery.addEventListener('change', handler);
+        }else if(typeof prefersDarkQuery.addListener === 'function'){
+          prefersDarkQuery.addListener(handler);
+        }
+      }
+    }
+
+    function initLayout(){
+      restoreStoredLayoutMode();
+      updateResponsiveState();
+      layoutToggleBtn?.addEventListener('click', () => {
+        const current = document.body.classList.contains('force-mobile') ? 'mobile'
+          : document.body.classList.contains('force-desktop') ? 'desktop'
+            : 'auto';
+        const next = current === 'mobile' ? 'desktop' : current === 'desktop' ? 'auto' : 'mobile';
+        applyLayoutMode(next);
+        updateResponsiveState();
+      });
+      window.addEventListener('resize', () => {
+        updateResponsiveState();
+        updateStickyOffsets();
+      });
+      updateStickyOffsets();
+    }
+
+    function initControls(){
+      const siteNav = document.querySelector('[data-role="site-nav"]');
+      siteNav?.addEventListener('click', event => {
+        const btn = event.target.closest('[data-site-key]');
+        if(!btn) return;
+        const key = btn.getAttribute('data-site-key') || 'all';
+        state.siteKey = state.siteKey === key ? 'all' : key;
+        updateSiteChips();
+        if(window.__INSPECTIONS_ALL__){
+          renderAll(window.__INSPECTIONS_ALL__);
+        }
+      });
+
+      const categorySelect = document.querySelector('[data-role="category-select"]');
+      categorySelect?.addEventListener('change', () => {
+        state.category = categorySelect.value || 'all';
+        if(window.__INSPECTIONS_ALL__){
+          renderAll(window.__INSPECTIONS_ALL__);
+        }
+      });
+
+      const siteBreakdown = document.querySelector('[data-role="inspections-site-breakdown"]');
+      siteBreakdown?.addEventListener('click', event => {
+        const button = event.target.closest('[data-role="inspections-site-kpi"]');
+        if(!button) return;
+        const key = button.getAttribute('data-site-key') || 'all';
+        state.siteKey = state.siteKey === key ? 'all' : key;
+        updateSiteChips();
+        if(window.__INSPECTIONS_ALL__){
+          renderAll(window.__INSPECTIONS_ALL__);
+        }
+      });
+
+      const thead = document.querySelector('thead');
+      thead?.addEventListener('click', event => {
+        const th = event.target.closest('th[data-col]');
+        if(!th) return;
+        const column = th.getAttribute('data-col');
+        const next = state.sortBy === column && state.sortDir === 'asc' ? 'desc' : 'asc';
+        setSort(column, next);
+      });
+
+      const searchInput = document.querySelector('[data-role="search-input"]');
+      const applySearch = () => {
+        state.search = searchInput.value.trim();
+        if(window.__INSPECTIONS_ALL__){
+          renderAll(window.__INSPECTIONS_ALL__);
+        }
+      };
+      searchInput?.addEventListener('input', applySearch);
+      searchInput?.addEventListener('search', applySearch);
+
+      document.querySelector('[data-role="sort-select"]')?.addEventListener('change', event => {
+        setSort(event.target.value, state.sortDir);
+      });
+      document.querySelector('[data-role="mobile-sort-select"]')?.addEventListener('change', event => {
+        setSort(event.target.value, state.sortDir);
+      });
+      const toggleSortDir = () => {
+        const next = state.sortDir === 'asc' ? 'desc' : 'asc';
+        setSort(state.sortBy, next);
+      };
+      document.querySelector('[data-role="sort-direction"]')?.addEventListener('click', toggleSortDir);
+      document.querySelector('[data-role="mobile-sort-direction"]')?.addEventListener('click', toggleSortDir);
+
+      const viewerToggle = document.querySelector('[data-role="viewer-toggle"]');
+      const viewerContent = document.querySelector('[data-role="viewer-content"]');
+      const viewer = document.getElementById('viewer');
+      viewerToggle?.addEventListener('click', () => {
+        const expanded = viewerToggle.getAttribute('aria-expanded') === 'true';
+        const next = !expanded;
+        viewerToggle.setAttribute('aria-expanded', next ? 'true' : 'false');
+        viewerContent.hidden = !next;
+        if(viewer){
+          viewer.setAttribute('data-viewer-collapsed', next ? 'false' : 'true');
+        }
+      });
+    }
+
+    async function initInspections(){
+      const scrollRegion = document.querySelector('[data-role="scroll-region"]');
+      scrollRegion?.setAttribute('data-loading', 'true');
+      showBanner('Loading inspections…', '', 'warn');
+      try {
+        const rows = ALLOW_NETWORK ? await loadInspectionsRows() : normalizeInspectionsRows(OFFLINE_SAMPLE);
+        rowLookup = new Map(rows.map(row => [row.__id, row]));
+        window.__INSPECTIONS_ALL__ = rows;
+        selectedRowId = '';
+        updateViewerContent(null);
+        hideBanner();
+        renderAll(rows);
+        showBanner('Ready');
+      } catch (error){
+        console.error(error);
+        showBanner('Error', DEFAULT_ERROR_MESSAGE, 'err');
+      } finally {
+        scrollRegion?.removeAttribute('data-loading');
+      }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      const container = initInspections();
-      if(container){
-        window.refreshInspections = () => refreshInspections(container);
-      }else{
-        window.refreshInspections = () => refreshInspections();
-      }
+      initTheme();
+      initLayout();
+      initControls();
+      updateSiteChips();
+      updateSearchInput();
+      updateSortIndicators();
+      initInspections();
     });
+
+    document.querySelector('[data-action="refresh"]')?.addEventListener('click', initInspections);
   </script>
+
 </body>
 </html>
