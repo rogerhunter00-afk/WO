@@ -4310,6 +4310,37 @@ function comparePlanEntryOrder(a, b){
   return String(a?.raw ?? '').localeCompare(String(b?.raw ?? ''), undefined, { numeric:true, sensitivity:'base' });
 }
 
+function isNonProductionDayLabel(day){
+  const slug = slugify(String(day || ''));
+  return slug === 'non-production-day' || slug === 'nonproductionday' || slug === 'npd';
+}
+
+function planEntryHasRenderableContent(entry){
+  if(!entry) return false;
+  const raw = String(entry.raw || '').trim();
+  if(!raw) return false;
+  const rawLower = raw.toLowerCase();
+  if(rawLower === 'note' || rawLower === 'notes') return false;
+  if(raw.length >= 8){
+    const half = Math.floor(raw.length / 2);
+    if(raw.slice(0, half) === raw.slice(half)) return false;
+  }
+  return true;
+}
+
+function planDayHasRenderableEntries(matrix, day){
+  if(!matrix || typeof matrix.get !== 'function') return false;
+  const bucket = matrix.get(day);
+  if(!bucket || typeof bucket.forEach !== 'function') return false;
+  for(const entries of bucket.values()){
+    if(!Array.isArray(entries)) continue;
+    if(entries.some(planEntryHasRenderableContent)){
+      return true;
+    }
+  }
+  return false;
+}
+
 function renderPlanTable(view){
   if(!$planTable) return;
   $planTable.innerHTML = '';
@@ -4326,7 +4357,7 @@ function renderPlanTable(view){
     setPlanStatus(`Plan sheet is missing required column(s): ${view.issues.join(', ')}`, 'error');
     return;
   }
-  const dayOrder = mergePlanOrder(view.order?.days, PLAN_NEXT_WEEK_DAYS);
+  let dayOrder = mergePlanOrder(view.order?.days, PLAN_NEXT_WEEK_DAYS);
   const peopleOrder = mergePlanOrder(view.order?.people, PLAN_NEXT_WEEK_PEOPLE);
   PLAN_NEXT_WEEK_PEOPLE_ORDER = peopleOrder.slice();
   if(PLAN_NEXT_WEEK_PERSON_FILTER && !peopleOrder.includes(PLAN_NEXT_WEEK_PERSON_FILTER)){
@@ -4336,6 +4367,13 @@ function renderPlanTable(view){
     PLAN_NEXT_WEEK_PERSON_FILTER = null;
   }
   updatePlanFilterControls(peopleOrder);
+  const nonProdIndex = dayOrder.findIndex(isNonProductionDayLabel);
+  if(nonProdIndex > -1){
+    const label = dayOrder[nonProdIndex];
+    if(!planDayHasRenderableEntries(view.matrix, label)){
+      dayOrder = dayOrder.filter((_, idx) => idx !== nonProdIndex);
+    }
+  }
   const activeFilter = PLAN_NEXT_WEEK_PERSON_FILTER;
   const visiblePeople = activeFilter ? peopleOrder.filter(person => person === activeFilter) : peopleOrder;
   const thead = document.createElement('thead');
