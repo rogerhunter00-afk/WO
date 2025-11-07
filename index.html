@@ -1344,6 +1344,15 @@ body.dark .plan-overlay{
   color:var(--muted);
   font-style:italic;
 }
+.plan-ops-row > th{
+  vertical-align:top;
+}
+.plan-ops-cell{
+  padding:16px;
+}
+.plan-ops-cell .plan-empty{
+  text-align:left;
+}
 @media (max-width: 860px){
   .plan-dialog{
     width:96vw;
@@ -3879,6 +3888,7 @@ function buildPlanView(raw, context) {
   };
 
   const matrix = buildEmptyPlanMatrix();
+  const opsEntries = [];
   const order  = { days: [], people: [] };
   const seenDays   = new Set();
   const seenPeople = new Set();
@@ -3926,6 +3936,58 @@ function buildPlanView(raw, context) {
   rows.forEach((row, rowIndex) => {
     // A → Day
     const rawDay = getCell(row, 0, "Day");
+    const normalizedDayValue = sanitizePlanScalar(rawDay);
+    const daySlug = normalizedDayValue ? slugify(normalizedDayValue) : '';
+    const isOpsRow = daySlug === 'ops';
+
+    // C → Entry (WO number or task)
+    const rawEntry = getCell(row, 2, "Entry");
+
+    if (isOpsRow) {
+      const rawPerson = getCell(row, 1, "Engineer");
+
+      if (isPlaceholderNote(rawEntry)) {
+        stats.skippedRows++;
+        return;
+      }
+
+      const parts = splitPlanEntries(rawEntry)
+        .map(p => String(p || "").trim())
+        .filter(p => !isPlaceholderNote(p));
+
+      if (!parts.length) {
+        stats.skippedRows++;
+        return;
+      }
+
+      let added = 0;
+      parts.forEach((val, entryIndex) => {
+        const entry = buildPlanEntry(val, null, context);
+        if (!entry) return;
+
+        if (entry.type === "missing") {
+          stats.unmatchedWorkOrders++;
+        }
+
+        entry.__meta = {
+          rowIndex,
+          entryIndex,
+          day: 'Ops',
+          person: sanitizePlanScalar(rawPerson) || 'Ops',
+        };
+
+        opsEntries.push(entry);
+        stats.appliedEntries++;
+        added++;
+      });
+
+      if (!added) {
+        stats.skippedRows++;
+      }
+
+      return;
+    }
+
     const day    = normalizePlanDay(rawDay);
     if (!day) {
       if (rawDay) stats.unknownDays.add(String(rawDay));
@@ -3942,9 +4004,6 @@ function buildPlanView(raw, context) {
       return;
     }
 
-    // C → Entry (WO number or task)
-    const rawEntry = getCell(row, 2, "Entry");
-    
     // DEBUG LOGGING - Remove after testing
     console.log(`Row ${rowIndex}: ${day} / ${person} / Entry: "${rawEntry}" (type: ${typeof rawEntry})`);
 
@@ -4003,6 +4062,7 @@ function buildPlanView(raw, context) {
 
   return {
     matrix,
+    opsEntries,
     stats,
     issues: [],
     columns: {
@@ -4292,6 +4352,33 @@ function renderPlanTable(view){
   });
   thead.appendChild(headerRow);
   const tbody = document.createElement('tbody');
+
+  const opsRow = document.createElement('tr');
+  opsRow.className = 'plan-ops-row';
+  const opsHeader = document.createElement('th');
+  opsHeader.scope = 'row';
+  opsHeader.textContent = 'Ops';
+  opsRow.appendChild(opsHeader);
+  const opsCell = document.createElement('td');
+  opsCell.colSpan = dayOrder.length;
+  opsCell.className = 'plan-ops-cell';
+
+  const opsEntries = Array.isArray(view.opsEntries) ? view.opsEntries : [];
+  opsEntries.forEach(entry => {
+    const rendered = renderPlanEntry(entry);
+    if(rendered) opsCell.appendChild(rendered);
+  });
+
+  if(!opsCell.hasChildNodes()){
+    const opsEmpty = document.createElement('div');
+    opsEmpty.className = 'plan-empty';
+    opsEmpty.textContent = 'Add WOs to discuss in Ops Manager meeting';
+    opsCell.appendChild(opsEmpty);
+  }
+
+  opsRow.appendChild(opsCell);
+  tbody.appendChild(opsRow);
+
   visiblePeople.forEach(person => {
     const tr = document.createElement('tr');
     const th = document.createElement('th');
