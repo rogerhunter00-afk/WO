@@ -3151,7 +3151,7 @@ function csvUrlForGid(gid){
 }
 
 /* --- Eng Schedule integration --- */
-const PLAN_DEFAULT_DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+const PLAN_DEFAULT_DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Non-Production Day'];
 const PLAN_DEFAULT_PEOPLE = ['Callum','Graeme','Shaun','Jim/Ciaren'];
 const PLAN_FOCUS_SELECTOR = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
@@ -3305,6 +3305,12 @@ const PLAN_DAY_ALIAS_TARGETS = new Map([
   ['wed','wednesday'], ['weds','wednesday'], ['wednesday','wednesday'],
   ['thu','thursday'], ['thur','thursday'], ['thurs','thursday'], ['thursday','thursday'],
   ['fri','friday'], ['friday','friday'],
+  ['npd','non-production day'],
+  ['nonproductionday','non-production day'],
+  ['non-production-day','non-production day'],
+  ['non production day','non-production day'],
+  ['nonproduction','non-production day'],
+  ['non-production','non-production day'],
 ]);
 
 const PLAN_PERSON_SLUG_MAP = new Map();
