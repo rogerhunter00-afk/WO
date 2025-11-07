@@ -3321,6 +3321,17 @@ let __planPrevBodyOverflow = null;
 const PLAN_DONE_FLAG_TEST = /-\s*done\s*-/i;
 const PLAN_DONE_FLAG_STRIP = /-\s*done\s*-/gi;
 
+function planRowHasData(row){
+  if(!row) return false;
+  const values = Array.isArray(row) ? row : (typeof row === 'object' ? Object.values(row) : [row]);
+  return values.some(value => {
+    if(value == null) return false;
+    if(typeof value === 'number') return !Number.isNaN(value);
+    if(typeof value === 'boolean') return value;
+    return String(value).trim() !== '';
+  });
+}
+
 function analyzePlanDoneFlag(value){
   if(value == null) return { has:false, cleaned:'' };
   const str = typeof value === 'string' ? value : String(value ?? '');
@@ -4705,7 +4716,13 @@ async function loadPlanNextWeek(force=false){
       throw new Error('Plan sheet is empty.');
     }
     const parsed = parseDelimited(text);
-    PLAN_NEXT_WEEK_RAW = { headers: parsed.headers, rows: parsed.rows };
+    const rows = Array.isArray(parsed.rows) ? parsed.rows : [];
+    const hasData = rows.some(planRowHasData);
+    if(!hasData){
+      const activeRange = PLAN_NEXT_WEEK_ACTIVE_RANGE || PLAN_NEXT_WEEK_SOURCE.range || 'plan sheet';
+      throw new Error(`Plan range "${activeRange}" returned no rows. Check the named range in the plan sheet.`);
+    }
+    PLAN_NEXT_WEEK_RAW = { headers: parsed.headers, rows };
     PLAN_NEXT_WEEK_LAST_UPDATED = new Date();
     rebuildPlanView();
     return PLAN_NEXT_WEEK_RAW;
