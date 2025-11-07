@@ -3853,8 +3853,8 @@ function mergePlanOrder(primary, fallback){
     seen.add(value);
     merged.push(value);
   };
-  if(Array.isArray(primary)) primary.forEach(add);
   if(Array.isArray(fallback)) fallback.forEach(add);
+  if(Array.isArray(primary)) primary.forEach(add);
   return merged;
 }
 
