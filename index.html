@@ -464,7 +464,7 @@ main{position:relative;}
 .controls-bar #weekPicker{font-weight:700;color:var(--ink)}
 .controls-bar .week-picker{gap:6px}
 .controls-bar .week-picker button{flex:0 0 auto}
-.controls-bar #exportCsvBtn{margin-left:auto}
+.controls-bar #copyIdsBtn{margin-left:auto}
 .sticky-top__bar>#hide-controls{margin-left:auto}
 
 .filter-group{display:flex;align-items:center;gap:6px;font-weight:600;color:var(--ink)}
@@ -1543,7 +1543,8 @@ body.dark .plan-overlay{
             </div>
 
             <button id="refreshBtn" class="btn btn--outline" type="button">Refresh data</button>
-            <button id="exportCsvBtn" class="btn btn--primary" type="button" disabled>Export CSV</button>
+            <button id="copyIdsBtn" class="btn btn--primary" type="button" disabled>Copy WO IDs</button>
+            <span id="copyStatus" class="visually-hidden" role="status" aria-live="polite"></span>
             <button id="planNextWeekBtn" class="btn btn--ghost" type="button">Eng Schedule</button>
             <button class="ctrl-pill switch-wrap" id="layout-toggle" type="button" role="switch" aria-checked="false" aria-label="Switch to mobile view">
               <span class="switch" aria-hidden="true"><span class="switch__thumb"></span></span>
@@ -2566,15 +2567,19 @@ function loadWeekFromCache(meta){
   return null;
 }
 
-const $exportCsvBtn = document.getElementById('exportCsvBtn');
+const $copyIdsBtn = document.getElementById('copyIdsBtn');
+const $copyStatus = document.getElementById('copyStatus');
+if($copyIdsBtn && !$copyIdsBtn.dataset.defaultLabel){
+  $copyIdsBtn.dataset.defaultLabel = $copyIdsBtn.textContent.trim();
+}
 
 function hasSheetData(){
   return Array.isArray(LAST_HEADERS) && LAST_HEADERS.length > 0;
 }
 
-function updateExportButtonsState(){
+function updateCopyButtonState(){
   const hasData = hasSheetData();
-  [$exportCsvBtn].forEach(btn => {
+  [$copyIdsBtn].forEach(btn => {
     if(!btn) return;
     btn.disabled = !hasData;
     if(!hasData){
@@ -2584,11 +2589,92 @@ function updateExportButtonsState(){
     }
   });
 }
-updateExportButtonsState();
+updateCopyButtonState();
 
-function csvEscape(value){
-  const str = String(value ?? '');
-  return /[",\n\r]/.test(str) ? `"${str.replace(/"/g,'""')}"` : str;
+function getActiveDashboard(){
+  return document.querySelector('.dash[data-active="true"]:not([hidden])');
+}
+
+function getVisibleWorkOrderRows(){
+  const active = getActiveDashboard();
+  if(!active) return [];
+  const rows = Array.isArray(active.__rows) && active.__rows.length
+    ? active.__rows
+    : Array.isArray(active.__rawRows)
+      ? active.__rawRows
+      : [];
+  return Array.isArray(rows) ? rows.slice() : [];
+}
+
+function copyFeedback(message){
+  if(!$copyIdsBtn) return;
+  const label = $copyIdsBtn.dataset.defaultLabel || 'Copy WO IDs';
+  $copyIdsBtn.textContent = message;
+  if($copyIdsBtn.__copyTimer){
+    clearTimeout($copyIdsBtn.__copyTimer);
+  }
+  $copyIdsBtn.__copyTimer = setTimeout(()=>{
+    $copyIdsBtn.textContent = label;
+    if($copyStatus && $copyStatus.textContent === message){
+      $copyStatus.textContent = '';
+    }
+  }, 2000);
+  if($copyStatus){
+    $copyStatus.textContent = message;
+  }
+}
+
+async function writeClipboard(text){
+  if(navigator.clipboard?.writeText){
+    try{
+      await navigator.clipboard.writeText(text);
+      return true;
+    }catch(err){
+      console.warn('navigator.clipboard.writeText failed', err);
+    }
+  }
+  const area = document.createElement('textarea');
+  area.value = text;
+  area.setAttribute('readonly','');
+  area.style.position = 'fixed';
+  area.style.top = '-1000px';
+  area.style.opacity = '0';
+  document.body.appendChild(area);
+  area.select();
+  let ok = false;
+  try{
+    ok = document.execCommand('copy');
+  }catch(err){
+    console.warn('document.execCommand copy failed', err);
+    ok = false;
+  }
+  document.body.removeChild(area);
+  return ok;
+}
+
+async function copyVisibleWorkOrderIds(){
+  if(!$copyIdsBtn) return;
+  if($copyIdsBtn.disabled){
+    alert('Work orders are still loading. Please try again in a moment.');
+    return;
+  }
+  const rows = getVisibleWorkOrderRows();
+  const ids = rows
+    .map(row => String(row?.ID ?? '').trim())
+    .filter(id => id.length > 0);
+
+  if(!ids.length){
+    alert('No work order IDs are available for the current view.');
+    return;
+  }
+
+  const text = ids.join(',');
+  const ok = await writeClipboard(text);
+  if(ok){
+    copyFeedback('Copied!');
+  }else{
+    alert('Could not copy to clipboard. Please copy manually: ' + text);
+  }
 }
 
   /* ========= Week arrows hookup ========= */
@@ -2864,52 +2950,7 @@ function renderRowsScopedChunked(tbodyEl, headers, rows, container){
   });
 }
 
-function buildCsv(headers, rows){
-  const safeHeaders = Array.isArray(headers) ? headers : [];
-  const safeRows = Array.isArray(rows) ? rows : [];
-  const headerLine = safeHeaders.map(csvEscape).join(',');
-  const lines = safeRows.map(row => safeHeaders.map(h => csvEscape(row?.[h])).join(','));
-  return '\ufeff' + [headerLine, ...lines].join('\r\n');
-}
-
-function escapeForExcel(value){
-  return esc(String(value ?? '')).replace(/\r?\n/g, '<br>');
-}
-
-function buildExcelHTML(headers, rows){
-  const safeHeaders = Array.isArray(headers) ? headers : [];
-  const head = `<tr>${safeHeaders.map(h => `<th>${escapeForExcel(h)}</th>`).join('')}</tr>`;
-  const body = (Array.isArray(rows) ? rows : []).map(row => {
-    const cells = safeHeaders.map(h => `<td>${escapeForExcel(row?.[h])}</td>`).join('');
-    return `<tr>${cells}</tr>`;
-  }).join('');
-  return `<!DOCTYPE html><html><head><meta charset="utf-8" /></head><body><table><thead>${head}</thead><tbody>${body}</tbody></table></body></html>`;
-}
-
-function downloadBlob(blob, filename){
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.style.display = 'none';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  setTimeout(()=>URL.revokeObjectURL(url), 0);
-}
-
-function exportTimestamp(){
-  return new Date().toISOString().replace(/[:.]/g,'-');
-}
-
-function exportSheetAsCsv(){
-  if(!hasSheetData()){ alert('Sheet data is still loading.'); return; }
-  const csv = buildCsv(LAST_HEADERS, ALL_ROWS);
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  downloadBlob(blob, `work-orders-${exportTimestamp()}.csv`);
-}
-
-$exportCsvBtn?.addEventListener('click', ()=>{ if(!$exportCsvBtn.disabled) exportSheetAsCsv(); });
+$copyIdsBtn?.addEventListener('click', ()=>{ copyVisibleWorkOrderIds(); });
 
 // ---------- Utility + theming (unchanged bits you already had) ----------
 const ESC_MAP = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;'}; const ESC_RE=/[&<>"']/g;
@@ -5738,7 +5779,7 @@ function ingestToDashboards(headers, rows){
   const present = expected.filter(h => headers.includes(h));
   const baseHeaders = present.length ? present : expected;
 
-  updateExportButtonsState();
+  updateCopyButtonState();
 
   // normalize + derive age
   const normalized = rows.map(r => {
