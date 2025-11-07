@@ -1347,11 +1347,43 @@ body.dark .plan-overlay{
 .plan-ops-row > th{
   vertical-align:top;
 }
+.plan-ops-row.is-collapsed > td{
+  display:none;
+}
 .plan-ops-cell{
   padding:16px;
 }
 .plan-ops-cell .plan-empty{
   text-align:left;
+}
+.plan-ops-toggle{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 12px;
+  border-radius:999px;
+  border:1px solid transparent;
+  background:transparent;
+  color:var(--brand);
+  font:inherit;
+  font-weight:600;
+  cursor:pointer;
+  transition:color .18s ease, background-color .18s ease, border-color .18s ease;
+}
+.plan-ops-toggle:hover{
+  background:var(--btn-ghost-bg-hover);
+  color:var(--brand-strong);
+}
+.plan-ops-toggle:focus-visible{
+  outline:2px solid var(--brand);
+  outline-offset:2px;
+}
+.plan-ops-toggle__icon{
+  font-size:14px;
+  line-height:1;
+}
+.plan-ops-toggle__text{
+  white-space:nowrap;
 }
 @media (max-width: 860px){
   .plan-dialog{
@@ -4353,32 +4385,6 @@ function renderPlanTable(view){
   thead.appendChild(headerRow);
   const tbody = document.createElement('tbody');
 
-  const opsRow = document.createElement('tr');
-  opsRow.className = 'plan-ops-row';
-  const opsHeader = document.createElement('th');
-  opsHeader.scope = 'row';
-  opsHeader.textContent = 'Ops';
-  opsRow.appendChild(opsHeader);
-  const opsCell = document.createElement('td');
-  opsCell.colSpan = dayOrder.length;
-  opsCell.className = 'plan-ops-cell';
-
-  const opsEntries = Array.isArray(view.opsEntries) ? view.opsEntries : [];
-  opsEntries.forEach(entry => {
-    const rendered = renderPlanEntry(entry);
-    if(rendered) opsCell.appendChild(rendered);
-  });
-
-  if(!opsCell.hasChildNodes()){
-    const opsEmpty = document.createElement('div');
-    opsEmpty.className = 'plan-empty';
-    opsEmpty.textContent = 'Add WOs to discuss in Ops Manager meeting';
-    opsCell.appendChild(opsEmpty);
-  }
-
-  opsRow.appendChild(opsCell);
-  tbody.appendChild(opsRow);
-
   visiblePeople.forEach(person => {
     const tr = document.createElement('tr');
     const th = document.createElement('th');
@@ -4408,6 +4414,64 @@ function renderPlanTable(view){
     });
     tbody.appendChild(tr);
   });
+
+  const opsRow = document.createElement('tr');
+  opsRow.className = 'plan-ops-row';
+  const opsHeader = document.createElement('th');
+  opsHeader.scope = 'row';
+
+  const opsToggle = document.createElement('button');
+  opsToggle.type = 'button';
+  opsToggle.className = 'plan-ops-toggle';
+  opsToggle.setAttribute('aria-expanded', 'true');
+
+  const opsToggleIcon = document.createElement('span');
+  opsToggleIcon.className = 'plan-ops-toggle__icon';
+  opsToggle.appendChild(opsToggleIcon);
+
+  const opsToggleText = document.createElement('span');
+  opsToggleText.className = 'plan-ops-toggle__text';
+  opsToggle.appendChild(opsToggleText);
+
+  opsHeader.appendChild(opsToggle);
+  opsRow.appendChild(opsHeader);
+  const opsCell = document.createElement('td');
+  const opsCellId = `plan-ops-cell-${Math.random().toString(36).slice(2)}`;
+  opsCell.id = opsCellId;
+  opsToggle.setAttribute('aria-controls', opsCellId);
+  opsCell.colSpan = dayOrder.length;
+  opsCell.className = 'plan-ops-cell';
+
+  const opsEntries = Array.isArray(view.opsEntries) ? view.opsEntries : [];
+  opsEntries.forEach(entry => {
+    const rendered = renderPlanEntry(entry);
+    if(rendered) opsCell.appendChild(rendered);
+  });
+
+  if(!opsCell.hasChildNodes()){
+    const opsEmpty = document.createElement('div');
+    opsEmpty.className = 'plan-empty';
+    opsEmpty.textContent = 'Add WOs to discuss in Ops Manager meeting';
+    opsCell.appendChild(opsEmpty);
+  }
+
+  opsRow.appendChild(opsCell);
+  const previousCollapsed = typeof window.__planOpsCollapsed === 'boolean' ? window.__planOpsCollapsed : false;
+  function applyOpsCollapsedState(collapsed){
+    window.__planOpsCollapsed = collapsed;
+    opsRow.classList.toggle('is-collapsed', collapsed);
+    opsCell.hidden = collapsed;
+    opsToggle.setAttribute('aria-expanded', String(!collapsed));
+    opsToggleIcon.textContent = collapsed ? '▸' : '▾';
+    opsToggleText.textContent = collapsed ? 'Show Ops' : 'Hide Ops';
+  }
+  applyOpsCollapsedState(previousCollapsed);
+  opsToggle.addEventListener('click', () => {
+    const nextState = !window.__planOpsCollapsed;
+    applyOpsCollapsedState(nextState);
+  });
+  tbody.appendChild(opsRow);
+
   $planTable.appendChild(thead);
   $planTable.appendChild(tbody);
   const statusParts = [];
