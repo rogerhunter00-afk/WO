@@ -2232,18 +2232,52 @@
       return { statusKey, displayStatus, effectiveDue, diffDays };
     }
 
+    function pickField(raw, keys){
+      if(!raw || !Array.isArray(keys)) return '';
+      for(const key of keys){
+        if(!key) continue;
+        if(Object.prototype.hasOwnProperty.call(raw, key)){
+          const value = raw[key];
+          if(value != null){
+            const text = String(value).trim();
+            if(text) return text;
+          }
+        }
+      }
+      return '';
+    }
+
+    function parseFrequencyMonths(value){
+      if(!value) return null;
+      const str = String(value).trim();
+      if(!str) return null;
+      const direct = Number(str);
+      if(!Number.isNaN(direct)) return direct;
+      const match = str.match(/(-?\d+(?:\.\d+)?)/);
+      return match ? Number(match[1]) : null;
+    }
+
     function normalizeRow(raw, index){
-      const site = String(raw['Site'] ?? '').trim();
-      const asset = String(raw['Asset'] ?? '').trim();
-      const category = String(raw['Category'] ?? '').trim();
-      const lastDate = parseDate(raw['Last Done']);
-      const dueDate = parseDate(raw['Due Date']);
-      const frequencyText = String(raw['Frequency (Months)'] ?? '').trim();
-      const frequencyMonths = frequencyText ? Number(frequencyText) : null;
-      const owner = String(raw['Owner/Team'] ?? '').trim();
-      const notes = String(raw['Notes'] ?? '').trim();
-      const workOrder = normalizeWorkOrder(raw['WO/Link']);
-      const statusInfo = computeStatus(raw, lastDate, dueDate, frequencyMonths || CATEGORY_FREQUENCY[category] || null);
+      const site = pickField(raw, ['Site', 'Location']);
+      const asset = pickField(raw, ['Asset', 'Equipment', 'Title', 'Equipment Name', 'Name']);
+      let category = pickField(raw, ['Category', 'Inspection Type', 'Type', 'Discipline']);
+      const lastRaw = pickField(raw, ['Last Done', 'Last Completed', 'Last Inspection', 'Last Inspection Date', 'Previous Inspection', 'Completed on']);
+      const dueRaw = pickField(raw, ['Due Date', 'Next Due', 'Next Inspection', 'Next Inspection Date', 'Due date']);
+      const frequencyText = pickField(raw, ['Frequency (Months)', 'Frequency', 'Interval (Months)', 'Months']);
+      const owner = pickField(raw, ['Owner/Team', 'Owner', 'Assigned to', 'Team', 'Owner Team', 'Responsible', 'Inspector']);
+      const notes = pickField(raw, ['Notes', 'Comments', 'Remarks', 'Summary', 'Details', 'Description']);
+      const workOrderValue = pickField(raw, ['WO/Link', 'WO', 'Work Order', 'Workorder', 'Link', 'URL', 'Document', 'Document Link', 'Attachment', 'Attachment URL', 'File Name', 'File', 'Document URL']);
+      const lastDate = parseDate(lastRaw);
+      const dueDate = parseDate(dueRaw);
+      const frequencyMonths = parseFrequencyMonths(frequencyText);
+      const workOrder = normalizeWorkOrder(workOrderValue);
+      if(!category){
+        category = 'Inspection';
+      }
+      const resolvedFrequency = (typeof frequencyMonths === 'number' && !Number.isNaN(frequencyMonths)) ? frequencyMonths : null;
+      const fallbackFrequency = CATEGORY_FREQUENCY[category] || null;
+      const statusFrequency = resolvedFrequency && resolvedFrequency > 0 ? resolvedFrequency : fallbackFrequency;
+      const statusInfo = computeStatus(raw, lastDate, dueDate, statusFrequency);
       const dueDisplay = statusInfo.effectiveDue || dueDate;
       const id = `ins-${index + 1}`;
 
@@ -2253,13 +2287,13 @@
         Site: site || '—',
         Asset: asset || '—',
         Category: category || 'Uncategorised',
-        'Last Completed': lastDate ? formatDate(lastDate) : (String(raw['Last Done'] ?? '').trim() || '—'),
-        'Next Due': dueDisplay ? formatDate(dueDisplay) : (String(raw['Due Date'] ?? '').trim() || '—'),
+        'Last Completed': lastDate ? formatDate(lastDate) : (lastRaw || '—'),
+        'Next Due': dueDisplay ? formatDate(dueDisplay) : (dueRaw || '—'),
         Status: statusInfo.displayStatus,
         'WO/Link': workOrder.label || '—',
         Notes: notes || '—',
         Owner: owner,
-        FrequencyMonths: frequencyMonths || CATEGORY_FREQUENCY[category] || null,
+        FrequencyMonths: resolvedFrequency != null ? resolvedFrequency : fallbackFrequency,
         __lastDate: lastDate,
         __dueDate: dueDate,
         __effectiveDue: dueDisplay,
