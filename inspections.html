@@ -1136,8 +1136,9 @@
       cursor:pointer;
     }
 
-    .table-scroll thead th[data-col="Last Inspection Date"],
-    .table-scroll thead th[data-col="Next Inspection Date"] {
+    .table-scroll thead th[data-col="Planned Start Date"],
+    .table-scroll thead th[data-col="Assigned to"],
+    .table-scroll thead th[data-col="Last updated"] {
       white-space:normal;
     }
 
@@ -1147,13 +1148,6 @@
 
     .table-scroll thead th:last-child {
       border-top-right-radius:12px;
-    }
-
-    .table-scroll thead th[data-col="Asset"] {
-      position:sticky;
-      left:0;
-      z-index:3;
-      border-right:1px solid color-mix(in srgb, var(--grid) 85%, transparent);
     }
 
     .table-scroll thead th .sort-arrow {
@@ -1205,11 +1199,27 @@
       box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--als-blue) 45%, transparent);
     }
 
-    .table-scroll thead th[data-col="Last Inspection Date"],
-    .table-scroll tbody td[data-col="Last Inspection Date"],
-    .table-scroll thead th[data-col="Next Inspection Date"],
-    .table-scroll tbody td[data-col="Next Inspection Date"] {
-      width:112px;
+    .table-scroll thead th[data-col="ID"],
+    .table-scroll tbody td[data-col="ID"] {
+      width:132px;
+    }
+
+    .table-scroll thead th[data-col="Created on"],
+    .table-scroll tbody td[data-col="Created on"],
+    .table-scroll thead th[data-col="Planned Start Date"],
+    .table-scroll tbody td[data-col="Planned Start Date"],
+    .table-scroll thead th[data-col="Due date"],
+    .table-scroll tbody td[data-col="Due date"],
+    .table-scroll thead th[data-col="Completed on"],
+    .table-scroll tbody td[data-col="Completed on"],
+    .table-scroll thead th[data-col="Last updated"],
+    .table-scroll tbody td[data-col="Last updated"] {
+      width:148px;
+    }
+
+    .table-scroll thead th[data-col="Assigned to"],
+    .table-scroll tbody td[data-col="Assigned to"] {
+      width:180px;
     }
 
     .table-scroll thead th[data-col="Location"],
@@ -1217,48 +1227,76 @@
       width:200px;
     }
 
-    .table-scroll thead th[data-col="Comments"],
-    .table-scroll tbody td[data-col="Comments"] {
-      width:360px;
+    .table-scroll thead th[data-col="Categories"],
+    .table-scroll tbody td[data-col="Categories"] {
+      width:240px;
     }
 
-    .table-scroll tbody td[data-col="Asset"] {
+    .table-scroll thead th[data-col="ID"] {
       position:sticky;
       left:0;
+      z-index:4;
+    }
+
+    .table-scroll thead th[data-col="Title"] {
+      position:sticky;
+      left:132px;
+      z-index:4;
+      border-right:1px solid color-mix(in srgb, var(--grid) 85%, transparent);
+    }
+
+    .table-scroll tbody td[data-col="ID"] {
+      position:sticky;
+      left:0;
+      z-index:1;
+      background:var(--zebra);
+      border-right:1px solid var(--grid);
+      font-weight:600;
+    }
+
+    tbody tr:nth-child(even) td[data-col="ID"] {
+      background:color-mix(in srgb,var(--grid) 12%,var(--zebra));
+    }
+
+    tbody tr.row-overdue td[data-col="ID"] {
+      background:color-mix(in srgb,#dc2626 16%,var(--zebra));
+      color:color-mix(in srgb,#1f2937 15%,var(--ink));
+    }
+
+    tbody tr.is-active td[data-col="ID"] {
+      box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--als-blue) 45%, transparent);
+    }
+
+    .table-scroll tbody td[data-col="Title"] {
+      position:sticky;
+      left:132px;
       z-index:1;
       font-weight:700;
       background:var(--zebra);
       border-right:1px solid var(--grid);
     }
 
-    tbody tr:nth-child(even) td[data-col="Asset"] {
+    tbody tr:nth-child(even) td[data-col="Title"] {
       background:color-mix(in srgb,var(--grid) 12%,var(--zebra));
     }
 
-    tbody tr.row-overdue td[data-col="Asset"] {
+    tbody tr.row-overdue td[data-col="Title"] {
       background:color-mix(in srgb,#dc2626 16%,var(--zebra));
       color:color-mix(in srgb,#1f2937 15%,var(--ink));
     }
 
-    tbody tr.is-active td[data-col="Asset"] {
+    tbody tr.is-active td[data-col="Title"] {
       box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--als-blue) 45%, transparent);
     }
 
-    tbody td[data-col="Notes"] {
-      max-width:420px;
-    }
-
-    tbody td[data-col] > span {
-      display:block;
-      overflow:hidden;
-      text-overflow:ellipsis;
+    .table-scroll td[data-col="Due date"] {
       white-space:nowrap;
     }
 
-    tbody td[data-col="Notes"] > span,
-    tbody td[data-col="Notes"] {
-      white-space:normal;
-      overflow:visible;
+    .table-scroll td[data-col="Due date"] .table-date {
+      margin-left:8px;
+      color:var(--muted);
+      font-weight:500;
     }
 
     .countdown-chip {
@@ -1738,14 +1776,19 @@
             <label class="sort-control__label" for="desktop-sort-select">Sort by</label>
             <div class="sort-control__inputs">
               <select id="desktop-sort-select" data-role="sort-select" aria-label="Select column to sort">
-                <option value="Next Due" selected>Next Due</option>
-                <option value="Asset">Asset</option>
-                <option value="Site">Site</option>
-                <option value="Category">Category</option>
-                <option value="Last Completed">Last Completed</option>
+                <option value="Due date" selected>Due date</option>
                 <option value="Status">Status</option>
-                <option value="WO/Link">WO/Link</option>
-                <option value="Notes">Notes</option>
+                <option value="Priority">Priority</option>
+                <option value="Assigned to">Assigned to</option>
+                <option value="Title">Title</option>
+                <option value="Created on">Created on</option>
+                <option value="Planned Start Date">Planned Start Date</option>
+                <option value="Completed on">Completed on</option>
+                <option value="Last updated">Last updated</option>
+                <option value="Location">Location</option>
+                <option value="Asset">Asset</option>
+                <option value="Categories">Categories</option>
+                <option value="ID">ID</option>
               </select>
               <button type="button" class="sort-control__direction btn btn--ghost btn--sm" data-role="sort-direction" data-direction="asc" aria-label="Toggle sort direction (currently ascending)">Ascending</button>
             </div>
@@ -1753,14 +1796,19 @@
           <div class="mobile-sort" data-role="mobile-sort">
             <label for="mobile-sort-select">Sort by</label>
             <select id="mobile-sort-select" data-role="mobile-sort-select" aria-label="Select column to sort">
-              <option value="Next Due" selected>Next Due</option>
-              <option value="Asset">Asset</option>
-              <option value="Site">Site</option>
-              <option value="Category">Category</option>
-              <option value="Last Completed">Last Completed</option>
+              <option value="Due date" selected>Due date</option>
               <option value="Status">Status</option>
-              <option value="WO/Link">WO/Link</option>
-              <option value="Notes">Notes</option>
+              <option value="Priority">Priority</option>
+              <option value="Assigned to">Assigned to</option>
+              <option value="Title">Title</option>
+              <option value="Created on">Created on</option>
+              <option value="Planned Start Date">Planned Start Date</option>
+              <option value="Completed on">Completed on</option>
+              <option value="Last updated">Last updated</option>
+              <option value="Location">Location</option>
+              <option value="Asset">Asset</option>
+              <option value="Categories">Categories</option>
+              <option value="ID">ID</option>
             </select>
             <button type="button" class="mobile-sort__direction btn btn--outline btn--sm" data-role="mobile-sort-direction" data-direction="asc" aria-label="Toggle sort direction (currently ascending)">Ascending</button>
           </div>
@@ -1777,19 +1825,24 @@
             <caption id="inspections-table-caption" class="visually-hidden">Inspections schedule</caption>
             <thead>
               <tr>
-                <th scope="col" data-col="Site" aria-sort="none">Site <span class="sort-arrow" aria-hidden="true"></span></th>
-                <th scope="col" data-col="Asset" aria-sort="none">Asset <span class="sort-arrow" aria-hidden="true"></span></th>
-                <th scope="col" data-col="Category" aria-sort="none">Category <span class="sort-arrow" aria-hidden="true"></span></th>
-                <th scope="col" data-col="Last Completed" aria-sort="none">Last Completed <span class="sort-arrow" aria-hidden="true"></span></th>
-                <th scope="col" data-col="Next Due" aria-sort="none">Next Due <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th scope="col" data-col="ID" aria-sort="none">ID <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th scope="col" data-col="Title" aria-sort="none">Title <span class="sort-arrow" aria-hidden="true"></span></th>
                 <th scope="col" data-col="Status" aria-sort="none">Status <span class="sort-arrow" aria-hidden="true"></span></th>
-                <th scope="col" data-col="WO/Link" aria-sort="none">WO/Link <span class="sort-arrow" aria-hidden="true"></span></th>
-                <th scope="col" data-col="Notes" aria-sort="none">Notes <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th scope="col" data-col="Priority" aria-sort="none">Priority <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th scope="col" data-col="Assigned to" aria-sort="none">Assigned to <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th scope="col" data-col="Created on" aria-sort="none">Created on <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th scope="col" data-col="Planned Start Date" aria-sort="none">Planned Start Date <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th scope="col" data-col="Due date" aria-sort="none">Due date <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th scope="col" data-col="Completed on" aria-sort="none">Completed on <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th scope="col" data-col="Last updated" aria-sort="none">Last updated <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th scope="col" data-col="Location" aria-sort="none">Location <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th scope="col" data-col="Asset" aria-sort="none">Asset <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th scope="col" data-col="Categories" aria-sort="none">Categories <span class="sort-arrow" aria-hidden="true"></span></th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td colspan="8" class="empty-state">Loading inspection data…</td>
+                <td colspan="13" class="empty-state">Loading inspection data…</td>
               </tr>
             </tbody>
           </table>
@@ -1863,50 +1916,90 @@
 
     const OFFLINE_SAMPLE = [
       {
-        'Site': 'Byron',
+        'ID': 'MX-4012',
+        'Title': 'Fire Alarm Panel',
+        'Status': 'On Track',
+        'Priority': 'Medium',
+        'Assigned to': 'HSE',
+        'Created on': '2024-01-12',
+        'Planned Start Date': '2024-02-01',
+        'Due date': '2024-05-12',
+        'Completed on': '2024-02-12',
+        'Last updated': '2024-02-13',
+        'Location': 'Byron',
         'Asset': 'Fire Alarm Panel',
+        'Categories': 'E-Stop Tests',
+        'Site': 'Byron',
         'Category': 'E-Stop Tests',
         'Last Done': '2024-02-12',
         'Due Date': '2024-05-12',
-        'Frequency (Months)': '3',
         'Owner/Team': 'HSE',
-        'Status': '',
         'WO/Link': 'MX-4012',
         'Notes': 'Quarterly test schedule.'
       },
       {
-        'Site': 'Keith',
+        'ID': 'MX-3771',
+        'Title': 'Main Compressor Service',
+        'Status': 'Due Soon',
+        'Priority': 'High',
+        'Assigned to': 'Engineering',
+        'Created on': '2023-11-15',
+        'Planned Start Date': '2023-12-01',
+        'Due date': '2024-06-01',
+        'Completed on': '2023-12-01',
+        'Last updated': '2024-01-05',
+        'Location': 'Keith',
         'Asset': 'Main Compressor',
+        'Categories': 'Compressor Servicing',
+        'Site': 'Keith',
         'Category': 'Compressor Servicing',
         'Last Done': '2023-12-01',
         'Due Date': '2024-06-01',
-        'Frequency (Months)': '6',
         'Owner/Team': 'Engineering',
-        'Status': '',
         'WO/Link': 'MX-3771',
         'Notes': 'Check vibration levels.'
       },
       {
-        'Site': 'Cathkin (East Kilbride)',
+        'ID': 'MX-3905',
+        'Title': 'Legionella Flush',
+        'Status': 'On Track',
+        'Priority': 'Low',
+        'Assigned to': 'Facilities',
+        'Created on': '2023-12-15',
+        'Planned Start Date': '2024-01-10',
+        'Due date': '2024-04-15',
+        'Completed on': '2024-01-15',
+        'Last updated': '2024-01-16',
+        'Location': 'Cathkin (East Kilbride)',
         'Asset': 'Legionella Flush',
+        'Categories': 'Legionella',
+        'Site': 'Cathkin (East Kilbride)',
         'Category': 'Legionella',
         'Last Done': '2024-01-15',
         'Due Date': '2024-04-15',
-        'Frequency (Months)': '3',
         'Owner/Team': 'Facilities',
-        'Status': '',
         'WO/Link': 'MX-3905',
         'Notes': 'Monthly flushing log attached.'
       },
       {
-        'Site': 'Mugiemoss',
+        'ID': 'MX-4120',
+        'Title': 'Boiler Burner Service',
+        'Status': 'Overdue',
+        'Priority': 'High',
+        'Assigned to': 'Maintenance',
+        'Created on': '2023-09-01',
+        'Planned Start Date': '2023-11-01',
+        'Due date': '2024-05-20',
+        'Completed on': '2023-11-20',
+        'Last updated': '2024-02-01',
+        'Location': 'Mugiemoss',
         'Asset': 'Boiler Burner',
+        'Categories': 'Burner Servicing',
+        'Site': 'Mugiemoss',
         'Category': 'Burner Servicing',
         'Last Done': '2023-11-20',
         'Due Date': '2024-05-20',
-        'Frequency (Months)': '6',
         'Owner/Team': 'Maintenance',
-        'Status': '',
         'WO/Link': 'MX-4120',
         'Notes': 'Review combustion analysis.'
       }
@@ -1916,7 +2009,7 @@
       siteKey: 'all',
       category: 'all',
       search: '',
-      sortBy: 'Next Due',
+      sortBy: 'Due date',
       sortDir: 'asc'
     };
 
@@ -1989,6 +2082,14 @@
         const y = date.getFullYear();
         return `${d}/${m}/${y}`;
       }
+    }
+
+    function formatDisplayValue(dateValue, rawValue){
+      if(dateValue instanceof Date && !isNaN(dateValue)){
+        return formatDate(dateValue);
+      }
+      const text = String(rawValue ?? '').trim();
+      return text ? text : '—';
     }
 
     function parseCsv(text){
@@ -2229,15 +2330,25 @@
     function normalizeRow(raw, index){
       const site = pickField(raw, ['Site', 'Location']);
       const asset = pickField(raw, ['Asset', 'Equipment', 'Title', 'Equipment Name', 'Name']);
+      const title = pickField(raw, ['Title', 'Task', 'Summary', 'Asset', 'Equipment', 'Name']);
       let category = pickField(raw, ['Category', 'Inspection Type', 'Type', 'Discipline']);
-      const lastRaw = pickField(raw, ['Last Done', 'Last Completed', 'Last Inspection', 'Last Inspection Date', 'Previous Inspection', 'Completed on']);
-      const dueRaw = pickField(raw, ['Due Date', 'Next Due', 'Next Inspection', 'Next Inspection Date', 'Due date']);
+      const categories = pickField(raw, ['Categories', 'Category', 'Discipline']);
+      const completedRaw = pickField(raw, ['Completed on', 'Last Done', 'Last Completed', 'Last Inspection', 'Last Inspection Date', 'Previous Inspection']);
+      const dueRaw = pickField(raw, ['Due date', 'Due Date', 'Next Due', 'Next Inspection', 'Next Inspection Date']);
+      const createdRaw = pickField(raw, ['Created on', 'Creation Date', 'Date Created', 'Reported on', 'Opened on']);
+      const plannedRaw = pickField(raw, ['Planned Start Date', 'Planned Start', 'Planned Start Date (Local)', 'Planned Start Time']);
+      const updatedRaw = pickField(raw, ['Last updated', 'Updated', 'Last Modified', 'Modified']);
       const frequencyText = pickField(raw, ['Frequency (Months)', 'Frequency', 'Interval (Months)', 'Months']);
       const owner = pickField(raw, ['Owner/Team', 'Owner', 'Assigned to', 'Team', 'Owner Team', 'Responsible', 'Inspector']);
+      const assignedTo = pickField(raw, ['Assigned to', 'Owner', 'Owner/Team', 'Responsible', 'Inspector']) || owner;
+      const priority = pickField(raw, ['Priority', 'Risk', 'Criticality', 'Severity']);
       const notes = pickField(raw, ['Notes', 'Comments', 'Remarks', 'Summary', 'Details', 'Description']);
-      const workOrderValue = pickField(raw, ['WO/Link', 'WO', 'Work Order', 'Workorder', 'Link', 'URL', 'Document', 'Document Link', 'Attachment', 'Attachment URL', 'File Name', 'File', 'Document URL']);
-      const lastDate = parseDate(lastRaw);
+      const workOrderValue = pickField(raw, ['ID', 'WO/Link', 'WO', 'Work Order', 'Workorder', 'Link', 'URL', 'Document', 'Document Link', 'Attachment', 'Attachment URL', 'File Name', 'File', 'Document URL']);
+      const completedDate = parseDate(completedRaw);
       const dueDate = parseDate(dueRaw);
+      const createdDate = parseDate(createdRaw);
+      const plannedDate = parseDate(plannedRaw);
+      const updatedDate = parseDate(updatedRaw);
       const frequencyMonths = parseFrequencyMonths(frequencyText);
       const workOrder = normalizeWorkOrder(workOrderValue);
       if(!category){
@@ -2246,33 +2357,68 @@
       const resolvedFrequency = (typeof frequencyMonths === 'number' && !Number.isNaN(frequencyMonths)) ? frequencyMonths : null;
       const fallbackFrequency = CATEGORY_FREQUENCY[category] || null;
       const statusFrequency = resolvedFrequency && resolvedFrequency > 0 ? resolvedFrequency : fallbackFrequency;
-      const statusInfo = computeStatus(raw, lastDate, dueDate, statusFrequency);
+      const statusInfo = computeStatus(raw, completedDate, dueDate, statusFrequency);
       const dueDisplay = statusInfo.effectiveDue || dueDate;
       const id = `ins-${index + 1}`;
-
+      const idLabel = workOrder.label || '—';
+      const formattedCompleted = formatDisplayValue(completedDate, completedRaw);
+      const formattedDue = formatDisplayValue(dueDisplay, dueRaw);
+      const formattedCreated = formatDisplayValue(createdDate, createdRaw);
+      const formattedPlanned = formatDisplayValue(plannedDate, plannedRaw);
+      const formattedUpdated = formatDisplayValue(updatedDate, updatedRaw);
+      const resolvedTitle = title || asset || workOrder.label || '—';
+      const resolvedLocation = pickField(raw, ['Location', 'Site', 'Facility']) || site;
+      const resolvedCategory = category || categories;
+      
       return {
         __id: id,
         __source: raw,
-        Site: site || '—',
-        Asset: asset || '—',
-        Category: category || 'Uncategorised',
-        'Last Completed': lastDate ? formatDate(lastDate) : (lastRaw || '—'),
-        'Next Due': dueDisplay ? formatDate(dueDisplay) : (dueRaw || '—'),
+        Site: site || resolvedLocation || '—',
+        Location: resolvedLocation || site || '—',
+        Asset: asset || resolvedTitle || '—',
+        Title: resolvedTitle,
+        Category: resolvedCategory || 'Uncategorised',
+        Categories: categories || resolvedCategory || 'Uncategorised',
+        'Last Completed': formattedCompleted,
+        'Completed on': formattedCompleted,
+        'Next Due': formattedDue,
+        'Due date': formattedDue,
         Status: statusInfo.displayStatus,
-        'WO/Link': workOrder.label || '—',
+        Priority: priority || '—',
+        'Assigned to': assignedTo || owner || '—',
+        'Created on': formattedCreated,
+        'Planned Start Date': formattedPlanned,
+        'Last updated': formattedUpdated,
+        'WO/Link': idLabel,
+        ID: idLabel,
         Notes: notes || '—',
         Owner: owner,
         FrequencyMonths: resolvedFrequency != null ? resolvedFrequency : fallbackFrequency,
-        __lastDate: lastDate,
+        __lastDate: completedDate,
         __dueDate: dueDate,
         __effectiveDue: dueDisplay,
         __statusKey: statusInfo.statusKey,
         __statusLabel: statusInfo.displayStatus,
         __countdownDays: statusInfo.diffDays,
         __workOrderHref: workOrder.href,
-        __siteKey: getSiteKeyFromName(site),
-        __categoryKey: category ? category.toLowerCase() : 'uncategorised',
-        __searchText: buildSearchText([site, asset, category, owner, notes, workOrder.label])
+        __siteKey: getSiteKeyFromName(site || resolvedLocation),
+        __categoryKey: (resolvedCategory || '').toLowerCase() || 'uncategorised',
+        __createdDate: createdDate instanceof Date && !isNaN(createdDate) ? createdDate : null,
+        __plannedStartDate: plannedDate instanceof Date && !isNaN(plannedDate) ? plannedDate : null,
+        __lastUpdatedDate: updatedDate instanceof Date && !isNaN(updatedDate) ? updatedDate : null,
+        __searchText: buildSearchText([
+          site,
+          resolvedLocation,
+          asset,
+          resolvedTitle,
+          resolvedCategory,
+          categories,
+          owner,
+          assignedTo,
+          priority,
+          notes,
+          workOrder.label
+        ])
       };
     }
 
@@ -2305,16 +2451,36 @@
         const frequency = CATEGORY_FREQUENCY[category] || null;
         const assignedRaw = String(raw['Assigned to'] ?? '').trim();
         const owner = assignedRaw.includes(',') ? assignedRaw.split(',')[0].trim() : assignedRaw;
+        const id = String(raw['ID'] ?? '').trim();
+        const dueRaw = String(raw['Due date'] ?? raw['Due Date'] ?? '').trim();
+        const completedRaw = String(raw['Completed on'] ?? raw['Last Done'] ?? '').trim();
+        const createdRaw = String(raw['Created on'] ?? '').trim();
+        const plannedRaw = String(raw['Planned Start Date'] ?? '').trim();
+        const updatedRaw = String(raw['Last updated'] ?? '').trim();
+        const statusRaw = String(raw['Status'] ?? '').trim();
+        const priorityRaw = String(raw['Priority'] ?? '').trim();
         return {
           'Site': location,
+          'Location': location,
           'Asset': asset,
+          'Title': title || asset,
           'Category': category,
-          'Last Done': String(raw['Completed on'] ?? '').trim(),
-          'Due Date': String(raw['Due date'] ?? '').trim(),
+          'Categories': categories || category,
+          'Last Done': completedRaw,
+          'Last Completed': completedRaw,
+          'Completed on': completedRaw,
+          'Due Date': dueRaw,
+          'Due date': dueRaw,
           'Frequency (Months)': frequency ? String(frequency) : '',
           'Owner/Team': owner,
-          'Status': '',
-          'WO/Link': String(raw['ID'] ?? '').trim(),
+          'Assigned to': owner,
+          'Status': statusRaw,
+          'Priority': priorityRaw,
+          'ID': id,
+          'WO/Link': id,
+          'Created on': createdRaw,
+          'Planned Start Date': plannedRaw,
+          'Last updated': updatedRaw,
           'Notes': ''
         };
       });
@@ -2363,23 +2529,27 @@
     function sortRows(rows, column, direction){
       const list = rows.slice();
       const dir = direction === 'desc' ? -1 : 1;
-      const col = column || 'Next Due';
+      const col = column || 'Due date';
       const compareString = (a, b) => dir * STRING_COLLATOR.compare(String(a ?? '').toLowerCase(), String(b ?? '').toLowerCase());
+      const dateAccessor = (row) => {
+        if(col === 'Due date' || col === 'Next Due') return row.__effectiveDue instanceof Date ? row.__effectiveDue.getTime() : 0;
+        if(col === 'Completed on' || col === 'Last Completed') return row.__lastDate instanceof Date ? row.__lastDate.getTime() : 0;
+        if(col === 'Created on') return row.__createdDate instanceof Date ? row.__createdDate.getTime() : 0;
+        if(col === 'Planned Start Date') return row.__plannedStartDate instanceof Date ? row.__plannedStartDate.getTime() : 0;
+        if(col === 'Last updated') return row.__lastUpdatedDate instanceof Date ? row.__lastUpdatedDate.getTime() : 0;
+        return null;
+      };
       list.sort((a, b) => {
-        if(col === 'Next Due'){
-          const da = a.__effectiveDue instanceof Date ? a.__effectiveDue.getTime() : 0;
-          const db = b.__effectiveDue instanceof Date ? b.__effectiveDue.getTime() : 0;
-          if(da !== db) return dir * (da - db);
-        }else if(col === 'Last Completed'){
-          const da = a.__lastDate instanceof Date ? a.__lastDate.getTime() : 0;
-          const db = b.__lastDate instanceof Date ? b.__lastDate.getTime() : 0;
-          if(da !== db) return dir * (da - db);
+        const dateA = dateAccessor(a);
+        const dateB = dateAccessor(b);
+        if(dateA != null || dateB != null){
+          if(dateA !== dateB) return dir * ((dateA ?? 0) - (dateB ?? 0));
         }else{
           const va = a[col] ?? '';
           const vb = b[col] ?? '';
           if(va !== vb) return compareString(va, vb);
         }
-        return compareString(a.Asset, b.Asset);
+        return compareString(a.Title, b.Title);
       });
       return list;
     }
@@ -2600,21 +2770,26 @@
         if(row.__statusKey === 'overdue') classes.push('row-overdue');
         if(row.__id === selectedRowId) classes.push('is-active');
         const classAttr = classes.length ? ` class="${esc(classes.join(' '))}"` : '';
-        const workOrder = row.__workOrderHref
-          ? `<a href="${esc(row.__workOrderHref)}" target="_blank" rel="noopener">${esc(row['WO/Link'])}</a>`
-          : esc(row['WO/Link']);
+        const idCell = row.__workOrderHref
+          ? `<a href="${esc(row.__workOrderHref)}" target="_blank" rel="noopener">${esc(row.ID)}</a>`
+          : esc(row.ID);
         return `
           <tr data-row-id="${esc(row.__id)}"${classAttr}>
-            <td data-col="Site">${esc(row.Site)}</td>
-            <td data-col="Asset">${esc(row.Asset)}</td>
-            <td data-col="Category">${esc(row.Category)}</td>
-            <td data-col="Last Completed">${esc(row['Last Completed'])}</td>
-            <td data-col="Next Due"><span class="${chip.className}">${esc(chip.label)}</span> <span class="table-date">${esc(row['Next Due'])}</span></td>
+            <td data-col="ID">${idCell}</td>
+            <td data-col="Title">${esc(row.Title)}</td>
             <td data-col="Status"><span class="${statusCls}">${esc(row.Status)}</span></td>
-            <td data-col="WO/Link">${workOrder}</td>
-            <td data-col="Notes">${esc(row.Notes)}</td>
+            <td data-col="Priority">${esc(row.Priority)}</td>
+            <td data-col="Assigned to">${esc(row['Assigned to'])}</td>
+            <td data-col="Created on">${esc(row['Created on'])}</td>
+            <td data-col="Planned Start Date">${esc(row['Planned Start Date'])}</td>
+            <td data-col="Due date"><span class="${chip.className}">${esc(chip.label)}</span> <span class="table-date">${esc(row['Due date'])}</span></td>
+            <td data-col="Completed on">${esc(row['Completed on'])}</td>
+            <td data-col="Last updated">${esc(row['Last updated'])}</td>
+            <td data-col="Location">${esc(row.Location)}</td>
+            <td data-col="Asset">${esc(row.Asset)}</td>
+            <td data-col="Categories">${esc(row.Categories)}</td>
           </tr>`;
-      }).join('') : '<tr><td colspan="8" class="empty-state">No inspections match the current filters.</td></tr>';
+      }).join('') : '<tr><td colspan="13" class="empty-state">No inspections match the current filters.</td></tr>';
       tbody.innerHTML = html;
       scroll?.setAttribute('aria-busy', 'false');
       updateSortIndicators();
@@ -2630,25 +2805,27 @@
         const isActive = row.__id === selectedRowId;
         const notes = row.Notes && row.Notes !== '—' ? row.Notes : 'No additional notes.';
         const workOrder = row.__workOrderHref
-          ? `<a class="mobile-card__action" href="${esc(row.__workOrderHref)}" target="_blank" rel="noopener">Open link</a>`
-          : (row['WO/Link'] && row['WO/Link'] !== '—' ? `<span class="mobile-card__action" role="text">${esc(row['WO/Link'])}</span>` : '');
+          ? `<a class="mobile-card__action" href="${esc(row.__workOrderHref)}" target="_blank" rel="noopener">Open ID</a>`
+          : (row.ID && row.ID !== '—' ? `<span class="mobile-card__action" role="text">${esc(row.ID)}</span>` : '');
         return `
           <article class="mobile-card ${row.__statusKey === 'overdue' ? 'row-overdue' : ''} ${isActive ? 'is-active' : ''}" data-row-id="${esc(row.__id)}" role="listitem">
             <header class="mobile-card__header">
               <div class="mobile-card__heading">
-                <div class="mobile-card__title">${esc(row.Asset)}</div>
-                <div class="mobile-card__subtitle"><span>${esc(row.Site)}</span><span>${esc(row.Category)}</span></div>
+                <div class="mobile-card__title">${esc(row.Title)}</div>
+                <div class="mobile-card__subtitle"><span>${esc(row.Location)}</span><span>${esc(row.Categories)}</span></div>
               </div>
               <span class="${statusCls}">${esc(row.Status)}</span>
             </header>
             <div class="mobile-card__chip ${chip.className}">${esc(chip.label)}</div>
             <dl class="mobile-card__details">
-              <dt class="mobile-card__detail-label">Last</dt>
-              <dd class="mobile-card__detail-value">${esc(row['Last Completed'])}</dd>
-              <dt class="mobile-card__detail-label">Next</dt>
-              <dd class="mobile-card__detail-value">${esc(row['Next Due'])}</dd>
-              <dt class="mobile-card__detail-label">Owner</dt>
-              <dd class="mobile-card__detail-value">${esc(row.Owner || '—')}</dd>
+              <dt class="mobile-card__detail-label">Priority</dt>
+              <dd class="mobile-card__detail-value">${esc(row.Priority)}</dd>
+              <dt class="mobile-card__detail-label">Due</dt>
+              <dd class="mobile-card__detail-value">${esc(row['Due date'])}</dd>
+              <dt class="mobile-card__detail-label">Completed</dt>
+              <dd class="mobile-card__detail-value">${esc(row['Completed on'])}</dd>
+              <dt class="mobile-card__detail-label">Assigned</dt>
+              <dd class="mobile-card__detail-value">${esc(row['Assigned to'] || row.Owner || '—')}</dd>
             </dl>
             <div class="mobile-card__note">
               <span class="mobile-card__note-label">Notes</span>
@@ -2688,13 +2865,25 @@
         return;
       }
       const notes = row.Notes && row.Notes !== '—' ? row.Notes : 'No additional notes.';
-      const link = row.__workOrderHref
-        ? `<a href="${esc(row.__workOrderHref)}" target="_blank" rel="noopener">${esc(row['WO/Link'])}</a>`
-        : (row['WO/Link'] && row['WO/Link'] !== '—' ? esc(row['WO/Link']) : '—');
+      const assigned = row['Assigned to'] || row.Owner || '—';
+      const idDisplay = row.__workOrderHref
+        ? `<a href="${esc(row.__workOrderHref)}" target="_blank" rel="noopener">${esc(row.ID)}</a>`
+        : esc(row.ID || '—');
       if(heading){
-        heading.textContent = `${row.Category} – ${row.Asset}`;
+        heading.textContent = row.Title ? `${row.Title}` : 'Inspection details';
       }
-      body.innerHTML = `<p><strong>Link/WO:</strong> ${link}</p><p>${esc(notes)}</p>`;
+      body.innerHTML = `
+        <p><strong>ID:</strong> ${idDisplay}</p>
+        <p><strong>Status:</strong> ${esc(row.Status)}</p>
+        <p><strong>Priority:</strong> ${esc(row.Priority)}</p>
+        <p><strong>Assigned to:</strong> ${esc(assigned)}</p>
+        <p><strong>Due date:</strong> ${esc(row['Due date'])}</p>
+        <p><strong>Completed on:</strong> ${esc(row['Completed on'])}</p>
+        <p><strong>Last updated:</strong> ${esc(row['Last updated'])}</p>
+        <p><strong>Location:</strong> ${esc(row.Location)}</p>
+        <p><strong>Asset:</strong> ${esc(row.Asset)}</p>
+        <p><strong>Categories:</strong> ${esc(row.Categories)}</p>
+        <p><strong>Notes:</strong> ${esc(notes)}</p>`;
       viewer.hidden = false;
       toggle.setAttribute('aria-expanded', 'true');
       viewer.setAttribute('data-viewer-collapsed', 'false');
