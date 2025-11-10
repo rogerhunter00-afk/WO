@@ -1810,14 +1810,12 @@
 
     <script>
     const INSPECTIONS_SHEET_NAME = 'Inspections';
-    const DEFAULT_INSPECTIONS_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhXb-392ExhOiESN5E6IqM5ScrrB4oFpPcLhf8yis6_ZhFqjanoHomQJcqL-feiPi-t-sygaGb85at/pub?output=csv';
+    const DEFAULT_INSPECTIONS_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1DT58TWpncmpASlYnWzgSGFn61y4eoc9Qz6S5JXcB4ms/gviz/tq?tqx=out:csv';
     const DUE_SOON_DAYS = 30;
 
     const PARAMS = new URLSearchParams(location.search);
-    const FORCE_ONLINE = PARAMS.get('online') === '1';
     const FORCE_OFFLINE = PARAMS.get('offline') === '1';
-    const DEFAULT_OFFLINE = location.protocol === 'file:';
-    const ALLOW_NETWORK = FORCE_ONLINE ? true : (FORCE_OFFLINE ? false : !DEFAULT_OFFLINE);
+    const ALLOW_NETWORK = !FORCE_OFFLINE;
     const DEFAULT_ERROR_MESSAGE = 'We were unable to load the inspection sheet. Please check the network or sheet permissions and try again.';
 
     const CATEGORY_OPTIONS = [
