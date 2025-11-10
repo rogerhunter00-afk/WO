@@ -57,43 +57,7 @@
       color-scheme:light;
     }
 
-    @media (prefers-color-scheme: dark) {
-      :root {
-        color-scheme:dark;
-        --bg:#0f1422;
-        --paper:#131a2b;
-        --ink:#f3f4f6;
-        --muted:#9ca3af;
-        --border:#233150;
-        --brand:#3b82f6;
-        --brand-strong:#2563eb;
-        --btn-outline-bd:#2b3a63;
-        --btn-ghost-bg-hover:rgba(11,103,194,.18);
-        --input-bg:#0f1422;
-        --input-fg:#f3f4f6;
-        --input-bd:#233150;
-        --input-bd-focus:#3b82f6;
-        --als-blue:var(--brand);
-        --als-blue-strong:var(--brand-strong);
-        --risk-critical:#f87171;
-        --risk-warning:#fbbf24;
-        --risk-ok:#34d399;
-        --surface-subtle:color-mix(in srgb,var(--als-blue) 14%,var(--paper));
-        --surface-strong:color-mix(in srgb,var(--als-blue) 20%,var(--paper));
-        --thead:#1e3a8a;
-        --grid:#233150;
-        --zebra:#1c2438;
-        --ctrl-bg:#0d1117;
-        --ctrl-fg:#e8edf5;
-        --ctrl-muted:#9aa7b7;
-        --ctrl-ring:#60a5fa;
-        --ctrl-pill:#111827;
-        --ctrl-pill-border:#1f2937;
-        --ctrl-shadow:0 1px 0 rgba(255,255,255,.06) inset;
-        --ctrl-hover:rgba(96,165,250,.15);
-        --ctrl-on:#60a5fa;
-      }
-    }
+    /* Dark mode is now controlled by JavaScript only - removed auto dark mode detection */
 
     .dark {
       color-scheme:dark;
@@ -1678,8 +1642,18 @@
       .mobile-cards { display:none !important; }
     }
   </style>
+  <script>
+    // Force light mode immediately to prevent flash of dark mode
+    (function(){
+      const stored = localStorage.getItem('theme');
+      if(stored !== 'dark') {
+        document.documentElement.classList.add('light');
+        document.documentElement.setAttribute('color-scheme', 'light');
+      }
+    })();
+  </script>
 </head>
-<body>
+<body class="light">
   <div class="page">
     <header class="page-head">
       <div class="page-head__title">
@@ -2943,7 +2917,9 @@
     }
 
     function applyTheme(theme, themeBtn = null, themeBtnLabel = null){
+      console.log('applyTheme called with:', theme);
       const normalized = theme === 'dark' ? 'dark' : 'light';
+      console.log('Normalized theme:', normalized);
       document.body.classList.toggle('dark', normalized === 'dark');
       document.body.classList.toggle('light', normalized !== 'dark');
       document.body.classList.toggle('theme-dark', normalized === 'dark');
@@ -2964,11 +2940,15 @@
       if(themeBtn){
         themeBtn.title = title;
       }
+      console.log('Theme applied. Body classes:', document.body.className);
     }
 
     function initTheme(){
       const themeBtn = document.getElementById('dark-toggle');
       const themeBtnLabel = themeBtn?.querySelector('.switch-label') || themeBtn?.querySelector('.label');
+      
+      console.log('Theme button found:', themeBtn);
+      console.log('Theme button label found:', themeBtnLabel);
       
       const stored = localStorage.getItem(THEME_STORAGE_KEY);
       const prefersDarkQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
@@ -2976,13 +2956,23 @@
       let hasStoredTheme = stored === 'dark' || stored === 'light';
       // Default to light mode unless user has explicitly set a preference
       const initial = hasStoredTheme ? stored : 'light';
+      console.log('Initial theme:', initial, 'Stored:', stored);
       applyTheme(initial, themeBtn, themeBtnLabel);
-      themeBtn?.addEventListener('click', () => {
-        const next = document.body.classList.contains('theme-dark') ? 'light' : 'dark';
-        applyTheme(next, themeBtn, themeBtnLabel);
-        localStorage.setItem(THEME_STORAGE_KEY, next);
-        hasStoredTheme = true;
-      });
+      
+      if(themeBtn) {
+        themeBtn.addEventListener('click', () => {
+          console.log('Theme button clicked');
+          const next = document.body.classList.contains('theme-dark') ? 'light' : 'dark';
+          console.log('Switching to:', next);
+          applyTheme(next, themeBtn, themeBtnLabel);
+          localStorage.setItem(THEME_STORAGE_KEY, next);
+          hasStoredTheme = true;
+        });
+        console.log('Theme button click listener attached');
+      } else {
+        console.error('Theme button not found!');
+      }
+      
       if(prefersDarkQuery){
         const handler = (event) => {
           if(hasStoredTheme) return;
