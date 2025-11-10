@@ -2827,18 +2827,29 @@
       return document.querySelector('[data-component="inspections-table"]');
     }
 
+    function currentForcedLayout(){
+      if(document.body.classList.contains('force-mobile')) return 'mobile';
+      if(document.body.classList.contains('force-desktop')) return 'desktop';
+      return 'auto';
+    }
+
     function syncLayoutToggle(){
       if(!layoutToggleBtn) return;
-      const mode = document.body.classList.contains('force-mobile') ? 'mobile'
-        : document.body.classList.contains('force-desktop') ? 'desktop'
-          : 'auto';
-      const label = layoutToggleBtn.querySelector('.switch-label') || layoutToggleBtn.querySelector('.label');
-      if(label){
-        if(mode === 'mobile') label.textContent = 'Mobile view';
-        else if(mode === 'desktop') label.textContent = 'Desktop view';
-        else label.textContent = needsMobileLayout() ? 'Auto · Mobile' : 'Auto · Desktop';
+      const mode = currentForcedLayout();
+      const labelEl = layoutToggleBtn.querySelector('.switch-label') || layoutToggleBtn.querySelector('.label');
+      if(labelEl){
+        if(mode === 'mobile') labelEl.textContent = 'Mobile view';
+        else if(mode === 'desktop') labelEl.textContent = 'Desktop view';
+        else labelEl.textContent = needsMobileLayout() ? 'Auto · Mobile' : 'Auto · Desktop';
       }
+      const nextAction = mode === 'mobile'
+        ? 'Switch to desktop view'
+        : mode === 'desktop'
+          ? 'Return to automatic view'
+          : 'Switch to mobile view';
       layoutToggleBtn.setAttribute('aria-checked', mode === 'mobile' ? 'true' : 'false');
+      layoutToggleBtn.setAttribute('aria-label', nextAction);
+      layoutToggleBtn.title = nextAction;
     }
 
     function applyLayoutMode(mode, { persist = true } = {}){
@@ -2866,6 +2877,13 @@
         }
       }
       syncLayoutToggle();
+    }
+
+    function cycleLayoutMode(){
+      const current = currentForcedLayout();
+      const next = current === 'mobile' ? 'desktop' : current === 'desktop' ? 'auto' : 'mobile';
+      applyLayoutMode(next);
+      updateResponsiveState();
     }
 
     function restoreStoredLayoutMode(){
@@ -2901,13 +2919,19 @@
       const meta = document.querySelector('meta[name="color-scheme"]');
       meta?.setAttribute('content', normalized);
       const label = normalized === 'dark' ? 'Light' : 'Dark';
+      const title = normalized === 'dark'
+        ? 'Currently dark. Click to switch to light mode.'
+        : 'Currently light. Click to switch to dark mode.';
       if(themeBtnLabel){
         themeBtnLabel.textContent = label;
       }else if(themeBtn){
         themeBtn.textContent = label;
       }
       themeBtn?.setAttribute('aria-checked', normalized === 'dark' ? 'true' : 'false');
-      themeBtn?.setAttribute('aria-label', `Switch to ${normalized === 'dark' ? 'light' : 'dark'} mode`);
+      themeBtn?.setAttribute('aria-label', title);
+      if(themeBtn){
+        themeBtn.title = title;
+      }
     }
 
     function initTheme(){
@@ -2939,14 +2963,7 @@
     function initLayout(){
       restoreStoredLayoutMode();
       updateResponsiveState();
-      layoutToggleBtn?.addEventListener('click', () => {
-        const current = document.body.classList.contains('force-mobile') ? 'mobile'
-          : document.body.classList.contains('force-desktop') ? 'desktop'
-            : 'auto';
-        const next = current === 'mobile' ? 'desktop' : current === 'desktop' ? 'auto' : 'mobile';
-        applyLayoutMode(next);
-        updateResponsiveState();
-      });
+      layoutToggleBtn?.addEventListener('click', cycleLayoutMode);
       window.addEventListener('resize', () => {
         updateResponsiveState();
         updateStickyOffsets();
