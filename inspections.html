@@ -43,7 +43,7 @@
       --grid:var(--border);
       --zebra:var(--paper);
       --sticky-controls-offset:0px;
-      --table-min-width:720px;
+      --table-min-width:1280px;
       --ui-offset:0px;
       --ctrl-bg:#ffffff;
       --ctrl-fg:#0b0f1a;
@@ -1182,6 +1182,13 @@
       line-height:1.5;
     }
 
+    .table-scroll tbody td[data-col="Assigned to"],
+    .table-scroll tbody td[data-col="Location"],
+    .table-scroll tbody td[data-col="Categories"] {
+      word-break:normal;
+      overflow-wrap:anywhere;
+    }
+
     tbody tr:last-child td {
       border-bottom:none;
     }
@@ -1217,9 +1224,25 @@
       width:148px;
     }
 
+    .table-scroll thead th[data-col="Title"],
+    .table-scroll tbody td[data-col="Title"] {
+      width:260px;
+    }
+
+    .table-scroll thead th[data-col="Status"],
+    .table-scroll tbody td[data-col="Status"] {
+      width:140px;
+    }
+
+    .table-scroll thead th[data-col="Priority"],
+    .table-scroll tbody td[data-col="Priority"] {
+      width:120px;
+      white-space:nowrap;
+    }
+
     .table-scroll thead th[data-col="Assigned to"],
     .table-scroll tbody td[data-col="Assigned to"] {
-      width:180px;
+      width:220px;
     }
 
     .table-scroll thead th[data-col="Location"],
