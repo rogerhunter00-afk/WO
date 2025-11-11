@@ -1300,6 +1300,11 @@
       width:200px;
     }
 
+    .table-scroll thead th[data-col="Asset"],
+    .table-scroll tbody td[data-col="Asset"] {
+      width:200px;
+    }
+
     .table-scroll thead th[data-col="Categories"],
     .table-scroll tbody td[data-col="Categories"] {
       width:240px;
@@ -2619,7 +2624,7 @@
 
     function normalizeRow(raw, index){
       const site = pickField(raw, ['Site', 'Location']);
-      const asset = pickField(raw, ['Asset', 'Equipment', 'Title', 'Equipment Name', 'Name']);
+      const asset = pickField(raw, ['Asset', 'Asset Name', 'Asset Description', 'Asset ID', 'Column 12', 'Column L', 'Equipment', 'Title', 'Equipment Name', 'Name']);
       const title = pickField(raw, ['Title', 'Task', 'Summary', 'Asset', 'Equipment', 'Name']);
       let category = pickField(raw, ['Category', 'Inspection Type', 'Type', 'Discipline']);
       const categories = pickField(raw, ['Categories', 'Category', 'Discipline']);
@@ -2728,7 +2733,7 @@
       const rows = Array.isArray(mxRows) ? mxRows : [];
       const mapped = rows.map((raw) => {
         const title = String(raw['Title'] ?? '').trim();
-        const asset = String(raw['Asset'] ?? '').trim() || title;
+        const asset = pickField(raw, ['Asset', 'Asset Name', 'Asset Description', 'Asset ID', 'Column 12', 'Column L', 'Equipment']) || title;
         const location = String(raw['Location'] ?? '').trim();
         const categories = String(raw['Categories'] ?? '').trim();
         const combined = `${categories} ${title}`.toLowerCase();
