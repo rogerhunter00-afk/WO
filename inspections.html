@@ -878,8 +878,18 @@
     .category-filter {
       display:flex;
       flex-direction:column;
-      gap:4px;
+      gap:6px;
       font-size:12px;
+    }
+
+    .controls-bar > .category-filter {
+      flex:1 1 100%;
+    }
+
+    .category-filter + .search-control,
+    .category-filter + .sort-control,
+    .category-filter + .mobile-sort {
+      margin-top:4px;
     }
 
     .search-control label,
@@ -898,6 +908,63 @@
       font:inherit;
       transition:border-color .18s ease,box-shadow .18s ease,background-color .18s ease;
       min-width:0;
+    }
+
+    .category-hotbar {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(148px,1fr));
+      gap:8px;
+    }
+
+    .category-hotbar__btn {
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;
+      gap:6px;
+      padding:14px 16px;
+      border-radius:14px;
+      border:1px solid var(--border);
+      background:var(--paper);
+      color:var(--ink);
+      box-shadow:var(--shadow);
+      cursor:pointer;
+      font:inherit;
+      font-size:12px;
+      text-align:left;
+      transition:background-color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .12s ease;
+    }
+
+    .category-hotbar__btn:hover {
+      background:color-mix(in srgb,var(--als-blue) 6%,var(--paper));
+      transform:translateY(-1px);
+    }
+
+    .category-hotbar__btn:focus-visible {
+      outline:2px solid var(--ctrl-ring);
+      outline-offset:2px;
+    }
+
+    .category-hotbar__btn--active {
+      border-color:var(--als-blue);
+      box-shadow:0 0 0 2px color-mix(in srgb,var(--als-blue) 30%,transparent);
+      background:color-mix(in srgb,var(--als-blue) 12%,var(--paper));
+    }
+
+    .category-hotbar__label {
+      font-weight:700;
+      letter-spacing:.15px;
+    }
+
+    .category-hotbar__count {
+      font-size:11px;
+      color:var(--muted);
+      font-weight:600;
+    }
+
+    @media (max-width: 720px){
+      .category-hotbar {
+        grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+      }
     }
 
     .search-control input:focus,
@@ -1852,6 +1919,7 @@
           </div>
           <div class="category-filter" data-role="category-filter">
             <label for="category-select">Category</label>
+            <div class="category-hotbar" data-role="category-hotbar" role="group" aria-label="Quick category filters"></div>
             <select id="category-select" data-role="category-select" aria-label="Filter inspections by category">
               <option value="all">All categories</option>
             </select>
@@ -1959,19 +2027,33 @@
     const ALLOW_NETWORK = !FORCE_OFFLINE;
     const DEFAULT_ERROR_MESSAGE = 'We were unable to load the inspection sheet. Please check the network or sheet permissions and try again.';
 
-    const CATEGORY_OPTIONS = [
-      'PPMs',
-      'PAT Testing',
-      'EICR',
-      'Gas Safety Inspection',
-      'Legionella',
-      'E-Stop Tests',
-      'LOLER',
-      'Compressor Servicing',
-      'Burner Servicing',
-      'Flue/Stack Inspection & Cleaning',
-      'Vent/Duct Cleaning'
+    const CATEGORY_DEFS = [
+      { key: 'all', label: 'All', value: 'all' },
+      { key: 'ppms', label: 'PPMs', value: 'PPMs' },
+      { key: 'pat-testing', label: 'PAT Testing', value: 'PAT Testing', rx: /(?:\bPAT\b|PAT Testing)/i },
+      { key: 'eicr', label: 'EICR', value: 'EICR', rx: /\bEICR\b/i },
+      { key: 'gas-safety', label: 'Gas Safety Inspection', value: 'Gas Safety Inspection', rx: /Gas Safety/i },
+      { key: 'legionella', label: 'Legionella', value: 'Legionella', rx: /Legionella/i },
+      { key: 'e-stop-tests', label: 'E-Stop Tests', value: 'E-Stop Tests', rx: /E-?Stop/i },
+      { key: 'loler', label: 'LOLER', value: 'LOLER', rx: /\bLOLER\b/i },
+      { key: 'compressor-servicing', label: 'Compressor Servicing', value: 'Compressor Servicing', rx: /Compressor/i },
+      { key: 'burner-servicing', label: 'Burner Servicing', value: 'Burner Servicing', rx: /Burner/i },
+      { key: 'boiler-servicing', label: 'Boiler Servicing', value: 'Boiler Servicing', rx: /Boiler (?:Servicing|Service)/i },
+      { key: 'vent-duct-cleaning', label: 'Vent/Duct Cleaning', value: 'Vent/Duct Cleaning', rx: /Vent|Duct/i },
+      { key: 'flue-stack', label: 'Flue/Stack Inspection & Cleaning', value: 'Flue/Stack Inspection & Cleaning' }
     ];
+
+    const CATEGORY_DEF_BY_VALUE = CATEGORY_DEFS.reduce((acc, def) => {
+      acc[def.value.toLowerCase()] = def;
+      return acc;
+    }, {});
+
+    const CATEGORY_DEF_BY_KEY = CATEGORY_DEFS.reduce((acc, def) => {
+      acc[def.key] = def;
+      return acc;
+    }, {});
+
+    const CATEGORY_REGEX_DEFS = CATEGORY_DEFS.filter(def => def.value !== 'all' && def.rx instanceof RegExp);
 
     const CATEGORY_FREQUENCY = {
       'PPMs': null,
@@ -1983,6 +2065,7 @@
       'LOLER': 12,
       'Compressor Servicing': 6,
       'Burner Servicing': 6,
+      'Boiler Servicing': 12,
       'Flue/Stack Inspection & Cleaning': 12,
       'Vent/Duct Cleaning': 6
     };
@@ -2096,6 +2179,7 @@
     const state = {
       siteKey: 'all',
       category: 'all',
+      categoryHot: 'all',
       search: '',
       sortBy: 'Due date',
       sortDir: 'asc'
@@ -2173,6 +2257,49 @@
         .replace(/[\u0300-\u036f]/g, '')
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '');
+    }
+
+    function resolveCategoryValue(value){
+      const text = String(value ?? '').trim();
+      if(!text) return '';
+      const lower = text.toLowerCase();
+      if(CATEGORY_DEF_BY_VALUE[lower]){
+        return CATEGORY_DEF_BY_VALUE[lower].value;
+      }
+      const slug = slugify(text);
+      if(slug){
+        if(CATEGORY_DEF_BY_KEY[slug]){
+          return CATEGORY_DEF_BY_KEY[slug].value;
+        }
+        const slugWithS = `${slug}s`;
+        if(CATEGORY_DEF_BY_KEY[slugWithS]){
+          return CATEGORY_DEF_BY_KEY[slugWithS].value;
+        }
+        if(slug.endsWith('s')){
+          const singularSlug = slug.slice(0, -1);
+          if(CATEGORY_DEF_BY_KEY[singularSlug]){
+            return CATEGORY_DEF_BY_KEY[singularSlug].value;
+          }
+        }
+      }
+      return text;
+    }
+
+    function deriveCategoryFromText(title, categories){
+      const titleText = String(title ?? '').trim();
+      const categoriesText = String(categories ?? '').trim();
+      const combined = [categoriesText, titleText].filter(Boolean).join(' ');
+      if(!combined){
+        return 'PPMs';
+      }
+      for(const def of CATEGORY_REGEX_DEFS){
+        if(!(def.rx instanceof RegExp)) continue;
+        def.rx.lastIndex = 0;
+        if(def.rx.test(combined)){
+          return def.value;
+        }
+      }
+      return 'PPMs';
     }
 
     const categoryColors = CATEGORY_COLOR_PRESETS.reduce((acc, [label, background, foreground]) => {
@@ -2604,10 +2731,11 @@
       raw.forEach(item => {
         const cleaned = item.replace(/\s+/g, ' ').trim();
         if(!cleaned) return;
-        const key = cleaned.toLowerCase();
+        const canonical = resolveCategoryValue(cleaned) || cleaned;
+        const key = canonical.toLowerCase();
         if(seen.has(key)) return;
         seen.add(key);
-        list.push(cleaned);
+        list.push(canonical);
       });
       return list.sort((a, b) => STRING_COLLATOR.compare(a, b));
     }
@@ -2646,9 +2774,10 @@
       const updatedDate = parseDate(updatedRaw);
       const frequencyMonths = parseFrequencyMonths(frequencyText);
       const workOrder = normalizeWorkOrder(workOrderValue);
-      if(!category){
-        category = 'Inspection';
-      }
+      const derivationTitle = [title, asset].filter(Boolean).join(' ');
+      const canonicalCategory = resolveCategoryValue(category);
+      const derivedCategory = deriveCategoryFromText(derivationTitle, categories);
+      category = canonicalCategory || derivedCategory;
       const resolvedFrequency = (typeof frequencyMonths === 'number' && !Number.isNaN(frequencyMonths)) ? frequencyMonths : null;
       const fallbackFrequency = CATEGORY_FREQUENCY[category] || null;
       const statusFrequency = resolvedFrequency && resolvedFrequency > 0 ? resolvedFrequency : fallbackFrequency;
@@ -2736,20 +2865,10 @@
         const asset = pickField(raw, ['Asset', 'Asset Name', 'Asset Description', 'Asset ID', 'Column 12', 'Column L', 'Equipment']) || title;
         const location = String(raw['Location'] ?? '').trim();
         const categories = String(raw['Categories'] ?? '').trim();
-        const combined = `${categories} ${title}`.toLowerCase();
-        const category = (() => {
-          if(/\bpat\b|pat testing/i.test(combined)) return 'PAT Testing';
-          if(/\beicr\b/i.test(combined)) return 'EICR';
-          if(/gas safety/i.test(combined)) return 'Gas Safety Inspection';
-          if(/legionella/i.test(combined)) return 'Legionella';
-          if(/e-?stop/i.test(combined)) return 'E-Stop Tests';
-          if(/\bloler\b/i.test(combined)) return 'LOLER';
-          if(/compressor/i.test(combined)) return 'Compressor Servicing';
-          if(/burner/i.test(combined)) return 'Burner Servicing';
-          if(/flue|stack/i.test(combined)) return 'Flue/Stack Inspection & Cleaning';
-          if(/vent|duct/i.test(combined)) return 'Vent/Duct Cleaning';
-          return 'PPMs';
-        })();
+        const rawCategory = String(raw['Category'] ?? '').trim();
+        const titleForDerivation = [title, asset].filter(Boolean).join(' ');
+        const derivedCategory = deriveCategoryFromText(titleForDerivation, categories);
+        const category = resolveCategoryValue(rawCategory) || derivedCategory;
         const frequency = CATEGORY_FREQUENCY[category] || null;
         const assignedRaw = String(raw['Assigned to'] ?? '').trim();
         const owner = assignedRaw.includes(',') ? assignedRaw.split(',')[0].trim() : assignedRaw;
@@ -2813,9 +2932,10 @@
       if(!ignoreSite && state.siteKey !== 'all' && row.__siteKey !== state.siteKey){
         return false;
       }
-      if(state.category !== 'all'){
-        const rowKey = row.__categoryKey || row.Category.toLowerCase();
-        if(rowKey !== state.category) return false;
+      const activeCategory = state.categoryHot || 'all';
+      if(activeCategory !== 'all'){
+        const rowCategory = resolveCategoryValue(row.Category) || row.Category || '';
+        if(rowCategory !== activeCategory) return false;
       }
       if(state.search){
         if(!row.__searchText.includes(state.search.toLowerCase())) return false;
@@ -3035,28 +3155,114 @@
       }
     }
 
-    function renderCategoryOptions(allRows){
+    function computeCategoryCounts(allRows){
+      const counts = new Map();
+      const rows = Array.isArray(allRows) ? allRows : [];
+      rows.forEach(row => {
+        const label = resolveCategoryValue(row?.Category) || 'Uncategorised';
+        const key = label.toLowerCase();
+        const entry = counts.get(key) || { key, label, count: 0 };
+        entry.count += 1;
+        entry.label = label;
+        counts.set(key, entry);
+      });
+      CATEGORY_DEFS.forEach(def => {
+        if(def.value === 'all') return;
+        const key = def.value.toLowerCase();
+        if(!counts.has(key)){
+          counts.set(key, { key, label: def.value, count: 0 });
+        }else{
+          const entry = counts.get(key);
+          entry.label = def.value;
+          counts.set(key, entry);
+        }
+      });
+      return { counts, total: rows.length };
+    }
+
+    function renderCategoryOptions(allRows, summary){
       const select = document.querySelector('[data-role="category-select"]');
       if(!select) return;
-      const counts = new Map();
-      allRows.forEach(row => {
-        const key = row.Category.toLowerCase();
-        if(!counts.has(key)) counts.set(key, { key, label: row.Category, count: 0 });
-        counts.get(key).count += 1;
-      });
-      CATEGORY_OPTIONS.forEach(label => {
-        const key = label.toLowerCase();
-        if(!counts.has(key)) counts.set(key, { key, label, count: 0 });
-      });
+      const { counts, total } = summary || computeCategoryCounts(allRows);
       const options = ['<option value="all">All categories</option>'];
       const sorted = Array.from(counts.values()).sort((a, b) => a.label.localeCompare(b.label));
       sorted.forEach(item => {
         const display = item.count ? `${item.label} (${item.count})` : item.label;
-        options.push(`<option value="${esc(item.key)}">${esc(display)}</option>`);
+        options.push(`<option value="${esc(item.label)}">${esc(display)}</option>`);
       });
       select.innerHTML = options.join('');
-      if(select.value !== state.category){
-        select.value = state.category;
+      const desired = state.categoryHot;
+      const hasDesired = desired === 'all' || Array.from(select.options).some(option => option.value === desired);
+      const nextValue = hasDesired ? desired : 'all';
+      if(select.value !== nextValue){
+        select.value = nextValue;
+      }
+      state.category = nextValue;
+      state.categoryHot = nextValue;
+      renderCategoryHotbar(counts, total);
+    }
+
+    function renderCategoryHotbar(counts, totalCount){
+      const hotbar = document.querySelector('[data-role="category-hotbar"]');
+      if(!hotbar) return;
+      if(!hotbar.__wired){
+        hotbar.addEventListener('click', event => {
+          const button = event.target.closest('[data-category-value]');
+          if(!button) return;
+          const value = button.getAttribute('data-category-value') || 'all';
+          const next = value === state.categoryHot && value !== 'all' ? 'all' : value;
+          setActiveCategory(next);
+        });
+        hotbar.__wired = true;
+      }
+      const active = state.categoryHot || 'all';
+      const entries = CATEGORY_DEFS.map(def => {
+        const value = def.value;
+        const label = def.label || def.value;
+        const key = def.key || slugify(value);
+        const entry = counts?.get(value.toLowerCase());
+        const count = value === 'all' ? totalCount : (entry?.count ?? 0);
+        const isActive = active === value;
+        const classes = ['category-hotbar__btn'];
+        if(isActive) classes.push('category-hotbar__btn--active');
+        const countLabel = `${count} inspection${count === 1 ? '' : 's'}`;
+        const title = `${label} – ${countLabel}`;
+        return `<button type="button" class="${classes.join(' ')}" data-category-key="${esc(key)}" data-category-value="${esc(value)}" aria-pressed="${isActive ? 'true' : 'false'}" title="${esc(title)}"><span class="category-hotbar__label">${esc(label)}</span><span class="category-hotbar__count">${esc(countLabel)}</span></button>`;
+      }).join('');
+      hotbar.innerHTML = entries;
+    }
+
+    function setActiveCategory(value, { triggerRender = true } = {}){
+      const normalized = value === 'all' ? 'all' : (resolveCategoryValue(value) || value || 'all');
+      const next = normalized || 'all';
+      let changed = false;
+      if(state.categoryHot !== next){
+        state.categoryHot = next;
+        changed = true;
+      }
+      if(state.category !== next){
+        state.category = next;
+        changed = true;
+      }
+      const select = document.querySelector('[data-role="category-select"]');
+      if(select){
+        const options = Array.from(select.options || []);
+        const option = options.find(opt => opt.value === next);
+        const selectValue = option ? next : 'all';
+        if(select.value !== selectValue){
+          select.value = selectValue;
+        }
+        if(state.categoryHot !== selectValue || state.category !== selectValue){
+          state.categoryHot = selectValue;
+          state.category = selectValue;
+          changed = true;
+        }
+      }
+      if(changed && triggerRender && window.__INSPECTIONS_ALL__){
+        renderAll(window.__INSPECTIONS_ALL__);
+      }else if(triggerRender && !changed && window.__INSPECTIONS_ALL__ && next === 'all'){
+        // No state change but ensure filters clear when toggling All again.
+        renderAll(window.__INSPECTIONS_ALL__);
       }
     }
 
@@ -3256,13 +3462,21 @@
     }
 
     function renderAll(rawRows){
+      const summary = computeCategoryCounts(rawRows);
+      if(state.categoryHot !== 'all'){
+        const activeKey = state.categoryHot.toLowerCase();
+        if(!summary.counts.has(activeKey)){
+          state.categoryHot = 'all';
+          state.category = 'all';
+        }
+      }
       const rows = applyFilters(rawRows);
       if(selectedRowId && !rows.some(row => row.__id === selectedRowId)){
         selectRow('');
       }
       renderPostureAndRisk(rows);
       renderSiteCards(rawRows);
-      renderCategoryOptions(rawRows);
+      renderCategoryOptions(rawRows, summary);
       renderTable(rows);
       renderMobileCards(rows);
       wireRowClicks();
@@ -3508,10 +3722,8 @@
 
       const categorySelect = document.querySelector('[data-role="category-select"]');
       categorySelect?.addEventListener('change', () => {
-        state.category = categorySelect.value || 'all';
-        if(window.__INSPECTIONS_ALL__){
-          renderAll(window.__INSPECTIONS_ALL__);
-        }
+        const value = categorySelect.value || 'all';
+        setActiveCategory(value);
       });
 
       const siteBreakdown = document.querySelector('[data-role="inspections-site-breakdown"]');
