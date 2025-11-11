@@ -2340,6 +2340,37 @@
       return '';
     }
 
+    function normalizeCategoryList(value){
+      const raw = Array.isArray(value) ? value.map(item => String(item ?? '').trim()).filter(Boolean) : (() => {
+        const text = String(value ?? '').trim();
+        if(!text) return [];
+        if(text.startsWith('[') && text.endsWith(']')){
+          try {
+            const parsed = JSON.parse(text);
+            if(Array.isArray(parsed)){
+              return parsed.map(item => String(item ?? '').trim()).filter(Boolean);
+            }
+          } catch (error) {
+            /* ignore malformed JSON */
+          }
+        }
+        const parts = text.split(/[,;\n]+/);
+        if(parts.length <= 1) return [text];
+        return parts.map(part => part.replace(/\s+/g, ' ').trim()).filter(Boolean);
+      })();
+      const seen = new Set();
+      const list = [];
+      raw.forEach(item => {
+        const cleaned = item.replace(/\s+/g, ' ').trim();
+        if(!cleaned) return;
+        const key = cleaned.toLowerCase();
+        if(seen.has(key)) return;
+        seen.add(key);
+        list.push(cleaned);
+      });
+      return list.sort((a, b) => STRING_COLLATOR.compare(a, b));
+    }
+
     function parseFrequencyMonths(value){
       if(!value) return null;
       const str = String(value).trim();
@@ -2391,8 +2422,14 @@
       const formattedUpdated = formatDisplayValue(updatedDate, updatedRaw);
       const resolvedTitle = title || asset || workOrder.label || '—';
       const resolvedLocation = pickField(raw, ['Location', 'Site', 'Facility']) || site;
-      const resolvedCategory = category || categories;
-      
+      const normalizedCategories = normalizeCategoryList(categories || category);
+      const resolvedCategory = category || (normalizedCategories.length
+        ? normalizedCategories[0]
+        : (categories || ''));
+      const resolvedCategoriesText = normalizedCategories.length
+        ? normalizedCategories.join(', ')
+        : (categories || resolvedCategory || '');
+
       return {
         __id: id,
         __source: raw,
@@ -2401,7 +2438,7 @@
         Asset: asset || resolvedTitle || '—',
         Title: resolvedTitle,
         Category: resolvedCategory || 'Uncategorised',
-        Categories: categories || resolvedCategory || 'Uncategorised',
+        Categories: resolvedCategoriesText || 'Uncategorised',
         'Last Completed': formattedCompleted,
         'Completed on': formattedCompleted,
         'Next Due': formattedDue,
