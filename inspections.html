@@ -36,6 +36,8 @@
       --risk-critical:#dc2626;
       --risk-warning:#b45309;
       --risk-ok:#059669;
+      --done-tx:var(--risk-ok);
+      --done-bg:color-mix(in srgb,var(--done-tx) 18%,transparent);
       --surface-subtle:color-mix(in srgb,var(--als-blue) 4%,var(--paper));
       --surface-strong:color-mix(in srgb,var(--als-blue) 9%,var(--paper));
       --thead:var(--brand);
@@ -79,6 +81,8 @@
       --risk-critical:#f87171;
       --risk-warning:#fbbf24;
       --risk-ok:#34d399;
+      --done-tx:var(--risk-ok);
+      --done-bg:color-mix(in srgb,var(--done-tx) 22%,transparent);
       --surface-subtle:color-mix(in srgb,var(--als-blue) 14%,var(--paper));
       --surface-strong:color-mix(in srgb,var(--als-blue) 20%,var(--paper));
       --thead:#1e3a8a;
@@ -115,6 +119,8 @@
       --risk-critical:#dc2626;
       --risk-warning:#b45309;
       --risk-ok:#059669;
+      --done-tx:var(--risk-ok);
+      --done-bg:color-mix(in srgb,var(--done-tx) 18%,transparent);
       --surface-subtle:color-mix(in srgb,var(--als-blue) 4%,var(--paper));
       --surface-strong:color-mix(in srgb,var(--als-blue) 9%,var(--paper));
       --thead:var(--brand);
@@ -1319,6 +1325,15 @@
       color:color-mix(in srgb,#1f2937 15%,var(--ink));
     }
 
+    tbody tr.row-done td {
+      background:color-mix(in srgb,var(--done-tx) 14%,var(--zebra));
+      color:color-mix(in srgb,var(--done-tx) 18%,var(--ink));
+    }
+
+    tbody tr.row-done:nth-child(even) td {
+      background:color-mix(in srgb,var(--done-tx) 14%,var(--zebra));
+    }
+
     tbody tr.is-active td {
       box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--als-blue) 45%, transparent);
     }
@@ -1408,6 +1423,11 @@
       color:color-mix(in srgb,#1f2937 15%,var(--ink));
     }
 
+    tbody tr.row-done td[data-col="ID"] {
+      background:color-mix(in srgb,var(--done-tx) 16%,var(--zebra));
+      color:color-mix(in srgb,var(--done-tx) 22%,var(--ink));
+    }
+
     tbody tr.is-active td[data-col="ID"] {
       box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--als-blue) 45%, transparent);
     }
@@ -1428,6 +1448,11 @@
     tbody tr.row-overdue td[data-col="Title"] {
       background:color-mix(in srgb,#dc2626 16%,var(--zebra));
       color:color-mix(in srgb,#1f2937 15%,var(--ink));
+    }
+
+    tbody tr.row-done td[data-col="Title"] {
+      background:color-mix(in srgb,var(--done-tx) 16%,var(--zebra));
+      color:color-mix(in srgb,var(--done-tx) 22%,var(--ink));
     }
 
     tbody tr.is-active td[data-col="Title"] {
@@ -1495,7 +1520,7 @@
     .status-pill.is-overdue { background:color-mix(in srgb,var(--risk-critical) 18%,var(--paper)); color:var(--risk-critical); border-color:color-mix(in srgb,var(--risk-critical) 60%,transparent); }
     .status-pill.is-due { background:color-mix(in srgb,var(--risk-warning) 16%,var(--paper)); color:var(--risk-warning); border-color:color-mix(in srgb,var(--risk-warning) 55%,transparent); }
     .status-pill.is-clear { background:color-mix(in srgb,var(--risk-ok) 18%,var(--paper)); color:var(--risk-ok); border-color:color-mix(in srgb,var(--risk-ok) 55%,transparent); }
-    .status-pill.is-completed { background:color-mix(in srgb,var(--als-blue) 14%,var(--paper)); color:var(--als-blue); border-color:color-mix(in srgb,var(--als-blue) 60%,transparent); }
+    .status-pill.is-completed { background:color-mix(in srgb,var(--done-tx) 18%,var(--paper)); color:var(--done-tx); border-color:color-mix(in srgb,var(--done-tx) 60%,transparent); }
     .status-pill.is-in-progress { background:color-mix(in srgb,var(--als-blue) 10%,var(--paper)); color:color-mix(in srgb,var(--als-blue) 80%,var(--ink)); border-color:color-mix(in srgb,var(--als-blue) 40%,transparent); }
     .status-pill.is-scheduled { background:color-mix(in srgb,var(--muted) 12%,var(--paper)); color:color-mix(in srgb,var(--muted) 78%,var(--ink)); border-color:color-mix(in srgb,var(--muted) 45%,transparent); }
     .status-pill.is-unknown { background:color-mix(in srgb,var(--muted) 8%,var(--paper)); color:color-mix(in srgb,var(--muted) 65%,var(--ink)); border-color:color-mix(in srgb,var(--muted) 40%,transparent); }
@@ -1760,6 +1785,12 @@
 
     .mobile-card.row-overdue {
       border-color:color-mix(in srgb,#dc2626 45%,var(--grid));
+    }
+
+    .mobile-card.row-done {
+      border-color:color-mix(in srgb,var(--done-tx) 45%,var(--grid));
+      box-shadow:0 0 0 1px color-mix(in srgb,var(--done-tx) 28%,transparent);
+      background:color-mix(in srgb,var(--done-tx) 14%,var(--paper));
     }
 
     .mobile-card--status {
@@ -3403,14 +3434,15 @@
       window.__INSPECTIONS_VIEW__ = rows.slice();
       const html = rows.length ? rows.map(row => {
         const chip = countdownChip(row);
-        const statusCls = statusClass(row.__statusKey);
+        const isDone = isDoneStatus(row);
+        const statusCls = isDone ? 'status-pill is-completed' : statusClass(row.__statusKey);
         const classes = [];
         if(row.__statusKey === 'overdue') classes.push('row-overdue');
+        if(isDone) classes.push('row-done');
         if(row.__id === selectedRowId) classes.push('is-active');
         const classAttr = classes.length ? ` class="${esc(classes.join(' '))}"` : '';
         const dueDateValue = String(row['Due date'] ?? '').trim() || '—';
         const hasDueDate = dueDateValue && dueDateValue !== '—';
-        const isDone = isDoneStatus(row);
         const dueAttr = chip && hasDueDate
           ? ` title="${esc(dueDateValue)}" aria-label="${esc(`${chip.label} – ${dueDateValue}`)}"`
           : (chip
@@ -3465,8 +3497,14 @@
       if(!container) return;
       container.innerHTML = rows.length ? rows.map(row => {
         const chip = countdownChip(row);
-        const statusCls = statusClass(row.__statusKey);
+        const isDone = isDoneStatus(row);
+        const statusCls = isDone ? 'status-pill is-completed' : statusClass(row.__statusKey);
         const isActive = row.__id === selectedRowId;
+        const classes = [];
+        if(row.__statusKey === 'overdue') classes.push('row-overdue');
+        if(isDone) classes.push('row-done');
+        if(isActive) classes.push('is-active');
+        const classNames = classes.length ? ` ${classes.join(' ')}` : '';
         const notes = row.Notes && row.Notes !== '—' ? row.Notes : 'No additional notes.';
         const workOrder = row.__workOrderHref
           ? `<a class="mobile-card__action" href="${esc(row.__workOrderHref)}" target="_blank" rel="noopener">Open ID</a>`
@@ -3483,7 +3521,7 @@
           ? `<div class="mobile-card__chip ${chip.className}">${esc(chip.label)}</div>`
           : '';
         return `
-          <article class="mobile-card ${row.__statusKey === 'overdue' ? 'row-overdue' : ''} ${isActive ? 'is-active' : ''}" data-row-id="${esc(row.__id)}" role="listitem">
+          <article class="mobile-card${classNames}" data-row-id="${esc(row.__id)}" role="listitem">
             <header class="mobile-card__header">
               <div class="mobile-card__heading">
                 <div class="mobile-card__title">${esc(row.Title)}</div>
