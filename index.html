@@ -1132,9 +1132,37 @@ body.dark .plan-overlay{
 .plan-dialog__actions .btn{
   white-space:nowrap;
 }
-#planNextWeekSingleDay[aria-pressed="true"]{
-  background:var(--btn-ghost-bg-hover);
-  color:var(--brand);
+.plan-day-control{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.plan-day-control[hidden]{
+  display:none!important;
+}
+.plan-day-control__label{
+  font-size:.8rem;
+  color:var(--muted);
+}
+.plan-day-control__select{
+  font:inherit;
+  font-size:.85rem;
+  padding:4px 28px 4px 12px;
+  min-width:140px;
+  border-radius:999px;
+  border:1px solid var(--input-bd);
+  background:var(--input-bg);
+  color:var(--input-fg);
+  cursor:pointer;
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+.plan-day-control__select:focus-visible{
+  outline:2px solid var(--brand);
+  outline-offset:2px;
+  border-color:var(--input-bd-focus);
+}
+.plan-day-control__select:hover{
+  border-color:var(--input-bd-focus);
 }
 .plan-status{
   padding:10px 24px;
@@ -1655,7 +1683,12 @@ body.dark .plan-overlay{
       <header class="plan-dialog__header">
         <h2 class="plan-dialog__title" id="planNextWeekTitle">Eng Schedule</h2>
         <div class="plan-dialog__actions">
-          <button id="planNextWeekSingleDay" class="btn btn--ghost btn--sm" type="button" hidden aria-pressed="false">Show today only</button>
+          <div id="planNextWeekDayControl" class="plan-day-control" hidden>
+            <label for="planNextWeekDaySelect" class="plan-day-control__label">Day</label>
+            <select id="planNextWeekDaySelect" class="plan-day-control__select">
+              <option value="">Full week</option>
+            </select>
+          </div>
           <button id="planNextWeekRefresh" class="btn btn--ghost btn--sm" type="button">Refresh</button>
           <button id="planNextWeekClose" class="btn btn--ghost btn--sm" type="button">Close</button>
         </div>
@@ -3399,7 +3432,8 @@ const $planStatus = document.getElementById('planNextWeekStatus');
 const $planTable = document.getElementById('planNextWeekTable');
 const $planTitle = document.getElementById('planNextWeekTitle');
 const $planFilters = document.getElementById('planNextWeekFilters');
-const $planSingleDay = document.getElementById('planNextWeekSingleDay');
+const $planDayControl = document.getElementById('planNextWeekDayControl');
+const $planDaySelect = document.getElementById('planNextWeekDaySelect');
 
 let PLAN_NEXT_WEEK_PERSON_FILTER = null;
 let PLAN_NEXT_WEEK_PEOPLE_ORDER = [];
@@ -3525,55 +3559,62 @@ function computePlanDayOrder(view){
   return dayOrder;
 }
 
-function planTodayCanonicalDay(){
-  const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  return normalizePlanDay(dayNames[new Date().getDay()]);
-}
-
 function planFindDayLabel(order, canonical){
   if(!Array.isArray(order) || !canonical) return null;
   return order.find(day => normalizePlanDay(day) === canonical) || null;
 }
 
-function planSuggestedSingleDay(order){
-  if(!Array.isArray(order) || !order.length) return { canonical:null, label:null };
-  const todayCanonical = planTodayCanonicalDay();
-  if(todayCanonical){
-    const todayLabel = planFindDayLabel(order, todayCanonical);
-    if(todayLabel){
-      return { canonical: todayCanonical, label: todayLabel };
-    }
-  }
-  const fallbackLabel = order[0];
-  const fallbackCanonical = normalizePlanDay(fallbackLabel) || (fallbackLabel ? String(fallbackLabel) : null);
-  return { canonical: fallbackCanonical, label: fallbackLabel || null };
-}
+function updatePlanDaySelector(dayOrder, activeCanonical){
+  if(!$planDaySelect) return;
+  const addDefaultOption = () => {
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = 'Full week';
+    $planDaySelect.appendChild(option);
+  };
 
-function updatePlanSingleDayButton(dayOrder, activeLabel){
-  if(!$planSingleDay) return;
+  $planDaySelect.innerHTML = '';
+  addDefaultOption();
+
+  const supportsPicker = planSupportsSingleDayMode();
   const hasDays = Array.isArray(dayOrder) && dayOrder.length > 0;
-  if(!planSupportsSingleDayMode() || !hasDays){
-    $planSingleDay.hidden = true;
-    $planSingleDay.setAttribute('aria-pressed','false');
-    $planSingleDay.removeAttribute('title');
+  if(!supportsPicker || !hasDays){
+    if($planDayControl){
+      $planDayControl.hidden = true;
+    }
+    $planDaySelect.value = '';
+    $planDaySelect.removeAttribute('title');
     return;
   }
-  $planSingleDay.hidden = false;
-  const isActive = Boolean(PLAN_NEXT_WEEK_DAY_FOCUS && activeLabel);
-  if(isActive){
-    $planSingleDay.textContent = 'Show full week';
-    $planSingleDay.title = `Showing only ${activeLabel}`;
-    $planSingleDay.setAttribute('aria-pressed','true');
+
+  const normalizedOptions = [];
+  const seen = new Set();
+  dayOrder.forEach(day => {
+    const canonical = normalizePlanDay(day) || (day ? String(day) : null);
+    const label = day || canonical;
+    if(!canonical || seen.has(canonical)) return;
+    seen.add(canonical);
+    normalizedOptions.push({ canonical, label });
+  });
+
+  normalizedOptions.forEach(({ canonical, label }) => {
+    const option = document.createElement('option');
+    option.value = canonical;
+    option.textContent = label;
+    $planDaySelect.appendChild(option);
+  });
+
+  if($planDayControl){
+    $planDayControl.hidden = false;
+  }
+
+  const hasSelection = Boolean(activeCanonical && seen.has(activeCanonical));
+  $planDaySelect.value = hasSelection ? activeCanonical : '';
+  if(hasSelection){
+    const label = planFindDayLabel(dayOrder, activeCanonical) || activeCanonical;
+    $planDaySelect.title = `Showing only ${label}`;
   }else{
-    const suggestion = planSuggestedSingleDay(dayOrder);
-    const label = suggestion.label;
-    $planSingleDay.textContent = label ? `Show ${label} only` : 'Show today only';
-    if(label){
-      $planSingleDay.title = `Show only ${label}`;
-    }else{
-      $planSingleDay.removeAttribute('title');
-    }
-    $planSingleDay.setAttribute('aria-pressed','false');
+    $planDaySelect.removeAttribute('title');
   }
 }
 
@@ -3629,7 +3670,7 @@ function markPlanDataStale(){
     $planTable.removeAttribute('data-day-focus');
   }
   clearPlanFilterControls();
-  updatePlanSingleDayButton([], null);
+  updatePlanDaySelector([], null);
 
   if(!planSourceIsConfigured()){
     setPlanStatus('Configure the plan sheet ID/URL to view the schedule.', 'info');
@@ -3709,7 +3750,7 @@ function handlePlanFilterBreakpointChange(event){
     renderPlanTable(PLAN_NEXT_WEEK_VIEW);
   }else{
     updatePlanFilterControls(PLAN_NEXT_WEEK_PEOPLE_ORDER);
-    updatePlanSingleDayButton([], null);
+    updatePlanDaySelector([], null);
   }
 }
 
@@ -3798,7 +3839,7 @@ function closePlanOverlay(){
     $planTable.removeAttribute('data-view');
     $planTable.removeAttribute('data-day-focus');
   }
-  updatePlanSingleDayButton([], null);
+  updatePlanDaySelector([], null);
 }
 
 if($planOverlay){
@@ -3817,26 +3858,33 @@ if($planButton){
 
 $planClose?.addEventListener('click', () => closePlanOverlay());
 $planRefresh?.addEventListener('click', () => ensurePlanLoaded(true));
-$planSingleDay?.addEventListener('click', () => {
-  if(!planSupportsSingleDayMode()) return;
+$planDaySelect?.addEventListener('change', () => {
+  if(!planSupportsSingleDayMode()){
+    PLAN_NEXT_WEEK_DAY_FOCUS = null;
+    updatePlanDaySelector([], null);
+    return;
+  }
+
+  const value = $planDaySelect.value;
+
   if(!PLAN_NEXT_WEEK_VIEW){
+    PLAN_NEXT_WEEK_DAY_FOCUS = value ? (normalizePlanDay(value) || value) : null;
     ensurePlanLoaded();
     return;
   }
-  const dayOrder = computePlanDayOrder(PLAN_NEXT_WEEK_VIEW);
-  if(PLAN_NEXT_WEEK_DAY_FOCUS){
-    PLAN_NEXT_WEEK_DAY_FOCUS = null;
-    renderPlanTable(PLAN_NEXT_WEEK_VIEW);
+
+  if(!value){
+    if(PLAN_NEXT_WEEK_DAY_FOCUS){
+      PLAN_NEXT_WEEK_DAY_FOCUS = null;
+      renderPlanTable(PLAN_NEXT_WEEK_VIEW);
+    }
     return;
   }
-  const choice = planSuggestedSingleDay(dayOrder);
-  if(choice.canonical){
-    PLAN_NEXT_WEEK_DAY_FOCUS = choice.canonical;
-    renderPlanTable(PLAN_NEXT_WEEK_VIEW);
-  }else{
-    PLAN_NEXT_WEEK_DAY_FOCUS = null;
-    updatePlanSingleDayButton(dayOrder, null);
-  }
+
+  const canonical = normalizePlanDay(value) || value;
+  if(PLAN_NEXT_WEEK_DAY_FOCUS === canonical) return;
+  PLAN_NEXT_WEEK_DAY_FOCUS = canonical;
+  renderPlanTable(PLAN_NEXT_WEEK_VIEW);
 });
 updatePlanHeaderLabel();
 syncPlanButtons();
@@ -4490,7 +4538,7 @@ function renderPlanTable(view){
   if(!$planTable) return;
   $planTable.innerHTML = '';
   clearPlanFilterControls();
-  updatePlanSingleDayButton([], null);
+  updatePlanDaySelector([], null);
   if(!planSourceIsConfigured()){
     setPlanStatus('Configure the plan sheet ID/URL to view the schedule.', 'info');
     return;
@@ -4535,7 +4583,7 @@ function renderPlanTable(view){
       $planTable.removeAttribute('data-day-focus');
     }
   }
-  updatePlanSingleDayButton(dayOrderFull, activeDayLabel);
+  updatePlanDaySelector(dayOrderFull, PLAN_NEXT_WEEK_DAY_FOCUS);
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
   const thBlank = document.createElement('th');
