@@ -2437,26 +2437,43 @@
     function parseDate(value){
       if(value instanceof Date && !isNaN(value)) return new Date(value.getTime());
       if(typeof value === 'number'){
-        const parsed = new Date(value);
-        return isNaN(parsed) ? null : parsed;
+        if(!Number.isFinite(value)) return null;
+        if(value > 1e11){
+          const parsedMs = new Date(value);
+          return isNaN(parsedMs) ? null : parsedMs;
+        }
+        const baseSerialDate = new Date(Date.UTC(1899, 11, 30));
+        const parsedSerial = new Date(baseSerialDate.getTime() + value * 86400000);
+        return isNaN(parsedSerial) ? null : parsedSerial;
       }
       if(!value) return null;
       const str = String(value).trim();
       if(!str) return null;
+      const numeric = Number(str);
+      if(Number.isFinite(numeric) && str === numeric.toString()){
+        return parseDate(numeric);
+      }
       const iso = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
       if(iso){
         const [, y, m, d] = iso;
         const parsed = new Date(Number(y), Number(m) - 1, Number(d));
         return isNaN(parsed) ? null : parsed;
       }
-      const european = str.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/);
+      const european = str.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})(?:[ T](\d{1,2})(?::(\d{2})(?::(\d{2}))?)?)?$/);
       if(european){
-        let [, d, m, y] = european;
+        let [, d, m, y, hh = '0', mm = '0', ss = '0'] = european;
         if(y.length === 2){
           const yearNum = Number(y);
           y = yearNum >= 70 ? `19${y}` : `20${y}`;
         }
-        const parsed = new Date(Number(y), Number(m) - 1, Number(d));
+        const parsed = new Date(
+          Number(y),
+          Number(m) - 1,
+          Number(d),
+          Number(hh),
+          Number(mm),
+          Number(ss)
+        );
         return isNaN(parsed) ? null : parsed;
       }
       const parsed = new Date(str);
