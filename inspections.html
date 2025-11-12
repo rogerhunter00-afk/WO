@@ -1438,12 +1438,6 @@
       white-space:nowrap;
     }
 
-    .table-scroll td[data-col="Due date"] .table-date {
-      margin-left:8px;
-      color:var(--muted);
-      font-weight:500;
-    }
-
     .countdown-chip {
       display:inline-flex;
       align-items:center;
@@ -3402,6 +3396,11 @@
         if(row.__statusKey === 'overdue') classes.push('row-overdue');
         if(row.__id === selectedRowId) classes.push('is-active');
         const classAttr = classes.length ? ` class="${esc(classes.join(' '))}"` : '';
+        const dueDateValue = String(row['Due date'] ?? '').trim() || '—';
+        const hasDueDate = dueDateValue && dueDateValue !== '—';
+        const dueAttr = hasDueDate
+          ? ` title="${esc(dueDateValue)}" aria-label="${esc(`${chip.label} – ${dueDateValue}`)}"`
+          : ` aria-label="${esc(chip.label)}"`;
         const idCell = row.__workOrderHref
           ? `<a href="${esc(row.__workOrderHref)}" target="_blank" rel="noopener">${esc(row.ID)}</a>`
           : esc(row.ID);
@@ -3422,7 +3421,7 @@
             <td data-col="Assigned to">${esc(row['Assigned to'])}</td>
             <td data-col="Created on">${esc(row['Created on'])}</td>
             <td data-col="Planned Start Date">${esc(row['Planned Start Date'])}</td>
-            <td data-col="Due date"><span class="${chip.className}">${esc(chip.label)}</span> <span class="table-date">${esc(row['Due date'])}</span></td>
+            <td data-col="Due date"><span class="${chip.className}"${dueAttr}>${esc(chip.label)}</span></td>
             <td data-col="Completed on">${esc(row['Completed on'])}</td>
             <td data-col="Last updated">${esc(row['Last updated'])}</td>
             <td data-col="Location">${esc(row.Location)}</td>
