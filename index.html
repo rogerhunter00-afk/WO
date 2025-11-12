@@ -1132,6 +1132,10 @@ body.dark .plan-overlay{
 .plan-dialog__actions .btn{
   white-space:nowrap;
 }
+#planNextWeekSingleDay[aria-pressed="true"]{
+  background:var(--btn-ghost-bg-hover);
+  color:var(--brand);
+}
 .plan-status{
   padding:10px 24px;
   font-size:.46rem;
@@ -1651,6 +1655,7 @@ body.dark .plan-overlay{
       <header class="plan-dialog__header">
         <h2 class="plan-dialog__title" id="planNextWeekTitle">Eng Schedule</h2>
         <div class="plan-dialog__actions">
+          <button id="planNextWeekSingleDay" class="btn btn--ghost btn--sm" type="button" hidden aria-pressed="false">Show today only</button>
           <button id="planNextWeekRefresh" class="btn btn--ghost btn--sm" type="button">Refresh</button>
           <button id="planNextWeekClose" class="btn btn--ghost btn--sm" type="button">Close</button>
         </div>
@@ -3394,9 +3399,11 @@ const $planStatus = document.getElementById('planNextWeekStatus');
 const $planTable = document.getElementById('planNextWeekTable');
 const $planTitle = document.getElementById('planNextWeekTitle');
 const $planFilters = document.getElementById('planNextWeekFilters');
+const $planSingleDay = document.getElementById('planNextWeekSingleDay');
 
 let PLAN_NEXT_WEEK_PERSON_FILTER = null;
 let PLAN_NEXT_WEEK_PEOPLE_ORDER = [];
+let PLAN_NEXT_WEEK_DAY_FOCUS = null;
 
 const PLAN_FILTER_BREAKPOINT = '(max-width: 680px)';
 const PLAN_FILTER_MEDIA = (typeof window !== 'undefined' && typeof window.matchMedia === 'function')
@@ -3501,6 +3508,75 @@ function planIsMobileLayout(){
   return false;
 }
 
+function planSupportsSingleDayMode(){
+  return !planIsMobileLayout();
+}
+
+function computePlanDayOrder(view){
+  if(!view) return [];
+  let dayOrder = mergePlanOrder(view?.order?.days, PLAN_NEXT_WEEK_DAYS);
+  const nonProdIndex = dayOrder.findIndex(isNonProductionDayLabel);
+  if(nonProdIndex > -1){
+    const label = dayOrder[nonProdIndex];
+    if(!planDayHasRenderableEntries(view.matrix, label)){
+      dayOrder = dayOrder.filter((_, idx) => idx !== nonProdIndex);
+    }
+  }
+  return dayOrder;
+}
+
+function planTodayCanonicalDay(){
+  const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  return normalizePlanDay(dayNames[new Date().getDay()]);
+}
+
+function planFindDayLabel(order, canonical){
+  if(!Array.isArray(order) || !canonical) return null;
+  return order.find(day => normalizePlanDay(day) === canonical) || null;
+}
+
+function planSuggestedSingleDay(order){
+  if(!Array.isArray(order) || !order.length) return { canonical:null, label:null };
+  const todayCanonical = planTodayCanonicalDay();
+  if(todayCanonical){
+    const todayLabel = planFindDayLabel(order, todayCanonical);
+    if(todayLabel){
+      return { canonical: todayCanonical, label: todayLabel };
+    }
+  }
+  const fallbackLabel = order[0];
+  const fallbackCanonical = normalizePlanDay(fallbackLabel) || (fallbackLabel ? String(fallbackLabel) : null);
+  return { canonical: fallbackCanonical, label: fallbackLabel || null };
+}
+
+function updatePlanSingleDayButton(dayOrder, activeLabel){
+  if(!$planSingleDay) return;
+  const hasDays = Array.isArray(dayOrder) && dayOrder.length > 0;
+  if(!planSupportsSingleDayMode() || !hasDays){
+    $planSingleDay.hidden = true;
+    $planSingleDay.setAttribute('aria-pressed','false');
+    $planSingleDay.removeAttribute('title');
+    return;
+  }
+  $planSingleDay.hidden = false;
+  const isActive = Boolean(PLAN_NEXT_WEEK_DAY_FOCUS && activeLabel);
+  if(isActive){
+    $planSingleDay.textContent = 'Show full week';
+    $planSingleDay.title = `Showing only ${activeLabel}`;
+    $planSingleDay.setAttribute('aria-pressed','true');
+  }else{
+    const suggestion = planSuggestedSingleDay(dayOrder);
+    const label = suggestion.label;
+    $planSingleDay.textContent = label ? `Show ${label} only` : 'Show today only';
+    if(label){
+      $planSingleDay.title = `Show only ${label}`;
+    }else{
+      $planSingleDay.removeAttribute('title');
+    }
+    $planSingleDay.setAttribute('aria-pressed','false');
+  }
+}
+
 function clearPlanFilterControls(){
   if(!$planFilters) return;
   $planFilters.innerHTML = '';
@@ -3546,8 +3622,14 @@ function markPlanDataStale(){
   PLAN_NEXT_WEEK_LAST_UPDATED = null;
   PLAN_NEXT_WEEK_PEOPLE_ORDER = [];
   PLAN_NEXT_WEEK_PERSON_FILTER = null;
+  PLAN_NEXT_WEEK_DAY_FOCUS = null;
   if($planTable) $planTable.innerHTML = '';
+  if($planTable){
+    $planTable.removeAttribute('data-view');
+    $planTable.removeAttribute('data-day-focus');
+  }
   clearPlanFilterControls();
+  updatePlanSingleDayButton([], null);
 
   if(!planSourceIsConfigured()){
     setPlanStatus('Configure the plan sheet ID/URL to view the schedule.', 'info');
@@ -3617,6 +3699,9 @@ function setPlanPersonFilter(person){
 }
 
 function handlePlanFilterBreakpointChange(event){
+  if(event.matches && PLAN_NEXT_WEEK_DAY_FOCUS){
+    PLAN_NEXT_WEEK_DAY_FOCUS = null;
+  }
   if(!event.matches && PLAN_NEXT_WEEK_PERSON_FILTER){
     PLAN_NEXT_WEEK_PERSON_FILTER = null;
   }
@@ -3624,6 +3709,7 @@ function handlePlanFilterBreakpointChange(event){
     renderPlanTable(PLAN_NEXT_WEEK_VIEW);
   }else{
     updatePlanFilterControls(PLAN_NEXT_WEEK_PEOPLE_ORDER);
+    updatePlanSingleDayButton([], null);
   }
 }
 
@@ -3707,6 +3793,12 @@ function closePlanOverlay(){
     __planReturnFocus.focus();
   }
   __planReturnFocus = null;
+  PLAN_NEXT_WEEK_DAY_FOCUS = null;
+  if($planTable){
+    $planTable.removeAttribute('data-view');
+    $planTable.removeAttribute('data-day-focus');
+  }
+  updatePlanSingleDayButton([], null);
 }
 
 if($planOverlay){
@@ -3725,6 +3817,27 @@ if($planButton){
 
 $planClose?.addEventListener('click', () => closePlanOverlay());
 $planRefresh?.addEventListener('click', () => ensurePlanLoaded(true));
+$planSingleDay?.addEventListener('click', () => {
+  if(!planSupportsSingleDayMode()) return;
+  if(!PLAN_NEXT_WEEK_VIEW){
+    ensurePlanLoaded();
+    return;
+  }
+  const dayOrder = computePlanDayOrder(PLAN_NEXT_WEEK_VIEW);
+  if(PLAN_NEXT_WEEK_DAY_FOCUS){
+    PLAN_NEXT_WEEK_DAY_FOCUS = null;
+    renderPlanTable(PLAN_NEXT_WEEK_VIEW);
+    return;
+  }
+  const choice = planSuggestedSingleDay(dayOrder);
+  if(choice.canonical){
+    PLAN_NEXT_WEEK_DAY_FOCUS = choice.canonical;
+    renderPlanTable(PLAN_NEXT_WEEK_VIEW);
+  }else{
+    PLAN_NEXT_WEEK_DAY_FOCUS = null;
+    updatePlanSingleDayButton(dayOrder, null);
+  }
+});
 updatePlanHeaderLabel();
 syncPlanButtons();
 setPlanStatus(planSourceIsConfigured() ? 'Plan data has not been loaded yet.' : 'Configure the plan sheet ID/URL to view the schedule.', 'info');
@@ -4377,6 +4490,7 @@ function renderPlanTable(view){
   if(!$planTable) return;
   $planTable.innerHTML = '';
   clearPlanFilterControls();
+  updatePlanSingleDayButton([], null);
   if(!planSourceIsConfigured()){
     setPlanStatus('Configure the plan sheet ID/URL to view the schedule.', 'info');
     return;
@@ -4389,8 +4503,8 @@ function renderPlanTable(view){
     setPlanStatus(`Plan sheet is missing required column(s): ${view.issues.join(', ')}`, 'error');
     return;
   }
-  let dayOrder = mergePlanOrder(view.order?.days, PLAN_NEXT_WEEK_DAYS);
   const peopleOrder = mergePlanOrder(view.order?.people, PLAN_NEXT_WEEK_PEOPLE);
+  const dayOrderFull = computePlanDayOrder(view);
   PLAN_NEXT_WEEK_PEOPLE_ORDER = peopleOrder.slice();
   if(PLAN_NEXT_WEEK_PERSON_FILTER && !peopleOrder.includes(PLAN_NEXT_WEEK_PERSON_FILTER)){
     PLAN_NEXT_WEEK_PERSON_FILTER = null;
@@ -4399,15 +4513,29 @@ function renderPlanTable(view){
     PLAN_NEXT_WEEK_PERSON_FILTER = null;
   }
   updatePlanFilterControls(peopleOrder);
-  const nonProdIndex = dayOrder.findIndex(isNonProductionDayLabel);
-  if(nonProdIndex > -1){
-    const label = dayOrder[nonProdIndex];
-    if(!planDayHasRenderableEntries(view.matrix, label)){
-      dayOrder = dayOrder.filter((_, idx) => idx !== nonProdIndex);
-    }
-  }
   const activeFilter = PLAN_NEXT_WEEK_PERSON_FILTER;
   const visiblePeople = activeFilter ? peopleOrder.filter(person => person === activeFilter) : peopleOrder;
+  let dayOrder = dayOrderFull.slice();
+  let activeDayLabel = null;
+  if(PLAN_NEXT_WEEK_DAY_FOCUS){
+    const focusLabel = planFindDayLabel(dayOrderFull, PLAN_NEXT_WEEK_DAY_FOCUS);
+    if(focusLabel){
+      activeDayLabel = focusLabel;
+      dayOrder = [focusLabel];
+    }else{
+      PLAN_NEXT_WEEK_DAY_FOCUS = null;
+    }
+  }
+  if($planTable){
+    if(activeDayLabel){
+      $planTable.dataset.view = 'single-day';
+      $planTable.dataset.dayFocus = activeDayLabel;
+    }else{
+      $planTable.removeAttribute('data-view');
+      $planTable.removeAttribute('data-day-focus');
+    }
+  }
+  updatePlanSingleDayButton(dayOrderFull, activeDayLabel);
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
   const thBlank = document.createElement('th');
@@ -4477,7 +4605,7 @@ function renderPlanTable(view){
   const opsCellId = `plan-ops-cell-${Math.random().toString(36).slice(2)}`;
   opsCell.id = opsCellId;
   opsToggle.setAttribute('aria-controls', opsCellId);
-  opsCell.colSpan = dayOrder.length;
+  opsCell.colSpan = Math.max(1, dayOrder.length);
   opsCell.className = 'plan-ops-cell';
 
   const opsEntries = Array.isArray(view.opsEntries) ? view.opsEntries : [];
@@ -4518,6 +4646,9 @@ function renderPlanTable(view){
   if(summary) statusParts.push(summary);
   if(activeFilter){
     statusParts.push(`Filtered to ${activeFilter}`);
+  }
+  if(activeDayLabel){
+    statusParts.push(`Showing ${activeDayLabel} only`);
   }
   if(PLAN_NEXT_WEEK_LAST_UPDATED){
     statusParts.push(`Updated ${formatPlanTimestamp(PLAN_NEXT_WEEK_LAST_UPDATED)}`);
