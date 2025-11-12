@@ -2679,15 +2679,31 @@
 
       if(displayStatus){
         const normalized = displayStatus.toLowerCase();
-        if(normalized.includes('overdue')) statusKey = 'overdue';
-        else if(normalized.includes('due')) statusKey = 'due';
-        else if(normalized.includes('track') || normalized.includes('complete') || normalized.includes('ok') || normalized.includes('clear')) statusKey = 'clear';
+        if(normalized.includes('overdue')){
+          statusKey = 'overdue';
+        }else if(normalized.includes('due')){
+          statusKey = 'due';
+        }else if(
+          normalized.includes('track') ||
+          normalized.includes('complete') ||
+          normalized.includes('ok') ||
+          normalized.includes('clear') ||
+          normalized.includes('done') ||
+          normalized.includes('finished') ||
+          normalized.includes('closed') ||
+          normalized.includes('resolved')
+        ){
+          statusKey = 'clear';
+        }
       }
 
       let diffDays = null;
       if(effectiveDue && today){
         diffDays = Math.floor((toStartOfDay(effectiveDue).getTime() - today.getTime()) / 86400000);
       }
+
+      const completedDateValid = lastDate instanceof Date && !isNaN(lastDate);
+      const frequencyValid = typeof frequencyMonths === 'number' && Number.isFinite(frequencyMonths) && frequencyMonths > 0;
 
       if(!statusKey){
         if(diffDays != null){
@@ -2700,6 +2716,28 @@
           }
         }else{
           statusKey = 'due';
+        }
+      }
+
+      if(statusKey === 'clear' && diffDays != null && diffDays < 0){
+        let nextDue = null;
+        if(completedDateValid){
+          if(frequencyValid){
+            const projected = new Date(lastDate);
+            projected.setMonth(projected.getMonth() + frequencyMonths);
+            if(!isNaN(projected) && (!effectiveDue || projected > effectiveDue)){
+              nextDue = projected;
+            }
+          }
+          if(!nextDue && effectiveDue && effectiveDue < lastDate){
+            nextDue = new Date(lastDate);
+          }
+        }
+        if(nextDue){
+          effectiveDue = nextDue;
+          diffDays = Math.floor((toStartOfDay(effectiveDue).getTime() - today.getTime()) / 86400000);
+        }else{
+          diffDays = null;
         }
       }
 
