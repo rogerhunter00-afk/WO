@@ -2908,9 +2908,78 @@
       };
     }
 
+    function getTimeValue(input){
+      if(!(input instanceof Date)) return 0;
+      const time = input.getTime();
+      return Number.isNaN(time) ? 0 : time;
+    }
+
+    function getStringValue(input){
+      return String(input ?? '').trim().toLowerCase();
+    }
+
+    function buildRowFingerprint(row){
+      const title = getStringValue(row?.Title);
+      const site = getStringValue(row?.Site || row?.Location);
+      const due = getTimeValue(row?.__effectiveDue) || getTimeValue(row?.__dueDate);
+      const completed = getTimeValue(row?.__lastDate);
+      const status = getStringValue(row?.__statusKey || row?.Status);
+      if(!title && !site && !due && !completed && !status){
+        return '';
+      }
+      return [title, site, due, completed, status].join('|');
+    }
+
+    function rowFreshnessScore(row){
+      const updated = getTimeValue(row?.__lastUpdatedDate);
+      const created = getTimeValue(row?.__createdDate);
+      const due = getTimeValue(row?.__effectiveDue) || getTimeValue(row?.__dueDate);
+      return updated || created || due || 0;
+    }
+
+    function shouldReplaceDuplicate(existing, candidate){
+      if(!existing) return true;
+      const existingFreshness = rowFreshnessScore(existing);
+      const candidateFreshness = rowFreshnessScore(candidate);
+      if(candidateFreshness > existingFreshness) return true;
+      if(candidateFreshness < existingFreshness) return false;
+      const existingNotesLength = getStringValue(existing?.Notes).length;
+      const candidateNotesLength = getStringValue(candidate?.Notes).length;
+      if(candidateNotesLength > existingNotesLength) return true;
+      if(candidateNotesLength < existingNotesLength) return false;
+      const existingHasLink = Boolean(existing?.__workOrderHref);
+      const candidateHasLink = Boolean(candidate?.__workOrderHref);
+      if(candidateHasLink && !existingHasLink) return true;
+      if(existingHasLink && !candidateHasLink) return false;
+      return false;
+    }
+
     function normalizeInspectionsRows(rows){
       const list = Array.isArray(rows) ? rows : [];
-      return list.map((row, index) => normalizeRow(row, index));
+      const seen = new Map();
+      const result = [];
+      list.forEach((row, index) => {
+        const normalized = normalizeRow(row, index);
+        const fingerprint = buildRowFingerprint(normalized);
+        if(!fingerprint){
+          result.push(normalized);
+          return;
+        }
+        const existing = seen.get(fingerprint);
+        if(!existing){
+          seen.set(fingerprint, normalized);
+          result.push(normalized);
+          return;
+        }
+        if(shouldReplaceDuplicate(existing, normalized)){
+          const existingIndex = result.indexOf(existing);
+          if(existingIndex !== -1){
+            result[existingIndex] = normalized;
+          }
+          seen.set(fingerprint, normalized);
+        }
+      });
+      return result;
     }
 
     function normalizeMaintainXToInspections(mxRows){
