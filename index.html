@@ -6490,6 +6490,7 @@ const metaColorScheme=document.querySelector('meta[name="color-scheme"]');
 const ThemeController=(()=>{
   const STORAGE_KEY='alsDesiredTheme';
   const WINTER_LIGHTS_KEY='alsWinterLights';
+  const WINTER_SNOW_KEY='alsWinterSnow';
   const motionQuery=window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):null;
   const storedTheme=localStorage.getItem(STORAGE_KEY);
   let desiredTheme=storedTheme==='dark'?'dark':storedTheme==='light'?'light':null;
@@ -6502,6 +6503,7 @@ const ThemeController=(()=>{
   }
   let winterLock=false;
   let winterLights=localStorage.getItem(WINTER_LIGHTS_KEY)==='1';
+  let winterSnow=localStorage.getItem(WINTER_SNOW_KEY)!=='0';
 
   const updateThemeButtonLabel=(text)=>{
     if(!themeBtn) return;
@@ -6535,21 +6537,31 @@ const ThemeController=(()=>{
     if(!themeBtn) return;
     const preferDark=desiredTheme==='dark';
     if(isWinterPlanActive()){
-      const activeLights=winterLights && !prefersReducedMotion();
-      const offTitle='Enable light mode to turn on the Christmas lights.';
-      const onTitle='Light mode is on. Click to turn off the Christmas lights.';
-      updateThemeButtonLabel('Light');
-      const title=activeLights?onTitle:offTitle;
+      const motionLimited=prefersReducedMotion();
+      const snowPreferred=winterSnow;
+      const snowOn=snowPreferred && !motionLimited;
+      const offTitle='Snowfall is off. Click to turn it on.';
+      const onTitle='Snowfall is on. Click to turn it off.';
+      const motionTitle='Snowfall is disabled while reduced motion is enabled.';
+      updateThemeButtonLabel(snowPreferred?'Snow':'No snow');
+      const title=motionLimited?motionTitle:(snowOn?onTitle:offTitle);
       themeBtn.title=title;
       themeBtn.setAttribute('aria-label', title);
-      themeBtn.setAttribute('aria-checked', activeLights?'true':'false');
-    }else{
-      updateThemeButtonLabel(preferDark?'Light':'Dark');
-      const title=preferDark?'Currently dark. Click to switch to light mode.':'Currently light. Click to switch to dark mode.';
-      themeBtn.title=title;
-      themeBtn.setAttribute('aria-label', title);
-      themeBtn.setAttribute('aria-checked', preferDark?'true':'false');
+      themeBtn.setAttribute('aria-checked', snowPreferred?'true':'false');
+      if(motionLimited){
+        themeBtn.disabled=true;
+        themeBtn.setAttribute('aria-disabled','true');
+      }else{
+        themeBtn.disabled=false;
+        themeBtn.removeAttribute('aria-disabled');
+      }
+      return;
     }
+    updateThemeButtonLabel(preferDark?'Light':'Dark');
+    const title=preferDark?'Currently dark. Click to switch to light mode.':'Currently light. Click to switch to dark mode.';
+    themeBtn.title=title;
+    themeBtn.setAttribute('aria-label', title);
+    themeBtn.setAttribute('aria-checked', preferDark?'true':'false');
     themeBtn.disabled=false;
     themeBtn.removeAttribute('aria-disabled');
   }
@@ -6588,6 +6600,28 @@ const ThemeController=(()=>{
     refreshButton();
   }
 
+  function applyWinterSnow(){
+    if(!window.WinterOverlay) return;
+    if(!isWinterPlanActive()){
+      window.WinterOverlay.setDensity('off');
+      window.WinterOverlay.refresh?.();
+      return;
+    }
+    const motionLimited=prefersReducedMotion();
+    const density=winterSnow && !motionLimited?'medium':'off';
+    window.WinterOverlay.setDensity(density);
+    window.WinterOverlay.refresh?.();
+  }
+
+  function setWinterSnow(on,{skipStore=false}={}){
+    winterSnow=!!on;
+    if(!skipStore){
+      localStorage.setItem(WINTER_SNOW_KEY, winterSnow?'1':'0');
+    }
+    applyWinterSnow();
+    refreshButton();
+  }
+
   function applyStoredTheme({force=false}={}){
     setTheme(desiredTheme,{force,skipStore:true});
   }
@@ -6598,7 +6632,8 @@ const ThemeController=(()=>{
 
   function toggle(){
     if(isWinterPlanActive()){
-      setWinterLights(!winterLights);
+      if(prefersReducedMotion()) return;
+      setWinterSnow(!winterSnow);
     }else{
       const next=desiredTheme==='dark'?'light':'dark';
       setTheme(next);
@@ -6609,11 +6644,13 @@ const ThemeController=(()=>{
     winterLock=!!active;
     refreshButton();
     applyChristmasLights();
+    applyWinterSnow();
   }
 
   function init(){
     applyVisualTheme(desiredTheme);
     applyChristmasLights();
+    applyWinterSnow();
     refreshButton();
     themeBtn?.addEventListener('click', ()=>{ toggle(); });
     if(motionQuery){
@@ -6623,6 +6660,9 @@ const ThemeController=(()=>{
         }else{
           applyVisualTheme(desiredTheme);
         }
+        applyChristmasLights();
+        applyWinterSnow();
+        refreshButton();
       };
       if(motionQuery.addEventListener){
         motionQuery.addEventListener('change', handler);
@@ -6643,6 +6683,8 @@ const ThemeController=(()=>{
     prefersReducedMotion,
     applyChristmasLights,
     setWinterLights,
+    applyWinterSnow,
+    setWinterSnow,
   };
 })();
 
@@ -6660,10 +6702,7 @@ const SeasonalTheme=(()=>{
 
     if(isWinter){
       ThemeController.enforceWinterTheme();
-      if(window.WinterOverlay){
-        window.WinterOverlay.setDensity('medium');
-        window.WinterOverlay.refresh?.();
-      }
+      ThemeController.applyWinterSnow();
       ThemeController.applyChristmasLights();
     }else{
       const finishTeardown=()=>{
