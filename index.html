@@ -2358,6 +2358,12 @@ const url  = bust ? withBust(base) : base;
     }
   } catch (e){
     if (e.name !== 'AbortError') {
+      // one retry with a cache-busting param helps when Sheets publishes a stale CSV
+      if (!bust) {
+        console.warn('[loadChosenGid] first attempt failed, retrying with _ts bust');
+        return loadChosenGid(meta, { bust: true });
+      }
+
       console.error('[loadChosenGid] error:', e);
       alert('Could not load the selected week. ' + (e?.message || ''));
     }
