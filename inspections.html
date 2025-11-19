@@ -46,6 +46,7 @@
       --zebra:var(--paper);
       --sticky-controls-offset:0px;
       --table-min-width:1280px;
+      --table-max-width:1480px;
       --ui-offset:0px;
       --ctrl-bg:#ffffff;
       --ctrl-fg:#0b0f1a;
@@ -1166,6 +1167,9 @@
 
     .table-wrapper {
       margin-top:0;
+      width:100%;
+      max-width:min(var(--table-max-width, 1480px), 100%);
+      margin-inline:auto;
     }
 
     table {
