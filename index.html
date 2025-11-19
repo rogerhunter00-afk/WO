@@ -1149,13 +1149,55 @@ body.dark .plan-overlay{
   border-radius:14px;
   background:color-mix(in srgb, var(--plan-card-bg, var(--paper)) 85%, transparent);
 }
+.plan-quick-add__details{
+  display:block;
+}
 .plan-quick-add[hidden]{
   display:none;
+}
+.plan-quick-add__summary{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px;
+  margin:0;
+  padding:0;
+  list-style:none;
+  font-size:.95rem;
+  font-weight:600;
+  color:var(--ink);
+  cursor:pointer;
+}
+.plan-quick-add__summary::-webkit-details-marker{display:none;}
+.plan-quick-add__summary-title{
+  flex:0 1 auto;
+}
+.plan-quick-add__summary-hint{
+  flex:1 1 220px;
+  font-size:.8rem;
+  font-weight:400;
+  color:var(--muted);
+}
+.plan-quick-add__summary-icon{
+  flex:0 0 auto;
+  border:solid color-mix(in srgb, var(--muted) 70%, var(--ink) 30%);
+  border-width:0 2px 2px 0;
+  display:inline-block;
+  padding:4px;
+  transform:rotate(45deg);
+  transition:transform .18s ease;
+}
+.plan-quick-add__details[open] .plan-quick-add__summary{
+  margin-bottom:10px;
+}
+.plan-quick-add__details[open] .plan-quick-add__summary-icon{
+  transform:rotate(-135deg);
 }
 .plan-quick-add__form{
   display:flex;
   flex-direction:column;
   gap:6px;
+  margin:0;
 }
 .plan-quick-add__label{
   font-size:12px;
@@ -1829,16 +1871,23 @@ body.dark .plan-overlay{
         </div>
       </header>
       <div class="plan-quick-add" id="planQuickAdd" hidden>
-        <form id="planQuickAddForm" class="plan-quick-add__form" autocomplete="off">
-          <label for="planQuickAddInput" class="plan-quick-add__label">Quick add work order</label>
-          <div class="plan-quick-add__controls">
-            <input id="planQuickAddInput" class="plan-quick-add__input" type="search" list="planQuickAddSuggestions" placeholder="Type WO number or title" aria-describedby="planQuickAddHelp" />
-            <select id="planQuickAddDay" class="plan-quick-add__select" aria-label="Select day"></select>
-            <select id="planQuickAddPerson" class="plan-quick-add__select" aria-label="Select engineer"></select>
-            <button id="planQuickAddSubmit" class="btn btn--primary btn--sm" type="submit">Add</button>
-          </div>
-          <p id="planQuickAddHelp" class="plan-quick-add__hint">Add directly to the schedule once you choose a day and engineer.</p>
-        </form>
+        <details class="plan-quick-add__details" id="planQuickAddDetails">
+          <summary class="plan-quick-add__summary">
+            <span class="plan-quick-add__summary-title">Quick add work order</span>
+            <span class="plan-quick-add__summary-hint">Drop it down to assign an existing WO.</span>
+            <span class="plan-quick-add__summary-icon" aria-hidden="true"></span>
+          </summary>
+          <form id="planQuickAddForm" class="plan-quick-add__form" autocomplete="off">
+            <label for="planQuickAddInput" class="plan-quick-add__label visually-hidden">Quick add work order</label>
+            <div class="plan-quick-add__controls">
+              <input id="planQuickAddInput" class="plan-quick-add__input" type="search" list="planQuickAddSuggestions" placeholder="Type WO number or title" aria-describedby="planQuickAddHelp" />
+              <select id="planQuickAddDay" class="plan-quick-add__select" aria-label="Select day"></select>
+              <select id="planQuickAddPerson" class="plan-quick-add__select" aria-label="Select engineer"></select>
+              <button id="planQuickAddSubmit" class="btn btn--primary btn--sm" type="submit">Add</button>
+            </div>
+            <p id="planQuickAddHelp" class="plan-quick-add__hint">Add directly to the schedule once you choose a day and engineer.</p>
+          </form>
+        </details>
         <datalist id="planQuickAddSuggestions"></datalist>
       </div>
       <div id="planNextWeekStatus" class="plan-status" role="status" aria-live="polite"></div>
