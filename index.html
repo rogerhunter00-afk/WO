@@ -331,7 +331,7 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
   pointer-events:none;
 }
 
-.fx-layer{z-index:320;opacity:0;transition:opacity .6s ease;}
+.fx-layer{z-index:240;opacity:0;transition:opacity .6s ease;}
 
 .fx-layer canvas{z-index:2;}
 #snow-mid{z-index:3;}
@@ -345,9 +345,9 @@ main{position:relative;}
 
 /* === Atmospheric Tint + Glow === */
 .night-tint{
-  background:radial-gradient(ellipse at center, rgba(8,20,40,0.42) 0%, rgba(2,6,15,0.9) 100%);
-  mix-blend-mode:multiply;
-  opacity:.48;
+  background:radial-gradient(160% 120% at 50% -10%, rgba(8,20,40,0.24) 0%, rgba(8,20,40,0.16) 36%, transparent 70%);
+  mix-blend-mode:soft-light;
+  opacity:.16;
   transition:opacity 1s ease;
 }
 
@@ -569,7 +569,7 @@ body.winter{
   background:radial-gradient(circle at top,#03112c,#020914 75%);
 }
 
-body.winter .night-tint{opacity:.54;}
+body.winter .night-tint{opacity:.22;}
 
 body.winter h1.title{animation:headerGlow 8s ease-in-out infinite;}
 
