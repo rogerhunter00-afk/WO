@@ -3396,7 +3396,7 @@
 
     function computeCategoryCounts(allRows){
       const counts = new Map();
-      const rows = Array.isArray(allRows) ? allRows : [];
+      const rows = (Array.isArray(allRows) ? allRows : []).filter(row => !isDoneStatus(row));
       rows.forEach(row => {
         const label = resolveCategoryValue(row?.Category) || 'Uncategorised';
         const key = label.toLowerCase();
