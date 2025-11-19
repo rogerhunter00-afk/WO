@@ -7555,6 +7555,24 @@ document.addEventListener('keydown', (e)=>{
     // safety
     if (!out || !out.matrix) return out;
 
+    const seenWorkOrdersByDay = new Map();
+    const dayKey = (day) => {
+      const label = String(day ?? "");
+      if (typeof slugify === "function") {
+        return slugify(label) || label.toLowerCase();
+      }
+      return label.trim().toLowerCase();
+    };
+    const normalizeWoId = (entry) => {
+      if (!entry) return null;
+      if (entry.lookupId) return entry.lookupId;
+      if (entry.workOrder?.ID && typeof normalizeId === 'function') {
+        const normalized = normalizeId(entry.workOrder.ID);
+        return normalized || null;
+      }
+      return null;
+    };
+
     // Helper to check if value is a placeholder note
     function isPlaceholderNote(value) {
       if (!value) return false;
@@ -7574,6 +7592,13 @@ document.addEventListener('keydown', (e)=>{
 
     // walk every day → every engineer → entries[]
     out.matrix.forEach((peopleMap, day) => {
+      const daySeen = (() => {
+        const key = dayKey(day);
+        if (!seenWorkOrdersByDay.has(key)) {
+          seenWorkOrdersByDay.set(key, new Set());
+        }
+        return seenWorkOrdersByDay.get(key);
+      })();
       peopleMap.forEach((entries, person) => {
         if (!Array.isArray(entries) || !entries.length) return;
 
@@ -7603,6 +7628,15 @@ document.addEventListener('keydown', (e)=>{
           if (isDuplicated(raw) || isDuplicated(text) || isDuplicated(label)) {
             console.log(`Skipping duplicated text entry:`, entry);
             return;
+          }
+
+          const normalizedWo = normalizeWoId(entry);
+          if (normalizedWo) {
+            if (daySeen.has(normalizedWo)) {
+              console.log(`Skipping duplicate WO ${normalizedWo} on ${day}`);
+              return;
+            }
+            daySeen.add(normalizedWo);
           }
 
           cleaned.push(entry);
