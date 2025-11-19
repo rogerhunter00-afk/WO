@@ -1190,12 +1190,13 @@
 
     .table-scroll {
       position:relative;
-      overflow:auto;
+      overflow-x:auto;
+      overflow-y:visible;
       border:1px solid var(--grid);
       border-radius:12px;
       background:var(--paper);
       box-shadow:0 2px 10px rgba(15, 23, 42, 0.05);
-      max-height:calc(100vh - var(--sticky-controls-offset) - 220px);
+      max-height:none;
       padding:0 2px 2px;
     }
 
