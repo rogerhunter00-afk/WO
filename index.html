@@ -1142,6 +1142,76 @@ body.dark .plan-overlay{
 .plan-dialog__actions .btn{
   white-space:nowrap;
 }
+.plan-quick-add{
+  margin:10px 24px 0;
+  padding:12px;
+  border:1px solid color-mix(in srgb, var(--plan-card-border, var(--grid)) 70%, transparent);
+  border-radius:14px;
+  background:color-mix(in srgb, var(--plan-card-bg, var(--paper)) 85%, transparent);
+}
+.plan-quick-add[hidden]{
+  display:none;
+}
+.plan-quick-add__form{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.plan-quick-add__label{
+  font-size:12px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:color-mix(in srgb, var(--muted) 70%, var(--ink) 30%);
+}
+.plan-quick-add__controls{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.plan-quick-add__input,
+.plan-quick-add__select{
+  border:1px solid var(--input-bd);
+  border-radius:10px;
+  background:var(--input-bg);
+  color:var(--input-fg);
+  padding:6px 10px;
+  font-size:13px;
+  min-height:34px;
+}
+.plan-quick-add__input{
+  flex:1;
+  min-width:0;
+}
+.plan-quick-add__input:focus,
+.plan-quick-add__select:focus{
+  outline:0;
+  border-color:var(--input-bd-focus);
+  box-shadow:0 0 0 3px color-mix(in oklab, var(--input-bd-focus) 25%, transparent);
+}
+.plan-quick-add__select{
+  min-width:130px;
+}
+.plan-quick-add__hint{
+  margin:0;
+  font-size:12px;
+  color:var(--muted);
+}
+@media (max-width:720px){
+  .plan-quick-add{
+    margin:10px 16px 0;
+  }
+  .plan-quick-add__controls{
+    flex-wrap:wrap;
+  }
+  .plan-quick-add__select{
+    flex:1;
+    min-width:140px;
+  }
+  .plan-quick-add__controls .btn{
+    width:100%;
+  }
+}
 .plan-day-control{
   display:flex;
   align-items:center;
@@ -1719,6 +1789,19 @@ body.dark .plan-overlay{
           <button id="planNextWeekClose" class="btn btn--ghost btn--sm" type="button">Close</button>
         </div>
       </header>
+      <div class="plan-quick-add" id="planQuickAdd" hidden>
+        <form id="planQuickAddForm" class="plan-quick-add__form" autocomplete="off">
+          <label for="planQuickAddInput" class="plan-quick-add__label">Quick add work order</label>
+          <div class="plan-quick-add__controls">
+            <input id="planQuickAddInput" class="plan-quick-add__input" type="search" list="planQuickAddSuggestions" placeholder="Type WO number or title" aria-describedby="planQuickAddHelp" />
+            <select id="planQuickAddDay" class="plan-quick-add__select" aria-label="Select day"></select>
+            <select id="planQuickAddPerson" class="plan-quick-add__select" aria-label="Select engineer"></select>
+            <button id="planQuickAddSubmit" class="btn btn--primary btn--sm" type="submit">Add</button>
+          </div>
+          <p id="planQuickAddHelp" class="plan-quick-add__hint">Add directly to the schedule once you choose a day and engineer.</p>
+        </form>
+        <datalist id="planQuickAddSuggestions"></datalist>
+      </div>
       <div id="planNextWeekStatus" class="plan-status" role="status" aria-live="polite"></div>
       <div class="plan-scroll">
         <div id="planNextWeekFilters" class="plan-filter-buttons" hidden role="toolbar" aria-label="Filter by engineer"></div>
@@ -3473,9 +3556,17 @@ const $planTitle = document.getElementById('planNextWeekTitle');
 const $planFilters = document.getElementById('planNextWeekFilters');
 const $planDayControl = document.getElementById('planNextWeekDayControl');
 const $planDaySelect = document.getElementById('planNextWeekDaySelect');
+const $planQuickAdd = document.getElementById('planQuickAdd');
+const $planQuickAddForm = document.getElementById('planQuickAddForm');
+const $planQuickAddInput = document.getElementById('planQuickAddInput');
+const $planQuickAddDay = document.getElementById('planQuickAddDay');
+const $planQuickAddPerson = document.getElementById('planQuickAddPerson');
+const $planQuickAddSuggestions = document.getElementById('planQuickAddSuggestions');
+const $planQuickAddSubmit = document.getElementById('planQuickAddSubmit');
 
 let PLAN_NEXT_WEEK_PERSON_FILTER = null;
 let PLAN_NEXT_WEEK_PEOPLE_ORDER = [];
+let PLAN_NEXT_WEEK_DAY_ORDER = [];
 let PLAN_NEXT_WEEK_DAY_FOCUS = null;
 let PLAN_NEXT_WEEK_UPDATE_IN_PROGRESS = false;
 let PLAN_NEXT_WEEK_ACTIVE_DRAG = null;
@@ -3492,6 +3583,7 @@ if($planTable){
   $planTable.addEventListener('dragleave', handlePlanDragLeave);
   $planTable.addEventListener('drop', handlePlanDrop);
 }
+$planQuickAddForm?.addEventListener('submit', handlePlanQuickAddSubmit);
 
 let __planReturnFocus = null;
 let __planPrevBodyOverflow = null;
@@ -3575,12 +3667,132 @@ function syncPlanButtons(){
       $planButton.removeAttribute('title');
     }
   }
+  syncPlanQuickAddState();
 }
 
 function setPlanStatus(message, state='info'){
   if(!$planStatus) return;
   $planStatus.textContent = message || '';
   $planStatus.dataset.state = state;
+}
+
+function syncPlanQuickAddState(dayOrderOverride=null){
+  if(!$planQuickAdd) return;
+  const enabled = planUpdatesEnabled() && planSourceIsConfigured();
+  const busy = PLAN_NEXT_WEEK_LOADING || PLAN_NEXT_WEEK_UPDATE_IN_PROGRESS;
+  $planQuickAdd.hidden = !enabled;
+  const controls = [$planQuickAddInput, $planQuickAddDay, $planQuickAddPerson, $planQuickAddSubmit];
+  controls.forEach(ctrl => {
+    if(!ctrl) return;
+    ctrl.disabled = !enabled || busy || (ctrl === $planQuickAddDay && !PLAN_NEXT_WEEK_DAY_ORDER.length);
+  });
+  if(!enabled) return;
+  const daySource = Array.isArray(dayOrderOverride) && dayOrderOverride.length
+    ? dayOrderOverride
+    : PLAN_NEXT_WEEK_DAY_ORDER;
+  if(daySource && daySource.length){
+    updatePlanQuickAddDays(daySource);
+  }
+  if(PLAN_NEXT_WEEK_PEOPLE_ORDER && PLAN_NEXT_WEEK_PEOPLE_ORDER.length){
+    updatePlanQuickAddPeople(PLAN_NEXT_WEEK_PEOPLE_ORDER);
+  }
+}
+
+function updatePlanQuickAddDays(dayOrder){
+  if(!$planQuickAddDay) return;
+  const options = Array.isArray(dayOrder) ? dayOrder.filter(Boolean) : [];
+  PLAN_NEXT_WEEK_DAY_ORDER = options.slice();
+  $planQuickAddDay.innerHTML = '';
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = 'Day…';
+  placeholder.disabled = true;
+  placeholder.hidden = true;
+  $planQuickAddDay.appendChild(placeholder);
+  const seen = new Set();
+  options.forEach(day => {
+    const key = normalizePlanDay(day) || day;
+    if(!key || seen.has(key)) return;
+    seen.add(key);
+    const option = document.createElement('option');
+    option.value = day;
+    option.textContent = day;
+    $planQuickAddDay.appendChild(option);
+  });
+  let preferred = null;
+  if(PLAN_NEXT_WEEK_DAY_FOCUS){
+    preferred = planFindDayLabel(options, PLAN_NEXT_WEEK_DAY_FOCUS) || null;
+  }
+  if(!preferred && options.length){
+    preferred = options[0];
+  }
+  if(preferred){
+    $planQuickAddDay.value = preferred;
+    placeholder.selected = false;
+  }else{
+    placeholder.selected = true;
+  }
+  $planQuickAddDay.disabled = !options.length;
+}
+
+function updatePlanQuickAddPeople(peopleOrder){
+  if(!$planQuickAddPerson) return;
+  const options = Array.isArray(peopleOrder) ? peopleOrder.filter(Boolean) : [];
+  $planQuickAddPerson.innerHTML = '';
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = 'Engineer…';
+  placeholder.disabled = true;
+  placeholder.hidden = true;
+  $planQuickAddPerson.appendChild(placeholder);
+  options.forEach(person => {
+    const option = document.createElement('option');
+    option.value = person;
+    option.textContent = person;
+    $planQuickAddPerson.appendChild(option);
+  });
+  let preferred = null;
+  if(PLAN_NEXT_WEEK_PERSON_FILTER && options.includes(PLAN_NEXT_WEEK_PERSON_FILTER)){
+    preferred = PLAN_NEXT_WEEK_PERSON_FILTER;
+  }else if(options.length){
+    preferred = options[0];
+  }
+  if(preferred){
+    $planQuickAddPerson.value = preferred;
+    placeholder.selected = false;
+  }else{
+    placeholder.selected = true;
+  }
+  $planQuickAddPerson.disabled = !options.length;
+}
+
+const PLAN_QUICK_ADD_SUGGESTION_LIMIT = 250;
+
+function buildQuickAddOptionLabel(row){
+  if(!row) return '';
+  const id = row.ID ? String(row.ID).trim() : '';
+  const title = row.Title ? String(row.Title).trim() : '';
+  if(id && title) return `WO ${id} – ${title}`;
+  return title || (id ? `WO ${id}` : '');
+}
+
+function refreshPlanQuickAddSuggestions(){
+  if(!$planQuickAddSuggestions) return;
+  const rows = Array.isArray(ALL_ROWS) ? ALL_ROWS : [];
+  $planQuickAddSuggestions.innerHTML = '';
+  if(!rows.length) return;
+  const frag = document.createDocumentFragment();
+  const seen = new Set();
+  for(const row of rows){
+    const key = normalizeId(row?.ID) || String(row?.Title || '').trim().toLowerCase();
+    if(!key || seen.has(key)) continue;
+    seen.add(key);
+    const option = document.createElement('option');
+    option.value = buildQuickAddOptionLabel(row);
+    frag.appendChild(option);
+    if(seen.size >= PLAN_QUICK_ADD_SUGGESTION_LIMIT) break;
+  }
+  $planQuickAddSuggestions.appendChild(frag);
 }
 
 function planIsMobileLayout(){
@@ -3711,6 +3923,7 @@ function markPlanDataStale(){
   PLAN_NEXT_WEEK_VIEW = null;
   PLAN_NEXT_WEEK_LAST_UPDATED = null;
   PLAN_NEXT_WEEK_PEOPLE_ORDER = [];
+  PLAN_NEXT_WEEK_DAY_ORDER = [];
   PLAN_NEXT_WEEK_PERSON_FILTER = null;
   PLAN_NEXT_WEEK_DAY_FOCUS = null;
   if($planTable) $planTable.innerHTML = '';
@@ -3720,6 +3933,7 @@ function markPlanDataStale(){
   }
   clearPlanFilterControls();
   updatePlanDaySelector([], null);
+  syncPlanQuickAddState([]);
 
   if(!planSourceIsConfigured()){
     setPlanStatus('Configure the plan sheet ID/URL to view the schedule.', 'info');
@@ -4714,6 +4928,7 @@ async function submitPlanDayChange(entry, targetDay, targetPerson){
     return;
   }
   PLAN_NEXT_WEEK_UPDATE_IN_PROGRESS = true;
+  syncPlanQuickAddState();
   setPlanStatus(`Moving task to ${targetDay}…`, 'loading');
   try{
     const payload = buildPlanUpdatePayload(entry, targetDay, targetPerson);
@@ -4725,6 +4940,7 @@ async function submitPlanDayChange(entry, targetDay, targetPerson){
     setPlanStatus(err?.message || 'Could not update the schedule.', 'error');
   }finally{
     PLAN_NEXT_WEEK_UPDATE_IN_PROGRESS = false;
+    syncPlanQuickAddState();
   }
 }
 
@@ -4759,6 +4975,120 @@ function buildPlanUpdatePayload(entry, targetDay, targetPerson){
       lookupId: entry?.lookupId ?? null,
     },
   };
+}
+
+function extractQuickAddId(value){
+  if(!value) return null;
+  const match = String(value).match(/\d{3,}/);
+  if(match) return normalizeId(match[0]);
+  return normalizeId(value);
+}
+
+function findWorkOrderForQuickAdd(term){
+  const rows = Array.isArray(ALL_ROWS) ? ALL_ROWS : [];
+  if(!rows.length) return null;
+  const normalized = extractQuickAddId(term);
+  if(normalized){
+    const match = findWorkOrderById(normalized, rows);
+    if(match) return match;
+  }
+  const needle = String(term || '').trim().toLowerCase();
+  if(!needle) return null;
+  return rows.find(row => String(row?.Title || '').toLowerCase().includes(needle)) || null;
+}
+
+function formatPlanEntryFromWorkOrder(workOrder){
+  if(!workOrder) return '';
+  const idPart = workOrder.ID ? `WO ${String(workOrder.ID).trim()}` : '';
+  const titlePart = workOrder.Title ? String(workOrder.Title).trim() : '';
+  if(idPart && titlePart) return `${idPart} – ${titlePart}`;
+  return idPart || titlePart;
+}
+
+async function submitPlanQuickAdd(workOrder, targetDay, targetPerson){
+  if(!planUpdatesEnabled()){
+    setPlanStatus('Configure the plan update URL to add work orders.', 'info');
+    return;
+  }
+  if(!workOrder){
+    setPlanStatus('Select a work order to add.', 'info');
+    return;
+  }
+  if(!targetDay){
+    setPlanStatus('Choose which day to add this to.', 'info');
+    return;
+  }
+  if(!targetPerson){
+    setPlanStatus('Choose which engineer should own this work order.', 'info');
+    return;
+  }
+  if(PLAN_NEXT_WEEK_UPDATE_IN_PROGRESS){
+    setPlanStatus('Please wait for the previous update to finish.', 'info');
+    return;
+  }
+  PLAN_NEXT_WEEK_UPDATE_IN_PROGRESS = true;
+  syncPlanQuickAddState();
+  const entryLabel = formatPlanEntryFromWorkOrder(workOrder) || 'work order';
+  setPlanStatus(`Adding ${entryLabel} to ${targetPerson} on ${targetDay}…`, 'loading');
+  try{
+    const payload = buildPlanQuickAddPayload(workOrder, targetDay, targetPerson);
+    await sendPlanUpdateRequest(payload);
+    if($planQuickAddInput){
+      $planQuickAddInput.value = '';
+    }
+    setPlanStatus('Work order added. Refreshing…', 'info');
+    await loadPlanNextWeek(true);
+  }catch(err){
+    console.error('Quick add failed', err);
+    setPlanStatus(err?.message || 'Could not add the work order.', 'error');
+  }finally{
+    PLAN_NEXT_WEEK_UPDATE_IN_PROGRESS = false;
+    syncPlanQuickAddState();
+  }
+}
+
+function buildPlanQuickAddPayload(workOrder, targetDay, targetPerson){
+  const sheet = {
+    gid: PLAN_NEXT_WEEK_SOURCE?.gid || null,
+    url: PLAN_NEXT_WEEK_SOURCE?.url || null,
+    range: PLAN_NEXT_WEEK_ACTIVE_RANGE || PLAN_NEXT_WEEK_SOURCE?.range || null,
+    label: planLabel(),
+  };
+  return {
+    action: 'add-entry',
+    targetDay,
+    targetPerson,
+    entryText: formatPlanEntryFromWorkOrder(workOrder),
+    workOrder: {
+      id: workOrder?.ID ?? null,
+      lookupId: normalizeId(workOrder?.ID) || null,
+      title: workOrder?.Title ?? null,
+      status: workOrder?.Status ?? null,
+      priority: workOrder?.Priority ?? null,
+      location: workOrder?.Location ?? null,
+      asset: workOrder?.Asset ?? null,
+      categories: workOrder?.Categories ?? null,
+    },
+    sheet,
+  };
+}
+
+function handlePlanQuickAddSubmit(event){
+  event.preventDefault();
+  if(!$planQuickAddInput) return;
+  const term = ($planQuickAddInput.value || '').trim();
+  if(!term){
+    setPlanStatus('Type a work order number or title to add.', 'info');
+    return;
+  }
+  const targetDay = $planQuickAddDay?.value || '';
+  const targetPerson = $planQuickAddPerson?.value || '';
+  const workOrder = findWorkOrderForQuickAdd(term);
+  if(!workOrder){
+    setPlanStatus('No matching work order was found.', 'error');
+    return;
+  }
+  submitPlanQuickAdd(workOrder, targetDay, targetPerson);
 }
 
 async function sendPlanUpdateRequest(payload){
@@ -4846,6 +5176,7 @@ function renderPlanTable(view){
   }
   const peopleOrder = mergePlanOrder(view.order?.people, PLAN_NEXT_WEEK_PEOPLE);
   const dayOrderFull = computePlanDayOrder(view);
+  PLAN_NEXT_WEEK_DAY_ORDER = dayOrderFull.slice();
   PLAN_NEXT_WEEK_PEOPLE_ORDER = peopleOrder.slice();
   if(PLAN_NEXT_WEEK_PERSON_FILTER && !peopleOrder.includes(PLAN_NEXT_WEEK_PERSON_FILTER)){
     PLAN_NEXT_WEEK_PERSON_FILTER = null;
@@ -4854,6 +5185,7 @@ function renderPlanTable(view){
     PLAN_NEXT_WEEK_PERSON_FILTER = null;
   }
   updatePlanFilterControls(peopleOrder);
+  syncPlanQuickAddState(dayOrderFull);
   const activeFilter = PLAN_NEXT_WEEK_PERSON_FILTER;
   const visiblePeople = activeFilter ? peopleOrder.filter(person => person === activeFilter) : peopleOrder;
   let dayOrder = dayOrderFull.slice();
@@ -5459,6 +5791,8 @@ async function ensurePlanLoaded(force=false){
 
 function refreshPlanWithWorkOrders(){
   rebuildPlanView();
+  refreshPlanQuickAddSuggestions();
+  syncPlanQuickAddState();
 }
 
 function isPlanLabel(label){
