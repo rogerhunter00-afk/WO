@@ -1408,6 +1408,45 @@ body.dark .plan-overlay{
   box-shadow:var(--card-shadow-hover, 0 6px 18px rgba(15,23,42,.16));
   border-color:color-mix(in srgb, var(--card-border, var(--border)) 70%, var(--brand) 30%);
 }
+.task-card__remove{
+  position:absolute;
+  top:6px;
+  right:8px;
+  width:24px;
+  height:24px;
+  border-radius:999px;
+  border:1px solid color-mix(in srgb, var(--card-border, var(--grid)) 70%, transparent);
+  background:color-mix(in srgb, var(--paper) 86%, var(--bg));
+  color:color-mix(in srgb, var(--ink) 78%, var(--muted) 22%);
+  font-size:17px;
+  font-weight:600;
+  line-height:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  cursor:pointer;
+  opacity:0;
+  transform:scale(.85);
+  transition:opacity .15s ease, transform .15s ease, background .15s ease, color .15s ease;
+}
+.task-card__remove:hover{
+  background:color-mix(in srgb, var(--brand) 12%, var(--paper));
+  color:var(--brand);
+}
+.task-card__remove:focus-visible{
+  outline:2px solid color-mix(in srgb, var(--brand) 55%, transparent);
+  outline-offset:1px;
+}
+.task-card:hover .task-card__remove,
+.task-card:focus-within .task-card__remove{
+  opacity:1;
+  transform:scale(1);
+}
+.task-card.is-dragging .task-card__remove,
+.task-card[data-dragging="true"] .task-card__remove{
+  visibility:hidden;
+}
 .task-card.is-dragging,
 .task-card[data-dragging="true"]{
   box-shadow:none;
@@ -4678,6 +4717,68 @@ function planCardChipLabel(entry, entryType){
   return match ? `WO ${match[0]}` : null;
 }
 
+function describePlanEntry(entry){
+  const fallback = 'this entry';
+  if(!entry) return fallback;
+  const id = entry.lookupId || entry.workOrder?.ID;
+  const title = entry.workOrder?.Title;
+  if(id && title){
+    return `WO ${String(id).trim()} – ${String(title).trim()}`;
+  }
+  if(id){
+    return `WO ${String(id).trim()}`;
+  }
+  if(title){
+    return String(title).trim();
+  }
+  if(entry.raw){
+    const raw = String(entry.raw).trim();
+    if(raw) return raw;
+  }
+  return fallback;
+}
+
+function planEntryRemovalEnabled(entry){
+  if(!planUpdatesEnabled()) return false;
+  if(!entry || (entry.type !== 'wo' && entry.type !== 'missing')) return false;
+  const meta = entry.__meta || {};
+  if(!Number.isInteger(meta.rowIndex)) return false;
+  if(!Number.isInteger(meta.entryIndex)) return false;
+  if(!meta.day || !normalizePlanDay(meta.day)) return false;
+  return true;
+}
+
+function createPlanEntryRemoveButton(entry){
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'task-card__remove';
+  btn.setAttribute('aria-label', 'Remove from schedule');
+  btn.textContent = '×';
+  btn.__planEntry = entry || null;
+  btn.addEventListener('click', handlePlanEntryRemoveClick);
+  btn.addEventListener('pointerdown', stopPlanRemoveButtonPropagation);
+  btn.addEventListener('pointerup', stopPlanRemoveButtonPropagation);
+  btn.addEventListener('mousedown', stopPlanRemoveButtonPropagation);
+  btn.addEventListener('touchstart', stopPlanRemoveButtonPropagation);
+  return btn;
+}
+
+function stopPlanRemoveButtonPropagation(event){
+  event.stopPropagation();
+}
+
+function handlePlanEntryRemoveClick(event){
+  event.preventDefault();
+  event.stopPropagation();
+  const btn = event.currentTarget;
+  const entry = btn?.__planEntry || null;
+  if(!planEntryRemovalEnabled(entry)){
+    setPlanStatus('This entry cannot be removed automatically.', 'info');
+    return;
+  }
+  submitPlanEntryRemoval(entry);
+}
+
 function renderPlanEntry(entry){
   // Safety checks - don't render if entry is problematic
   if(!entry) return null;
@@ -4751,6 +4852,9 @@ function renderPlanEntry(entry){
   }
 
   card.appendChild(body);
+  if(planEntryRemovalEnabled(entry)){
+    card.appendChild(createPlanEntryRemoveButton(entry));
+  }
   enhancePlanEntryCard(card, entry);
   return card;
 }
@@ -4944,6 +5048,36 @@ async function submitPlanDayChange(entry, targetDay, targetPerson){
   }
 }
 
+async function submitPlanEntryRemoval(entry){
+  if(!planEntryRemovalEnabled(entry)){
+    setPlanStatus('This entry cannot be removed automatically.', 'info');
+    return;
+  }
+  if(PLAN_NEXT_WEEK_UPDATE_IN_PROGRESS){
+    setPlanStatus('Please wait for the previous update to finish.', 'info');
+    return;
+  }
+  PLAN_NEXT_WEEK_UPDATE_IN_PROGRESS = true;
+  syncPlanQuickAddState();
+  const meta = entry?.__meta || {};
+  const label = describePlanEntry(entry);
+  const personText = meta.person ? ` for ${meta.person}` : '';
+  const dayText = meta.day ? ` on ${meta.day}` : '';
+  setPlanStatus(`Removing ${label}${personText}${dayText}…`, 'loading');
+  try{
+    const payload = buildPlanRemovePayload(entry);
+    await sendPlanUpdateRequest(payload);
+    setPlanStatus('Entry removed. Refreshing…', 'info');
+    await loadPlanNextWeek(true);
+  }catch(err){
+    console.error('Remove entry failed', err);
+    setPlanStatus(err?.message || 'Could not remove the entry.', 'error');
+  }finally{
+    PLAN_NEXT_WEEK_UPDATE_IN_PROGRESS = false;
+    syncPlanQuickAddState();
+  }
+}
+
 function buildPlanUpdatePayload(entry, targetDay, targetPerson){
   const meta = entry?.__meta || {};
   const rowIndex = Number.isInteger(meta.rowIndex) ? meta.rowIndex : null;
@@ -4962,6 +5096,36 @@ function buildPlanUpdatePayload(entry, targetDay, targetPerson){
     rowNumber: rowIndex == null ? null : rowIndex + 2,
     entryIndex: Number.isInteger(meta.entryIndex) ? meta.entryIndex : null,
     dayColumn,
+    sheet: {
+      gid: PLAN_NEXT_WEEK_SOURCE?.gid || null,
+      url: PLAN_NEXT_WEEK_SOURCE?.url || null,
+      range: PLAN_NEXT_WEEK_ACTIVE_RANGE || PLAN_NEXT_WEEK_SOURCE?.range || null,
+      label: planLabel(),
+    },
+    rowValues,
+    entry: {
+      raw: entry?.raw ?? null,
+      type: entry?.type ?? null,
+      lookupId: entry?.lookupId ?? null,
+    },
+  };
+}
+
+function buildPlanRemovePayload(entry){
+  const meta = entry?.__meta || {};
+  const rowIndex = Number.isInteger(meta.rowIndex) ? meta.rowIndex : null;
+  const headers = Array.isArray(PLAN_NEXT_WEEK_RAW?.headers) ? PLAN_NEXT_WEEK_RAW.headers.slice() : [];
+  const rowValues = (rowIndex != null && Array.isArray(PLAN_NEXT_WEEK_RAW?.rows?.[rowIndex]))
+    ? PLAN_NEXT_WEEK_RAW.rows[rowIndex].slice()
+    : null;
+  return {
+    action: 'remove-entry',
+    rowIndex,
+    rowNumber: rowIndex == null ? null : rowIndex + 2,
+    entryIndex: Number.isInteger(meta.entryIndex) ? meta.entryIndex : null,
+    day: meta.day || null,
+    person: meta.person || null,
+    headers,
     sheet: {
       gid: PLAN_NEXT_WEEK_SOURCE?.gid || null,
       url: PLAN_NEXT_WEEK_SOURCE?.url || null,
