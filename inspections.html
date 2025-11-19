@@ -751,11 +751,6 @@
       flex-wrap:wrap;
     }
 
-    .banner{margin-top:12px;padding:10px 12px;border-radius:12px;border:1px solid var(--grid);display:flex;gap:8px;align-items:center}
-    .banner.ok{background:color-mix(in srgb, #059669 14%, var(--paper))}
-    .banner.warn{background:color-mix(in srgb, #b45309 14%, var(--paper))}
-    .banner.err{background:color-mix(in srgb, #b91c1c 14%, var(--paper))}
-    .banner [data-msg]{font-weight:700}
 
     .pssr-content {
       display:flex;
@@ -900,13 +895,16 @@
     }
 
     .search-control label,
-    .category-filter label {
+    .category-filter__label {
       color:var(--muted);
       font-weight:600;
     }
 
-    .search-control input,
-    .category-filter select {
+    .category-filter__label {
+      display:block;
+    }
+
+    .search-control input {
       background:var(--input-bg);
       color:var(--input-fg);
       border:1px solid var(--input-bd);
@@ -974,8 +972,7 @@
       }
     }
 
-    .search-control input:focus,
-    .category-filter select:focus {
+    .search-control input:focus {
       outline:0;
       border-color:var(--input-bd-focus);
       box-shadow:0 0 0 3px color-mix(in srgb,var(--input-bd-focus) 28%,transparent);
@@ -1923,8 +1920,7 @@
       .sticky-controls { width:100%; flex-direction:column; align-items:stretch; gap:12px; }
       .search-control,
       .category-filter { width:100%; }
-      .search-control input,
-      .category-filter select { width:100%; }
+      .search-control input { width:100%; }
       .mobile-sort { display:grid; width:100%; gap:8px; }
       .mobile-sort label { font-weight:600; }
       .mobile-sort select { width:100%; }
@@ -2021,11 +2017,8 @@
             </div>
           </div>
           <div class="category-filter" data-role="category-filter">
-            <label for="category-select">Category</label>
+            <span class="category-filter__label">Category</span>
             <div class="category-hotbar" data-role="category-hotbar" role="group" aria-label="Quick category filters"></div>
-            <select id="category-select" data-role="category-select" aria-label="Filter inspections by category">
-              <option value="all">All categories</option>
-            </select>
           </div>
           <div class="search-control" data-role="search-control">
             <label for="inspection-search">Search</label>
@@ -2074,9 +2067,6 @@
         </div>
       </div>
     </section>
-    <div id="banner" class="banner ok" hidden>
-      <span data-msg>Ready</span><span data-detail></span>
-    </div>
     <div class="pssr-content">
       <section class="table-wrapper" data-component="inspections-table">
         <div class="table-scroll" data-role="scroll-region" data-loading="true">
@@ -3420,24 +3410,7 @@
     }
 
     function renderCategoryOptions(allRows, summary){
-      const select = document.querySelector('[data-role="category-select"]');
-      if(!select) return;
       const { counts, total } = summary || computeCategoryCounts(allRows);
-      const options = ['<option value="all">All categories</option>'];
-      const sorted = Array.from(counts.values()).sort((a, b) => a.label.localeCompare(b.label));
-      sorted.forEach(item => {
-        const display = item.count ? `${item.label} (${item.count})` : item.label;
-        options.push(`<option value="${esc(item.label)}">${esc(display)}</option>`);
-      });
-      select.innerHTML = options.join('');
-      const desired = state.categoryHot;
-      const hasDesired = desired === 'all' || Array.from(select.options).some(option => option.value === desired);
-      const nextValue = hasDesired ? desired : 'all';
-      if(select.value !== nextValue){
-        select.value = nextValue;
-      }
-      state.category = nextValue;
-      state.categoryHot = nextValue;
       renderCategoryHotbar(counts, total);
     }
 
@@ -3482,20 +3455,6 @@
       if(state.category !== next){
         state.category = next;
         changed = true;
-      }
-      const select = document.querySelector('[data-role="category-select"]');
-      if(select){
-        const options = Array.from(select.options || []);
-        const option = options.find(opt => opt.value === next);
-        const selectValue = option ? next : 'all';
-        if(select.value !== selectValue){
-          select.value = selectValue;
-        }
-        if(state.categoryHot !== selectValue || state.category !== selectValue){
-          state.categoryHot = selectValue;
-          state.category = selectValue;
-          changed = true;
-        }
       }
       if(changed && triggerRender && window.__INSPECTIONS_ALL__){
         renderAll(window.__INSPECTIONS_ALL__);
@@ -3760,26 +3719,6 @@
       return normalizeMaintainXToInspections(mxRows);
     }
 
-    function showBanner(message, detail = '', level = 'ok'){
-      const banner = document.getElementById('banner');
-      if(!banner) return;
-      if(!message){
-        banner.hidden = true;
-        return;
-      }
-      banner.classList.remove('ok', 'warn', 'err');
-      banner.classList.add(level);
-      const msgEl = banner.querySelector('[data-msg]');
-      const detailEl = banner.querySelector('[data-detail]');
-      if(msgEl) msgEl.textContent = message;
-      if(detailEl) detailEl.textContent = detail ? ` – ${detail}` : '';
-      banner.hidden = false;
-    }
-
-    function hideBanner(){
-      showBanner('', '');
-    }
-
     function updateSearchInput(){
       const input = document.querySelector('[data-role="search-input"]');
       if(input && input.value !== state.search){
@@ -3987,12 +3926,6 @@
         }
       });
 
-      const categorySelect = document.querySelector('[data-role="category-select"]');
-      categorySelect?.addEventListener('change', () => {
-        const value = categorySelect.value || 'all';
-        setActiveCategory(value);
-      });
-
       const siteBreakdown = document.querySelector('[data-role="inspections-site-breakdown"]');
       siteBreakdown?.addEventListener('click', event => {
         const button = event.target.closest('[data-role="inspections-site-kpi"]');
@@ -4054,19 +3987,15 @@
     async function initInspections(){
       const scrollRegion = document.querySelector('[data-role="scroll-region"]');
       scrollRegion?.setAttribute('data-loading', 'true');
-      showBanner('Loading inspections…', '', 'warn');
       try {
         const rows = ALLOW_NETWORK ? await loadInspectionsRows() : normalizeInspectionsRows(OFFLINE_SAMPLE);
         rowLookup = new Map(rows.map(row => [row.__id, row]));
         window.__INSPECTIONS_ALL__ = rows;
         selectedRowId = '';
         updateViewerContent(null);
-        hideBanner();
         renderAll(rows);
-        showBanner('Ready');
       } catch (error){
         console.error(error);
-        showBanner('Error', DEFAULT_ERROR_MESSAGE, 'err');
       } finally {
         scrollRegion?.removeAttribute('data-loading');
       }
