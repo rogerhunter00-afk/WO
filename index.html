@@ -4765,28 +4765,23 @@ async function sendPlanUpdateRequest(payload){
   if(!PLAN_NEXT_WEEK_UPDATE_URL){
     throw new Error('Plan update URL is not configured.');
   }
-  const res = await fetch(PLAN_NEXT_WEEK_UPDATE_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify(payload),
-  });
-  const text = await res.text();
-  if(!res.ok){
-    throw new Error(`Update failed (${res.status} ${res.statusText})`);
+
+  try{
+    // Fire-and-forget to avoid CORS issues with Apps Script.
+    await fetch(PLAN_NEXT_WEEK_UPDATE_URL, {
+      method: 'POST',
+      mode: 'no-cors',                        // avoid browser CORS rejection
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+    });
+
+    // In no-cors mode we can’t read the response, but we don’t need to:
+    // after this, loadPlanNextWeek(true) pulls fresh data from the sheet.
+    return null;
+  }catch(err){
+    console.error('Failed to send plan update', err);
+    throw new Error('Failed to send update request.');
   }
-  let data = null;
-  if(text){
-    try{
-      data = JSON.parse(text);
-    }catch{
-      data = text;
-    }
-  }
-  if(data && typeof data === 'object' && data.error){
-    throw new Error(data.error);
-  }
-  return data;
 }
 
 function comparePlanEntryOrder(a, b){
