@@ -1244,6 +1244,16 @@ body.dark .plan-overlay{
   vertical-align:top;
   background:var(--paper);
 }
+#plan-next-week .plan-table td[data-drop-active="true"][data-drop-allowed="true"]{
+  outline:2px solid var(--brand);
+  outline-offset:-4px;
+  background:color-mix(in srgb, var(--paper) 94%, var(--brand) 6%);
+}
+#plan-next-week .plan-table td[data-drop-active="true"][data-drop-allowed="false"]{
+  outline:2px solid var(--accent-red);
+  outline-offset:-4px;
+  background:color-mix(in srgb, var(--paper) 96%, var(--accent-red) 4%);
+}
 #plan-next-week .plan-table td{
   background:var(--paper);
 }
@@ -1261,6 +1271,12 @@ body.dark .plan-overlay{
 }
 .plan-table tbody tr:nth-child(odd) td{
   background:color-mix(in srgb, var(--paper) 96%, var(--bg));
+}
+.task-card[draggable="true"]{
+  cursor:grab;
+}
+.task-card[draggable="true"]:active{
+  cursor:grabbing;
 }
 .task-card{
   position:relative;
@@ -1537,7 +1553,7 @@ body.dark .plan-overlay{
 
 </style>
 </head>
-<body class="light" data-plan-gid="" data-plan-range="">
+<body class="light" data-plan-gid="" data-plan-range="" data-plan-update-url="">
   <!-- ❄️ Winter visual effects (hidden until Winter Plan is active) -->
   <div class="fx-layer" id="fx-layer" hidden>
     <canvas id="snow-far" aria-hidden="true"></canvas>
@@ -3333,6 +3349,7 @@ const planConfigFromBody = (() => {
     days: dataset.planDays,
     people: dataset.planPeople,
     range: dataset.planRange,
+    updateUrl: dataset.planUpdateUrl,
   };
 })();
 
@@ -3343,9 +3360,15 @@ const planLabelOverride = normalizePlanLabel(rawPlanLabelOverride) || rawPlanLab
 const planGidOverride = pickPlanScalar(planConfigFromBody.gid, planConfigFromWindow?.gid);
 const planUrlOverride = pickPlanScalar(planConfigFromBody.url, planConfigFromWindow?.url);
 const planRangeOverride = pickPlanScalar(planConfigFromBody.range, planConfigFromWindow?.range);
+const planUpdateUrlOverride = pickPlanScalar(
+  planConfigFromBody.updateUrl,
+  planConfigFromWindow?.updateUrl,
+  (typeof window !== 'undefined' ? window.ALS_PLAN_NEXT_WEEK_UPDATE_URL : null)
+);
 const PLAN_LABEL_LOCKED = Boolean(planLabelOverride);
 const PLAN_SOURCE_LOCKED = Boolean(planGidOverride || planUrlOverride);
 const PLAN_RANGE_LOCKED = Boolean(planRangeOverride);
+const PLAN_NEXT_WEEK_UPDATE_URL = planUpdateUrlOverride || null;
 
 let PLAN_NEXT_WEEK_SOURCE = {
   gid: planGidOverride,
@@ -3454,11 +3477,21 @@ const $planDaySelect = document.getElementById('planNextWeekDaySelect');
 let PLAN_NEXT_WEEK_PERSON_FILTER = null;
 let PLAN_NEXT_WEEK_PEOPLE_ORDER = [];
 let PLAN_NEXT_WEEK_DAY_FOCUS = null;
+let PLAN_NEXT_WEEK_UPDATE_IN_PROGRESS = false;
+let PLAN_NEXT_WEEK_ACTIVE_DRAG = null;
+let PLAN_NEXT_WEEK_DROP_TARGET = null;
 
 const PLAN_FILTER_BREAKPOINT = '(max-width: 680px)';
 const PLAN_FILTER_MEDIA = (typeof window !== 'undefined' && typeof window.matchMedia === 'function')
   ? window.matchMedia(PLAN_FILTER_BREAKPOINT)
   : null;
+
+if($planTable){
+  $planTable.addEventListener('dragover', handlePlanDragOver);
+  $planTable.addEventListener('dragenter', handlePlanDragOver);
+  $planTable.addEventListener('dragleave', handlePlanDragLeave);
+  $planTable.addEventListener('drop', handlePlanDrop);
+}
 
 let __planReturnFocus = null;
 let __planPrevBodyOverflow = null;
@@ -4504,7 +4537,256 @@ function renderPlanEntry(entry){
   }
 
   card.appendChild(body);
+  enhancePlanEntryCard(card, entry);
   return card;
+}
+
+function planUpdatesEnabled(){
+  return Boolean(PLAN_NEXT_WEEK_UPDATE_URL);
+}
+
+function planDragAndDropEnabledForEntry(entry){
+  if(!planUpdatesEnabled()) return false;
+  const meta = entry?.__meta;
+  if(!meta) return false;
+  if(!Number.isInteger(meta.rowIndex)) return false;
+  if(!meta.day || !normalizePlanDay(meta.day)) return false;
+  return true;
+}
+
+function enhancePlanEntryCard(card, entry){
+  if(!card) return;
+  card.__planEntry = entry || null;
+  if(planDragAndDropEnabledForEntry(entry)){
+    card.draggable = true;
+    card.setAttribute('aria-grabbed', 'false');
+    card.addEventListener('dragstart', handlePlanCardDragStart);
+    card.addEventListener('dragend', handlePlanCardDragEnd);
+  }else{
+    card.draggable = false;
+    card.removeAttribute('aria-grabbed');
+  }
+}
+
+function handlePlanCardDragStart(event){
+  const card = event.currentTarget;
+  const entry = card?.__planEntry || null;
+  if(!planDragAndDropEnabledForEntry(entry)){
+    event.preventDefault();
+    return;
+  }
+  PLAN_NEXT_WEEK_ACTIVE_DRAG = { card, entry };
+  card.classList.add('is-dragging');
+  card.setAttribute('aria-grabbed', 'true');
+  const transfer = event.dataTransfer;
+  if(transfer){
+    transfer.effectAllowed = 'move';
+    try{
+      transfer.setData('text/plain', card.textContent ? card.textContent.trim() : '');
+    }catch{}
+  }
+}
+
+function handlePlanCardDragEnd(){
+  if(PLAN_NEXT_WEEK_ACTIVE_DRAG?.card){
+    PLAN_NEXT_WEEK_ACTIVE_DRAG.card.classList.remove('is-dragging');
+    PLAN_NEXT_WEEK_ACTIVE_DRAG.card.setAttribute('aria-grabbed', 'false');
+  }
+  PLAN_NEXT_WEEK_ACTIVE_DRAG = null;
+  clearPlanDropTarget();
+}
+
+function handlePlanDragOver(event){
+  if(!PLAN_NEXT_WEEK_ACTIVE_DRAG?.entry) return;
+  const target = event.target;
+  const cell = target && typeof target.closest === 'function' ? target.closest('td[data-day]') : null;
+  if(!cell){
+    clearPlanDropTarget();
+    return;
+  }
+  const allowed = planCellAcceptsDrop(cell);
+  setPlanDropTarget(cell, allowed);
+  const transfer = event.dataTransfer;
+  if(allowed){
+    event.preventDefault();
+    if(transfer) transfer.dropEffect = 'move';
+  }else if(transfer){
+    transfer.dropEffect = 'none';
+  }
+}
+
+function handlePlanDragLeave(event){
+  if(!PLAN_NEXT_WEEK_ACTIVE_DRAG?.entry) return;
+  const target = event.target;
+  const cell = target && typeof target.closest === 'function' ? target.closest('td[data-day]') : null;
+  if(!cell) return;
+  if(PLAN_NEXT_WEEK_DROP_TARGET && cell === PLAN_NEXT_WEEK_DROP_TARGET){
+    const next = event.relatedTarget;
+    if(next && typeof next.closest === 'function' && cell.contains(next.closest('td[data-day]'))){
+      return;
+    }
+  }
+  if(cell === PLAN_NEXT_WEEK_DROP_TARGET){
+    clearPlanDropTarget();
+  }
+}
+
+function handlePlanDrop(event){
+  if(!PLAN_NEXT_WEEK_ACTIVE_DRAG?.entry) return;
+  const target = event.target;
+  const cell = target && typeof target.closest === 'function' ? target.closest('td[data-day]') : null;
+  if(!cell) return;
+  const allowed = planCellAcceptsDrop(cell);
+  if(!allowed){
+    clearPlanDropTarget();
+    return;
+  }
+  event.preventDefault();
+  const dragState = PLAN_NEXT_WEEK_ACTIVE_DRAG;
+  handlePlanCardDragEnd();
+  const targetDay = cell.dataset.day;
+  const targetPerson = cell.dataset.person || null;
+  finalizePlanDrop(dragState.entry, targetDay, targetPerson);
+}
+
+function setPlanDropTarget(cell, allowed){
+  if(PLAN_NEXT_WEEK_DROP_TARGET && PLAN_NEXT_WEEK_DROP_TARGET !== cell){
+    PLAN_NEXT_WEEK_DROP_TARGET.removeAttribute('data-drop-active');
+    PLAN_NEXT_WEEK_DROP_TARGET.removeAttribute('data-drop-allowed');
+  }
+  PLAN_NEXT_WEEK_DROP_TARGET = cell || null;
+  if(cell){
+    cell.dataset.dropActive = 'true';
+    cell.dataset.dropAllowed = allowed ? 'true' : 'false';
+  }
+}
+
+function clearPlanDropTarget(){
+  if(PLAN_NEXT_WEEK_DROP_TARGET){
+    PLAN_NEXT_WEEK_DROP_TARGET.removeAttribute('data-drop-active');
+    PLAN_NEXT_WEEK_DROP_TARGET.removeAttribute('data-drop-allowed');
+  }
+  PLAN_NEXT_WEEK_DROP_TARGET = null;
+}
+
+function planCellAcceptsDrop(cell){
+  if(!cell || !PLAN_NEXT_WEEK_ACTIVE_DRAG?.entry) return false;
+  const entry = PLAN_NEXT_WEEK_ACTIVE_DRAG.entry;
+  if(!planDragAndDropEnabledForEntry(entry)) return false;
+  const targetDay = cell.dataset.day;
+  if(!targetDay) return false;
+  const targetCanonical = normalizePlanDay(targetDay);
+  const sourceCanonical = normalizePlanDay(entry.__meta?.day);
+  if(!targetCanonical || !sourceCanonical || targetCanonical === sourceCanonical) return false;
+  const entryPerson = sanitizePlanScalar(entry.__meta?.person);
+  const cellPerson = sanitizePlanScalar(cell.dataset.person);
+  if(entryPerson && cellPerson && entryPerson !== cellPerson) return false;
+  return true;
+}
+
+function finalizePlanDrop(entry, targetDay, targetPerson){
+  if(!entry || !targetDay) return;
+  const meta = entry.__meta || {};
+  const normalizedSource = normalizePlanDay(meta.day);
+  const normalizedTarget = normalizePlanDay(targetDay);
+  if(normalizedSource && normalizedTarget && normalizedSource === normalizedTarget) return;
+  const entryPerson = sanitizePlanScalar(meta.person);
+  const dropPerson = sanitizePlanScalar(targetPerson) || entryPerson;
+  if(entryPerson && dropPerson && entryPerson !== dropPerson){
+    setPlanStatus('Drag cards within the same engineer row to change the day.', 'info');
+    return;
+  }
+  submitPlanDayChange(entry, targetDay, dropPerson);
+}
+
+async function submitPlanDayChange(entry, targetDay, targetPerson){
+  if(!planUpdatesEnabled()){
+    setPlanStatus('Configure the plan update URL to enable drag-and-drop.', 'info');
+    return;
+  }
+  const meta = entry?.__meta;
+  if(!meta || !Number.isInteger(meta.rowIndex)){
+    setPlanStatus('Cannot update this entry because the source row is unknown.', 'error');
+    return;
+  }
+  if(PLAN_NEXT_WEEK_UPDATE_IN_PROGRESS){
+    setPlanStatus('Please wait for the previous update to finish.', 'info');
+    return;
+  }
+  PLAN_NEXT_WEEK_UPDATE_IN_PROGRESS = true;
+  setPlanStatus(`Moving task to ${targetDay}…`, 'loading');
+  try{
+    const payload = buildPlanUpdatePayload(entry, targetDay, targetPerson);
+    await sendPlanUpdateRequest(payload);
+    setPlanStatus('Day updated. Refreshing…', 'info');
+    await loadPlanNextWeek(true);
+  }catch(err){
+    console.error('Plan update failed', err);
+    setPlanStatus(err?.message || 'Could not update the schedule.', 'error');
+  }finally{
+    PLAN_NEXT_WEEK_UPDATE_IN_PROGRESS = false;
+  }
+}
+
+function buildPlanUpdatePayload(entry, targetDay, targetPerson){
+  const meta = entry?.__meta || {};
+  const rowIndex = Number.isInteger(meta.rowIndex) ? meta.rowIndex : null;
+  const headers = Array.isArray(PLAN_NEXT_WEEK_RAW?.headers) ? PLAN_NEXT_WEEK_RAW.headers.slice() : [];
+  const rowValues = (rowIndex != null && Array.isArray(PLAN_NEXT_WEEK_RAW?.rows?.[rowIndex]))
+    ? PLAN_NEXT_WEEK_RAW.rows[rowIndex].slice()
+    : null;
+  const dayColumn = PLAN_NEXT_WEEK_VIEW?.columns?.day || headers[0] || 'Day';
+  return {
+    action: 'update-day',
+    targetDay,
+    sourceDay: meta.day || null,
+    targetPerson: targetPerson || null,
+    sourcePerson: meta.person || null,
+    rowIndex,
+    rowNumber: rowIndex == null ? null : rowIndex + 2,
+    entryIndex: Number.isInteger(meta.entryIndex) ? meta.entryIndex : null,
+    dayColumn,
+    sheet: {
+      gid: PLAN_NEXT_WEEK_SOURCE?.gid || null,
+      url: PLAN_NEXT_WEEK_SOURCE?.url || null,
+      range: PLAN_NEXT_WEEK_ACTIVE_RANGE || PLAN_NEXT_WEEK_SOURCE?.range || null,
+      label: planLabel(),
+    },
+    rowValues,
+    entry: {
+      raw: entry?.raw ?? null,
+      type: entry?.type ?? null,
+      lookupId: entry?.lookupId ?? null,
+    },
+  };
+}
+
+async function sendPlanUpdateRequest(payload){
+  if(!PLAN_NEXT_WEEK_UPDATE_URL){
+    throw new Error('Plan update URL is not configured.');
+  }
+  const res = await fetch(PLAN_NEXT_WEEK_UPDATE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+  const text = await res.text();
+  if(!res.ok){
+    throw new Error(`Update failed (${res.status} ${res.statusText})`);
+  }
+  let data = null;
+  if(text){
+    try{
+      data = JSON.parse(text);
+    }catch{
+      data = text;
+    }
+  }
+  if(data && typeof data === 'object' && data.error){
+    throw new Error(data.error);
+  }
+  return data;
 }
 
 function comparePlanEntryOrder(a, b){
@@ -4624,6 +4906,7 @@ function renderPlanTable(view){
     dayOrder.forEach(day => {
       const td = document.createElement('td');
       td.dataset.day = day;
+      td.dataset.person = person;
       const dayBucket = view.matrix.get(day);
       const entries = dayBucket?.get(person) || [];
       const sortedEntries = entries.length > 1 ? entries.slice().sort(comparePlanEntryOrder) : entries;
