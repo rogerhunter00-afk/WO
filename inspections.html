@@ -709,9 +709,9 @@
     }
 
     .sticky-top {
-      position:sticky;
-      top:0;
-      z-index:300;
+      position:static;
+      top:auto;
+      z-index:initial;
       background:color-mix(in srgb,var(--bg) 20%,transparent);
       border-bottom:1px solid color-mix(in srgb,var(--border) 55%,transparent);
       padding:10px 0;
@@ -1165,7 +1165,6 @@
     .table-wrapper {
       margin-top:0;
       width:100%;
-      max-width:min(var(--table-max-width, 1480px), 100%);
       margin-inline:auto;
     }
 
@@ -3751,10 +3750,7 @@
     }
 
     function updateStickyOffsets(){
-      const sticky = document.querySelector('.sticky-top');
-      if(!sticky) return;
-      const height = sticky.getBoundingClientRect().height;
-      document.documentElement.style.setProperty('--sticky-controls-offset', `${Math.ceil(height)}px`);
+      document.documentElement.style.setProperty('--sticky-controls-offset', '0px');
     }
 
     function needsMobileLayout(){
