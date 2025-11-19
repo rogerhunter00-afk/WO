@@ -1501,29 +1501,102 @@
     }
 
     .status-pill {
+      --ring:color-mix(in srgb,currentColor 36%,transparent);
+      --bg:color-mix(in srgb,currentColor 14%,transparent);
+      --glyph:"•";
       display:inline-flex;
       align-items:center;
-      justify-content:center;
-      padding:4px 10px;
+      gap:6px;
+      padding:4px 12px;
       border-radius:999px;
-      font-size:11px;
+      font-size:12px;
       font-weight:700;
-      letter-spacing:0.08em;
-      text-transform:uppercase;
-      background:var(--surface-strong);
-      color:var(--ink);
-      border:1px solid color-mix(in srgb,var(--grid) 70%,transparent);
+      line-height:1;
+      letter-spacing:0;
+      text-transform:none;
+      background:var(--bg);
+      color:currentColor;
+      border:1px solid var(--ring);
       white-space:nowrap;
       min-width:0;
     }
 
-    .status-pill.is-overdue { background:color-mix(in srgb,var(--risk-critical) 18%,var(--paper)); color:var(--risk-critical); border-color:color-mix(in srgb,var(--risk-critical) 60%,transparent); }
-    .status-pill.is-due { background:color-mix(in srgb,var(--risk-warning) 16%,var(--paper)); color:var(--risk-warning); border-color:color-mix(in srgb,var(--risk-warning) 55%,transparent); }
-    .status-pill.is-clear { background:color-mix(in srgb,var(--risk-ok) 18%,var(--paper)); color:var(--risk-ok); border-color:color-mix(in srgb,var(--risk-ok) 55%,transparent); }
-    .status-pill.is-completed { background:color-mix(in srgb,var(--done-tx) 18%,var(--paper)); color:var(--done-tx); border-color:color-mix(in srgb,var(--done-tx) 60%,transparent); }
-    .status-pill.is-in-progress { background:color-mix(in srgb,var(--als-blue) 10%,var(--paper)); color:color-mix(in srgb,var(--als-blue) 80%,var(--ink)); border-color:color-mix(in srgb,var(--als-blue) 40%,transparent); }
-    .status-pill.is-scheduled { background:color-mix(in srgb,var(--muted) 12%,var(--paper)); color:color-mix(in srgb,var(--muted) 78%,var(--ink)); border-color:color-mix(in srgb,var(--muted) 45%,transparent); }
-    .status-pill.is-unknown { background:color-mix(in srgb,var(--muted) 8%,var(--paper)); color:color-mix(in srgb,var(--muted) 65%,var(--ink)); border-color:color-mix(in srgb,var(--muted) 40%,transparent); }
+    .status-pill::before {
+      content:"";
+      width:14px;
+      height:14px;
+      display:inline-block;
+      background:currentColor;
+      mask:var(--icon) no-repeat center/14px 14px;
+      -webkit-mask:var(--icon) no-repeat center/14px 14px;
+    }
+
+    .status-pill.is-overdue {
+      color:var(--risk-critical);
+      --bg:color-mix(in srgb,var(--risk-critical) 12%,var(--paper));
+      --ring:color-mix(in srgb,var(--risk-critical) 45%,transparent);
+      --icon:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='black' d='M7.1 2.2c.35-.7 1.44-.7 1.8 0l5.9 11.8c.31.63-.14 1.4-.9 1.4H2.1c-.76 0-1.21-.77-.9-1.4L7.1 2.2zm.9 3.3c-.34 0-.6.27-.58.6l.17 4.2c.01.32.27.57.58.57s.57-.25.58-.57l.17-4.2c.01-.33-.24-.6-.58-.6zm0 7.1a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8z'/></svg>");
+      --glyph:"!";
+    }
+
+    .status-pill.is-due {
+      color:var(--risk-warning);
+      --bg:color-mix(in srgb,var(--risk-warning) 12%,var(--paper));
+      --ring:color-mix(in srgb,var(--risk-warning) 45%,transparent);
+      --icon:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='black' fill-rule='evenodd' d='M8 1a7 7 0 1 1 0 14A7 7 0 0 1 8 1zm0 2a5 5 0 1 0 0 10A5 5 0 0 0 8 3z'/><rect x='7.25' y='3' width='1.5' height='5' rx='.75' fill='black'/><rect x='7.25' y='8' width='4.5' height='1.5' rx='.75' fill='black'/></svg>");
+      --glyph:"⏳";
+    }
+
+    .status-pill.is-clear {
+      color:var(--risk-ok);
+      --bg:color-mix(in srgb,var(--risk-ok) 14%,var(--paper));
+      --ring:color-mix(in srgb,var(--risk-ok) 45%,transparent);
+      --icon:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='black' d='M6.6 12.2 2.9 8.5l1.4-1.4 2.3 2.3 4.9-4.9 1.4 1.4-6.3 6.3z'/></svg>");
+      --glyph:"✓";
+    }
+
+    .status-pill.is-completed {
+      color:var(--done-tx);
+      --bg:color-mix(in srgb,var(--done-tx) 14%,var(--paper));
+      --ring:color-mix(in srgb,var(--done-tx) 45%,transparent);
+      --icon:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='black' d='M6.6 12.2 2.9 8.5l1.4-1.4 2.3 2.3 4.9-4.9 1.4 1.4-6.3 6.3z'/></svg>");
+      --glyph:"✓";
+    }
+
+    .status-pill.is-in-progress {
+      color:color-mix(in srgb,var(--als-blue) 82%,var(--ink));
+      --bg:color-mix(in srgb,var(--als-blue) 12%,var(--paper));
+      --ring:color-mix(in srgb,var(--als-blue) 40%,transparent);
+      --icon:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='black' fill-rule='evenodd' d='M8 1a7 7 0 1 1 0 14A7 7 0 0 1 8 1zm0 2a5 5 0 1 0 0 10A5 5 0 0 0 8 3z'/><rect x='7.25' y='3' width='1.5' height='5' rx='.75' fill='black'/><rect x='7.25' y='8' width='4.5' height='1.5' rx='.75' fill='black'/></svg>");
+      --glyph:"⏳";
+    }
+
+    .status-pill.is-scheduled {
+      color:color-mix(in srgb,var(--muted) 78%,var(--ink));
+      --bg:color-mix(in srgb,var(--muted) 12%,var(--paper));
+      --ring:color-mix(in srgb,var(--muted) 38%,transparent);
+      --icon:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='2.5' y='4' width='11' height='9.5' rx='1.5' fill='black'/><rect x='3' y='2' width='2' height='3' rx='1' fill='black'/><rect x='11' y='2' width='2' height='3' rx='1' fill='black'/><rect x='4.5' y='7.5' width='7' height='1.5' rx='.75' fill='white'/></svg>");
+      --glyph:"📅";
+    }
+
+    .status-pill.is-unknown {
+      color:color-mix(in srgb,var(--muted) 65%,var(--ink));
+      --bg:color-mix(in srgb,var(--muted) 10%,var(--paper));
+      --ring:color-mix(in srgb,var(--muted) 35%,transparent);
+      --icon:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='black' d='M8 1.5A6.5 6.5 0 1 0 14.5 8 6.51 6.51 0 0 0 8 1.5zm0 2a2.6 2.6 0 0 1 2.75 2.46c0 1.64-1.38 2.36-1.66 2.66-.12.14-.18.27-.18.53v.45H6.96v-.58c0-.75.26-1.2.84-1.68.34-.3 1-.86 1-1.47A.96.96 0 0 0 8 4.5a.95.95 0 0 0-.96.98H5.54A2.52 2.52 0 0 1 8 3.5zm-.03 6.65a1 1 0 1 1-.01 1.99 1 1 0 0 1 .01-1.99z'/></svg>");
+      --glyph:"?";
+    }
+
+    @supports not (mask:url("")) {
+      .status-pill::before {
+        mask:none;
+        -webkit-mask:none;
+        background:none;
+        width:auto;
+        margin-right:2px;
+        content:var(--glyph, "•");
+      }
+    }
 
     .empty-state {
       padding:20px;
