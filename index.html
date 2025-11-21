@@ -5961,7 +5961,7 @@ async function loadPlanNextWeek(force=false){
   syncPlanButtons();
   try{
     const url = force ? withBust(urlBase) : urlBase;
-    const res = await fetch(url);
+    const res = await fetch(url, { cache: force ? 'reload' : 'no-store' });
     if(!res.ok){
       throw new Error(`Could not load plan sheet (${res.status} ${res.statusText})`);
     }
