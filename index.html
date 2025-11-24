@@ -7768,13 +7768,19 @@ document.addEventListener('keydown', (e)=>{
     // safety
     if (!out || !out.matrix) return out;
 
-    const seenWorkOrdersByDayAndPerson = new Map();
-    const dayKey = (day) => {
-      const label = String(day ?? "");
-      if (typeof slugify === "function") {
-        return slugify(label) || label.toLowerCase();
+    // Track duplicates within the same day/person only (never across engineers)
+    const seenWorkOrdersByPersonDay = new Map();
+    const personDayKey = (day, person) => {
+      const dayLabel = String(day ?? "").trim().toLowerCase();
+      const personLabel = String(person ?? "").trim().toLowerCase();
+      return `${dayLabel}|||${personLabel}`;
+    };
+    const getPersonDaySet = (day, person) => {
+      const key = personDayKey(day, person);
+      if(!seenWorkOrdersByPersonDay.has(key)){
+        seenWorkOrdersByPersonDay.set(key, new Set());
       }
-      return label.trim().toLowerCase();
+      return seenWorkOrdersByPersonDay.get(key);
     };
     const personKey = (person) => String(person ?? '').trim().toLowerCase();
     const getPersonDaySet = (day, person) => {
