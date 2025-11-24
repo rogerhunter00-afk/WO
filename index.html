@@ -7768,13 +7768,19 @@ document.addEventListener('keydown', (e)=>{
     // safety
     if (!out || !out.matrix) return out;
 
-    const seenWorkOrdersByDay = new Map();
-    const dayKey = (day) => {
-      const label = String(day ?? "");
-      if (typeof slugify === "function") {
-        return slugify(label) || label.toLowerCase();
+    // Track duplicates within the same day/person only (never across engineers)
+    const seenWorkOrdersByPersonDay = new Map();
+    const personDayKey = (day, person) => {
+      const dayLabel = String(day ?? "").trim().toLowerCase();
+      const personLabel = String(person ?? "").trim().toLowerCase();
+      return `${dayLabel}|||${personLabel}`;
+    };
+    const getPersonDaySet = (day, person) => {
+      const key = personDayKey(day, person);
+      if(!seenWorkOrdersByPersonDay.has(key)){
+        seenWorkOrdersByPersonDay.set(key, new Set());
       }
-      return label.trim().toLowerCase();
+      return seenWorkOrdersByPersonDay.get(key);
     };
     const normalizeWoId = (entry) => {
       if (!entry) return null;
@@ -7805,15 +7811,10 @@ document.addEventListener('keydown', (e)=>{
 
     // walk every day → every engineer → entries[]
     out.matrix.forEach((peopleMap, day) => {
-      const daySeen = (() => {
-        const key = dayKey(day);
-        if (!seenWorkOrdersByDay.has(key)) {
-          seenWorkOrdersByDay.set(key, new Set());
-        }
-        return seenWorkOrdersByDay.get(key);
-      })();
       peopleMap.forEach((entries, person) => {
         if (!Array.isArray(entries) || !entries.length) return;
+
+        const dayPersonSeen = getPersonDaySet(day, person);
 
         const cleaned = [];
         entries.forEach((entry) => {
@@ -7845,11 +7846,11 @@ document.addEventListener('keydown', (e)=>{
 
           const normalizedWo = normalizeWoId(entry);
           if (normalizedWo) {
-            if (daySeen.has(normalizedWo)) {
-              console.log(`Skipping duplicate WO ${normalizedWo} on ${day}`);
+            if (dayPersonSeen.has(normalizedWo)) {
+              console.log(`Skipping duplicate WO ${normalizedWo} on ${day} for ${person}`);
               return;
             }
-            daySeen.add(normalizedWo);
+            dayPersonSeen.add(normalizedWo);
           }
 
           cleaned.push(entry);
