@@ -7782,6 +7782,19 @@ document.addEventListener('keydown', (e)=>{
       }
       return seenWorkOrdersByPersonDay.get(key);
     };
+    const personKey = (person) => String(person ?? '').trim().toLowerCase();
+    const getPersonDaySet = (day, person) => {
+      const dKey = dayKey(day);
+      if(!seenWorkOrdersByDayAndPerson.has(dKey)){
+        seenWorkOrdersByDayAndPerson.set(dKey, new Map());
+      }
+      const perDay = seenWorkOrdersByDayAndPerson.get(dKey);
+      const pKey = personKey(person);
+      if(!perDay.has(pKey)){
+        perDay.set(pKey, new Set());
+      }
+      return perDay.get(pKey);
+    };
     const normalizeWoId = (entry) => {
       if (!entry) return null;
       if (entry.lookupId) return entry.lookupId;
