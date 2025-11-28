@@ -2531,6 +2531,13 @@ const url  = bust ? withBust(base) : base;
       throw new Error('Row dedupe failed – check required columns like ID/Title/Created on');
     }
 
+    try {
+      await ensureRawWorkOrders();
+      rows = applyHistoricalStatus(rows, meta.weekEnd);
+    } catch(rawErr){
+      console.warn('[MX_Raw_WorkOrders] fallback to weekly sheet rows:', rawErr);
+    }
+
     saveWeekToCache(meta, { headers, rows });
 
     LAST_HEADERS = headers;
@@ -2595,6 +2602,13 @@ async function refreshInBG(meta){
     } catch (dErr) {
       console.error('[refreshInBG] dedupeRows failed:', dErr);
       throw new Error('Row dedupe failed – check required columns like ID/Title/Created on');
+    }
+
+    try {
+      await ensureRawWorkOrders();
+      rows = applyHistoricalStatus(rows, meta.weekEnd);
+    } catch(rawErr){
+      console.warn('[refreshInBG] MX_Raw_WorkOrders fallback:', rawErr);
     }
 
     const cached = saveWeekToCache(meta, { headers, rows }) || { headers, rows };
@@ -3331,13 +3345,23 @@ function kpiCard(label,val){ const el=document.createElement('div'); el.classNam
 const PRIORITY_ORDER=['critical','high','medium','low','']; const STATUS_ORDER=['open','in-progress','on-hold','done',''];
 function parseDateLoose(v){
   if(!v) return null;
-  const m=String(v).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/);
-  if(!m) return null;
-  let [,d,M,y,hh='00',mm='00']=m;
-  d=d.padStart(2,'0');
-  M=M.padStart(2,'0');
-  hh=hh.padStart(2,'0');
-  const dt=new Date(`${y}-${M}-${d}T${hh}:${mm}:00`);
+  const str = String(v).trim();
+  if(!str) return null;
+
+  const iso = str.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if(iso){
+    const [,y,M,d,hh='00',mm='00',ss='00'] = iso;
+    const dt = new Date(`${y}-${M}-${d}T${hh.padStart(2,'0')}:${mm}:${ss.padStart(2,'0')}`);
+    return isNaN(dt.getTime()) ? null : dt;
+  }
+
+  const slashed = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/);
+  if(!slashed) return null;
+  let [,d,M,y,hh='00',mm='00'] = slashed;
+  d = d.padStart(2,'0');
+  M = M.padStart(2,'0');
+  hh = hh.padStart(2,'0');
+  const dt = new Date(`${y}-${M}-${d}T${hh}:${mm}:00`);
   return isNaN(dt.getTime())?null:dt;
 }
   // === DEDUPE HELPERS ===
@@ -3424,6 +3448,118 @@ function csvUrlForGid(gid){
   u.searchParams.set('single','true');
   u.searchParams.set('output','csv');
   return u.toString();
+}
+
+const RAW_WORK_ORDERS_CSV_URL =
+  'https://docs.google.com/spreadsheets/d/1bVi12enMnCmUVmzR_add6e38qFggHwVGwI1PWrIggl4/gviz/tq?tqx=out:csv&sheet=MX_Raw_WorkOrders';
+
+let RAW_WORK_ORDERS_RAW = null;
+let RAW_WORK_ORDERS_LOOKUP = null;
+let RAW_WORK_ORDERS_PROMISE = null;
+
+async function ensureRawWorkOrders(force=false){
+  if(RAW_WORK_ORDERS_RAW && !force) return RAW_WORK_ORDERS_RAW;
+  if(RAW_WORK_ORDERS_PROMISE && !force) return RAW_WORK_ORDERS_PROMISE;
+
+  const url = force ? withBust(RAW_WORK_ORDERS_CSV_URL) : RAW_WORK_ORDERS_CSV_URL;
+  RAW_WORK_ORDERS_PROMISE = (async ()=>{
+    const res = await fetch(url);
+    if(!res.ok){
+      throw new Error(`Could not load MX_Raw_WorkOrders (${res.status} ${res.statusText})`);
+    }
+
+    const text = await res.text();
+    if(!text || !text.trim()){
+      throw new Error('MX_Raw_WorkOrders CSV is empty');
+    }
+
+    const parsed = parseDelimited(text);
+    RAW_WORK_ORDERS_RAW = parsed.rows || [];
+    RAW_WORK_ORDERS_LOOKUP = buildRawWorkOrderLookup(RAW_WORK_ORDERS_RAW);
+    return RAW_WORK_ORDERS_RAW;
+  })();
+
+  try {
+    return await RAW_WORK_ORDERS_PROMISE;
+  } finally {
+    RAW_WORK_ORDERS_PROMISE = null;
+  }
+}
+
+function buildRawWorkOrderLookup(rows){
+  const map = new Map();
+  for(const r of rows || []){
+    const key = normalizeId(r['ID']);
+    if(key) map.set(key, r);
+  }
+  return map;
+}
+
+function parseWeekEndDate(weekEnd){
+  if(!weekEnd) return null;
+  const parsed = parseDateLoose(weekEnd);
+  if(parsed) return parsed;
+  const dt = new Date(String(weekEnd));
+  return isNaN(dt.getTime()) ? null : dt;
+}
+
+function computeWeekWindow(weekEnd){
+  const end = parseWeekEndDate(weekEnd);
+  if(!end) return null;
+  const start = new Date(end);
+  start.setDate(end.getDate() - 6);
+  return { start, end };
+}
+
+function rowActiveInWeek(rawRow, window){
+  if(!window || !rawRow) return false;
+  const created = parseDateLoose(rawRow['Created on']);
+  const completed = parseDateLoose(rawRow['Completed on']);
+
+  if(created && created > window.end) return false;
+  if(completed && completed < window.start) return false;
+  return true;
+}
+
+function historicalStatusForWeek(row, rawRow, window){
+  if(!window) return null;
+  const source = rawRow || row || {};
+  const created = parseDateLoose(source['Created on']);
+  if(created && created > window.end) return null;
+
+  const completed = parseDateLoose(source['Completed on']);
+  const baseStatus = source['Status'] || row?.['Status'] || '';
+  let status = baseStatus;
+  let completedOn = source['Completed on'] || row?.['Completed on'] || '';
+
+  if(completed && completed <= window.end){
+    status = baseStatus || 'Done';
+    completedOn = source['Completed on'] || completedOn;
+  }else if(completed && completed > window.end){
+    if(/^done$/i.test(baseStatus)) status = 'In Progress';
+    completedOn = '';
+  }else{
+    completedOn = '';
+  }
+
+  return { ...row, Status: status, 'Completed on': completedOn };
+}
+
+function applyHistoricalStatus(rows, weekEnd){
+  const window = computeWeekWindow(weekEnd);
+  if(!window || !(RAW_WORK_ORDERS_LOOKUP?.size)) return rows;
+
+  const list = Array.isArray(rows) ? rows : [];
+  const out = [];
+
+  for(const row of list){
+    const raw = RAW_WORK_ORDERS_LOOKUP.get(normalizeId(row['ID'])) || row;
+    if(!rowActiveInWeek(raw, window)) continue;
+    const adjusted = historicalStatusForWeek(row, raw, window);
+    if(adjusted) out.push(adjusted);
+  }
+
+  return out;
 }
 
   function withBust(u){
