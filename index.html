@@ -2748,12 +2748,51 @@ wireUiOffsetObservers();
 function parseCreated(r){ return parseDateLoose(r['Created on']); }
 function parseCompleted(r){ return parseDateLoose(r['Completed on']); }
 
+function parseAgeValueToMs(value){
+  if(value == null) return null;
+
+  if(typeof value === 'number' && Number.isFinite(value)){
+    return value * MS.day;
+  }
+
+  const str = String(value).trim();
+  if(!str) return null;
+
+  // human strings like "14d 6h 3m"
+  const human = str.match(/^\s*(?:(\d+)\s*d)?\s*(?:(\d+)\s*h)?\s*(?:(\d+)\s*m)?\s*$/i);
+  if(human && (human[1] || human[2] || human[3])){
+    const d  = +human[1] || 0;
+    const h  = +human[2] || 0;
+    const mm = +human[3] || 0;
+    return (((d * 24) + h) * 60 + mm) * MS.min;
+  }
+
+  // numeric strings as days
+  if(/^[-+]?\d+(\.\d+)?$/.test(str)){
+    return parseFloat(str) * MS.day;
+  }
+
+  // tolerate date-like Age values by treating them as timestamps
+  const parsedDate = parseDateLoose(str);
+  if(parsedDate instanceof Date && !isNaN(parsedDate)){
+    const diff = Date.now() - parsedDate.getTime();
+    return Number.isFinite(diff) && diff >= 0 ? diff : null;
+  }
+
+  return null;
+}
+
 function ageMs(row){
-  const created = parseCreated(row); if(!created) return null;
-  const done = /^done$/i.test(row['Status']);
-  const end = done ? (parseCompleted(row) || new Date()) : new Date();
-  const diff = end - created;
-  return Number.isFinite(diff) && diff >= 0 ? diff : null;
+  const created = parseCreated(row);
+  if(created){
+    const done = /^done$/i.test(row['Status']);
+    const end = done ? (parseCompleted(row) || new Date()) : new Date();
+    const diff = end - created;
+    if(Number.isFinite(diff) && diff >= 0) return diff;
+  }
+
+  // Fallback: attempt to interpret Age column directly (numeric/human/date)
+  return parseAgeValueToMs(row['Age']);
 }
 
 function ageBucket(ms){
@@ -2798,7 +2837,11 @@ function getAgeLabel(row){
   if(ms != null){
     return fmtAge(ms);
   }
-  const normalized = normalizeAgeLabel(row['Age']);
+  const derived = parseAgeValueToMs(row?.['Age']);
+  if(derived != null){
+    return fmtAge(derived);
+  }
+  const normalized = normalizeAgeLabel(row?.['Age']);
   return normalized || '—';
 }
 
@@ -6319,26 +6362,10 @@ function applySort(rows, column, direction){
       // 1) preferred: precomputed raw ms
       if (row.__ageMs != null) return row.__ageMs;
 
-      const v = row[column];
+      // 2) derive from Age column tolerantly (numeric / human strings / date-like)
+      const derived = parseAgeValueToMs(row[column]);
+      if (derived != null) return derived;
 
-      // 2) numeric age (e.g. "Age (days)" as number)
-      if (typeof v === 'number' && Number.isFinite(v)) {
-        return v * 24 * 60 * 60 * 1000;
-      }
-      // 3) human string like "14d 6h 3m"
-      if (typeof v === 'string' && v.trim()){
-        const m = v.match(/^\s*(?:(\d+)\s*d)?\s*(?:(\d+)\s*h)?\s*(?:(\d+)\s*m)?\s*$/i);
-        if (m && (m[1] || m[2] || m[3])) {
-          const d  = +m[1] || 0;
-          const h  = +m[2] || 0;
-          const mm = +m[3] || 0;
-          return (((d * 24) + h) * 60 + mm) * 60 * 1000;
-        }
-        // also accept plain numeric strings as days
-        if (/^\s*[-+]?\d+(\.\d+)?\s*$/.test(v)) {
-          return parseFloat(v) * 24 * 60 * 60 * 1000;
-        }
-      }
       // 4) fallback: compute from "Created on"
       const created = parseDateLoose(row['Created on']);
       return created ? (Date.now() - created.getTime()) : MIN;
