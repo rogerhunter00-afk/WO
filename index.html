@@ -384,7 +384,6 @@ main{position:relative;}
 .page-head__title nav{margin-left:auto;display:flex;flex-wrap:wrap;gap:8px}
 .page-head__title--with-badge{padding-right:var(--week-badge-space,188px)}
 .page-head__title--with-badge .week-badge{position:absolute;top:50%;right:0;transform:translateY(-50%);margin:0;white-space:nowrap}
-.week-badge-top{white-space:nowrap;display:inline-flex;align-items:center}
 .week-badge{display:inline-flex;align-items:center;gap:6px;margin-left:0;font-size:12px;font-weight:700;padding:4px 10px;border:1px solid var(--grid);border-radius:999px;background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));vertical-align:middle}
 .week-badge[data-state="loading"]::before{content:"";width:10px;height:10px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:weekBadgeSpin .75s linear infinite}
 .week-badge[hidden]{display:none}
@@ -421,25 +420,22 @@ main{position:relative;}
   align-items:center;
 }
 .controls-bar>*{flex:0 0 auto}
-.search-input{
-  width:100%;
-  background:var(--input-bg);
-  color:var(--input-fg);
-  border:1px solid var(--input-bd);
-  border-radius:16px;
-  padding:11px 14px;
-  font:inherit;
-  font-weight:600;
-  transition:border-color .18s ease,box-shadow .18s ease,background-color .18s ease;
-}
 .controls-bar .search-input{
   flex:1 1 320px;
   min-width:220px;
   max-width:min(720px,100%);
   order:-1;
+  background:var(--input-bg);
+  color:var(--input-fg);
+  border:1px solid var(--input-bd);
+  border-radius:999px;
+  padding:8px 14px;
+  font:inherit;
+  font-weight:600;
+  transition:border-color .18s ease,box-shadow .18s ease,background-color .18s ease;
 }
-.search-input::placeholder{color:color-mix(in srgb,var(--input-fg) 55%,transparent);font-weight:500}
-.search-input:focus{outline:0;border-color:var(--input-bd-focus);box-shadow:0 0 0 3px color-mix(in oklab,var(--input-bd-focus) 30%,transparent)}
+.controls-bar .search-input::placeholder{color:color-mix(in srgb,var(--input-fg) 55%,transparent);font-weight:500}
+.controls-bar .search-input:focus{outline:0;border-color:var(--input-bd-focus);box-shadow:0 0 0 3px color-mix(in oklab,var(--input-bd-focus) 30%,transparent)}
 .controls-bar .filter-group{display:flex;align-items:center;gap:6px;font-weight:600;color:var(--ink);margin:0}
 .controls-bar .filter-group label{color:var(--muted)}
 .controls-bar .filter-group select,
@@ -470,61 +466,6 @@ main{position:relative;}
 .controls-bar .week-picker button{flex:0 0 auto}
 .controls-bar #copyIdsBtn{margin-left:auto}
 .sticky-top__bar>#hide-controls{margin-left:auto}
-.controls-shell{display:flex;flex-direction:column;gap:12px;flex:1 1 auto}
-.search-row{width:100%}
-.controls-card{
-  background:var(--card-bg);
-  border:1px solid var(--card-border);
-  border-radius:16px;
-  box-shadow:var(--card-shadow-rest);
-  padding:12px;
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-  transition:box-shadow .2s ease, transform .2s ease;
-}
-.controls-card.controls-collapsed{
-  box-shadow:var(--shadow);
-  transform:translateY(2px);
-}
-.controls-body{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  max-height:1000px;
-  opacity:1;
-  transition:max-height .24s ease, opacity .24s ease;
-}
-.controls-card.controls-collapsed .controls-body{max-height:0;opacity:0;overflow:hidden}
-.controls-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.controls-row .legend-inline__btn{height:100%}
-.controls-row .legend-inline{flex:0 0 auto}
-.controls-row .week-picker{display:flex;align-items:center;gap:6px;flex:1 1 0;min-width:0}
-.week-picker__select{display:flex;align-items:center;min-width:0}
-.week-picker-btn{
-  border-radius:12px;
-  padding:8px 10px;
-  background:transparent;
-  border:1px solid var(--input-bd);
-  color:var(--ink);
-  font-weight:700;
-  cursor:pointer;
-  transition:background .18s ease,border-color .18s ease,color .18s ease;
-}
-.week-picker-btn:hover{border-color:var(--input-bd-focus);color:var(--als-blue)}
-.week-picker-btn:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-color:var(--input-bd-focus)}
-.week-picker__select select{min-width:0}
-.controls-row label{color:var(--muted);font-weight:700}
-.controls-row select{min-width:140px}
-.controls-row.status-row{gap:8px}
-.controls-row.status-row select{flex:1 1 0;min-width:0}
-.controls-row.status-row label{white-space:nowrap}
-.controls-row + .controls-row{margin-top:2px}
-.dual-btn-row{display:flex;gap:8px}
-.dual-btn-row .btn,.dual-btn-row button{flex:1 1 0;min-width:0}
-.toggle-row{display:flex;gap:6px;flex-wrap:nowrap}
-.toggle-row .ctrl-pill{flex:1 1 0;min-width:0}
-.toggle-row .btn-eye{flex:1.2 1 0}
 
 .filter-group{display:flex;align-items:center;gap:6px;font-weight:600;color:var(--ink)}
 
@@ -571,10 +512,6 @@ main{position:relative;}
 .btn--ghost:hover{background:var(--btn-ghost-bg-hover)}
 .btn--icon{padding:8px;width:36px;height:36px;justify-content:center}
 .btn--sm{--pad-x:10px;--pad-y:6px;font-size:12px}
-.btn-primary{background:var(--als-blue);color:#fff;border-color:var(--als-blue);border-radius:12px}
-.btn-primary:hover{background:var(--als-blue-strong)}
-.btn-outline{background:transparent;color:var(--als-blue);border:1px solid var(--als-blue);border-radius:12px}
-.btn-outline:hover{background:var(--btn-ghost-bg-hover)}
 
 .active-filter-chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 12px;padding:0}
 .active-filter-chips[hidden]{display:none}
@@ -587,9 +524,7 @@ main{position:relative;}
 
 /* tabs */
 .nav{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 0}
-.nav-primary{flex-wrap:wrap;overflow:visible;display:flex}
-.nav .tab{padding:8px 12px;border:1px solid var(--grid);border-radius:999px;cursor:pointer;background:transparent;color:var(--ink);font-weight:700;box-shadow:none;white-space:normal}
-.nav-primary .tab{flex:0 1 auto}
+.nav .tab{padding:8px 12px;border:1px solid var(--grid);border-radius:999px;cursor:pointer;background:transparent;color:var(--ink);font-weight:700;box-shadow:none}
 .nav .tab[aria-selected="true"]{background:color-mix(in srgb,var(--als-blue) 8%,var(--paper));border-color:var(--als-blue);box-shadow:0 0 0 2px color-mix(in srgb,var(--als-blue) 25%,transparent)}
 
 /* KPI row sticks just below the controls */
@@ -1035,33 +970,13 @@ body.force-desktop .mobile-sort{display:none!important}
 @media(max-width:884px){
   .page{--page-pad-top:16px;--page-pad-inline:16px;--page-pad-bottom:28px}
   .page-head{gap:12px}
-  .page-head__title{gap:10px;align-items:flex-start}
+  .page-head__title{gap:10px}
   .page-head__title--with-badge{padding-right:0}
   .page-head__title--with-badge .week-badge{position:static;transform:none;margin-top:8px}
   .title{font-size:24px}
   .logo{height:40px}
   .controls{column-gap:10px;row-gap:8px}
   .controls textarea{width:100%;min-width:0}
-  .page-head__title nav.nav-primary{margin-left:0;flex:1 1 100%}
-  .page-head__title .title{flex:1 1 100%}
-  .sticky-top{position:static;padding:0;background:transparent}
-  .controls-bar{padding:0}
-  .controls-shell{gap:10px}
-  .controls-card{padding:12px 12px 10px}
-}
-
-@media(min-width:885px){
-  .controls-shell{flex-direction:row;align-items:center;flex-wrap:wrap;gap:10px}
-  .search-row{flex:1 1 320px}
-  .controls-card{background:transparent;border:0;box-shadow:none;padding:0;gap:10px}
-  .controls-body{flex-direction:row;flex-wrap:wrap;align-items:center;gap:10px;max-height:none;opacity:1}
-  .controls-row{flex-wrap:nowrap;margin-top:0}
-  .controls-row.status-row{flex-wrap:nowrap;width:auto}
-  .controls-row.status-row select{width:auto}
-  .dual-btn-row{width:auto}
-  .dual-btn-row .btn,.dual-btn-row button{flex:0 0 auto}
-  .toggle-row{width:auto}
-  .controls-card.controls-collapsed .controls-body{max-height:none;opacity:1}
 }
 
 @media print{
@@ -1819,8 +1734,8 @@ body.dark .plan-overlay{
     <header class="page-head">
       <div class="page-head__title page-head__title--with-badge">
         <h1 class="title">Work Orders Dashboard</h1>
-        <span class="week-badge week-badge-top" id="week-badge" data-week-badge aria-live="polite" data-state="loading" hidden>Loading…</span>
-        <nav class="nav nav-primary" aria-label="Dashboard sections">
+        <span class="week-badge" id="week-badge" aria-live="polite" data-state="loading" hidden>Loading…</span>
+        <nav class="nav" aria-label="Dashboard sections">
           <a class="tab" aria-selected="true" href="index.html">Work Orders</a>
           <a class="tab" href="facilities.html">Facilities</a>
           <a class="tab" href="pssr.html">PSSR Inspections</a>
@@ -1836,110 +1751,93 @@ body.dark .plan-overlay{
 
       <div class="sticky-top" data-collapsed="false">
         <div class="sticky-top__bar">
-        <div class="controls controls--primary controls-bar controls-shell" id="controls-bar" role="group" aria-label="Dashboard controls">
-          <div class="search-row">
+        <div class="controls controls--primary controls-bar" id="controls-bar" role="group" aria-label="Dashboard controls">
             <input id="globalSearch" class="search-input" type="search" placeholder="Search work orders…" aria-label="Search work orders" />
+            <div class="legend-inline">
+              <button type="button" class="btn btn--ghost btn--sm legend-inline__btn">Legend</button>
+              <div class="legend-inline__panel" role="dialog" aria-modal="false" aria-label="Legend">
+                <div class="legend">
+                  <p class="legend__title">How to read this dashboard</p>
+                  <ul class="legend__list">
+                    <li class="legend__sample">
+                      <span><span class="legend__rail"></span> Priority</span>
+                      <span>Rows with the “Priority” category show a red rail and a subtle background tint.</span>
+                    </li>
+
+                    <li class="legend__sample">
+                      <span><span class="status-chip done">Done</span></span>
+                      <span>Completed work orders are lightly tinted green to stand out.</span>
+                    </li>
+
+                    <li class="legend__sample">
+                      <span>
+                        <span class="legend__rail"></span>
+                        <span class="status-chip done" style="margin-left:6px">Done</span>
+                      </span>
+                      <span><strong>Done + Priority</strong>: keeps the red rail (Priority) and adds the green DONE tint.</span>
+                    </li>
+
+                    <li class="legend__sample">
+                      <span><span class="chip-cat">Category</span></span>
+                      <span>Category chips map directly to the sheet values.</span>
+                    </li>
+
+                    <li class="legend__sample">
+                      <span><span class="age-chip age-old">14d</span></span>
+                      <span>Age shows how long the order has been active. Snowflake indicates a frozen winter task.</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div class="filter-group week-picker">
+              <button id="weekPrev" class="btn btn--outline btn--sm" type="button" data-week-nav="prev" aria-label="View previous dates">‹ Prev</button>
+              <div id="weekPicker" aria-live="polite"></div>
+              <button id="weekNext" class="btn btn--pill" type="button" data-week-nav="next" aria-label="View next dates">Next ›</button>
+              <span class="week-badge" id="week-badge" aria-live="polite" hidden>Loading…</span>
+            </div>
+
+            <div class="filter-group">
+              <label for="statusFilter">Status</label>
+              <select id="statusFilter">
+                <option value="">All statuses</option>
+                <option value="Not: Done">Exclude Done</option>
+                <option value="Open">Open</option>
+                <option value="In Progress">In Progress</option>
+                <option value="On Hold">On Hold</option>
+                <option value="Done">Done</option>
+              </select>
+            </div>
+
+            <button id="refreshBtn" class="btn btn--outline" type="button">Refresh data</button>
+            <button id="copyIdsBtn" class="btn btn--primary" type="button" disabled>Copy WO IDs</button>
+            <span id="copyStatus" class="visually-hidden" role="status" aria-live="polite"></span>
+            <button id="planNextWeekBtn" class="btn btn--ghost" type="button">Eng Schedule</button>
+            <button class="ctrl-pill switch-wrap" id="layout-toggle" type="button" role="switch" aria-checked="false" aria-label="Switch to mobile view">
+              <span class="switch" aria-hidden="true"><span class="switch__thumb"></span></span>
+              <span class="switch-label">Auto</span>
+            </button>
+            <button class="ctrl-pill switch-wrap" id="dark-toggle" type="button" role="switch" aria-checked="false" aria-label="Toggle dark theme">
+              <span class="switch" aria-hidden="true"><span class="switch__thumb"></span></span>
+              <span class="switch-label">Dark</span>
+            </button>
           </div>
-          <section class="controls-card" id="mobile-controls-card">
-            <div class="controls-body">
-              <div class="controls-row">
-                <div class="legend-inline">
-                  <button type="button" class="btn btn--ghost btn--sm legend-inline__btn">Legend</button>
-                  <div class="legend-inline__panel" role="dialog" aria-modal="false" aria-label="Legend">
-                    <div class="legend">
-                      <p class="legend__title">How to read this dashboard</p>
-                      <ul class="legend__list">
-                        <li class="legend__sample">
-                          <span><span class="legend__rail"></span> Priority</span>
-                          <span>Rows with the “Priority” category show a red rail and a subtle background tint.</span>
-                        </li>
-
-                        <li class="legend__sample">
-                          <span><span class="status-chip done">Done</span></span>
-                          <span>Completed work orders are lightly tinted green to stand out.</span>
-                        </li>
-
-                        <li class="legend__sample">
-                          <span>
-                            <span class="legend__rail"></span>
-                            <span class="status-chip done" style="margin-left:6px">Done</span>
-                          </span>
-                          <span><strong>Done + Priority</strong>: keeps the red rail (Priority) and adds the green DONE tint.</span>
-                        </li>
-
-                        <li class="legend__sample">
-                          <span><span class="chip-cat">Category</span></span>
-                          <span>Category chips map directly to the sheet values.</span>
-                        </li>
-
-                        <li class="legend__sample">
-                          <span><span class="age-chip age-old">14d</span></span>
-                          <span>Age shows how long the order has been active. Snowflake indicates a frozen winter task.</span>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-                <div class="week-picker">
-                  <button id="weekPrev" class="week-picker-btn" type="button" data-week-nav="prev" aria-label="View previous dates">‹ Prev</button>
-                  <div id="weekPicker" class="week-picker__select" aria-live="polite"></div>
-                  <button id="weekNext" class="week-picker-btn" type="button" data-week-nav="next" aria-label="View next dates">Next ›</button>
-                  <span class="week-badge" data-week-badge aria-live="polite" hidden>Loading…</span>
-                </div>
-              </div>
-
-              <div class="controls-row status-row">
-                <label for="statusFilter">Status</label>
-                <select id="statusFilter">
-                  <option value="">All statuses</option>
-                  <option value="Not: Done">Exclude Done</option>
-                  <option value="Open">Open</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="On Hold">On Hold</option>
-                  <option value="Done">Done</option>
-                </select>
-              </div>
-
-              <div class="controls-row">
-                <button id="planNextWeekBtn" class="btn btn-primary" type="button">
-                  Eng Schedule
-                </button>
-              </div>
-
-              <div class="dual-btn-row">
-                <button id="refreshBtn" class="btn btn-outline" type="button">Refresh data</button>
-                <button id="copyIdsBtn" class="btn btn-primary" type="button" disabled>Copy WO IDs</button>
-                <span id="copyStatus" class="visually-hidden" role="status" aria-live="polite"></span>
-              </div>
-            </div>
-
-            <div class="toggle-row">
-              <button class="ctrl-pill switch-wrap" id="layout-toggle" type="button" role="switch" aria-checked="false" aria-label="Switch to mobile view">
-                <span class="switch" aria-hidden="true"><span class="switch__thumb"></span></span>
-                <span class="switch-label">Auto</span>
-              </button>
-              <button class="ctrl-pill switch-wrap" id="dark-toggle" type="button" role="switch" aria-checked="false" aria-label="Toggle dark theme">
-                <span class="switch" aria-hidden="true"><span class="switch__thumb"></span></span>
-                <span class="switch-label">Dark</span>
-              </button>
-              <button class="ctrl-pill btn-eye" id="hide-controls" type="button" aria-pressed="false" aria-expanded="true" aria-controls="mobile-controls-card" data-controls="mobile-controls-card">
-                <span class="icon" data-eye="on" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                  </svg>
-                </span>
-                <span class="icon" data-eye="off" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.8 21.8 0 0 1 5.06-6.94"></path>
-                    <path d="M9.9 4.24A11 11 0 0 1 12 4c7 0 11 8 11 8a21.8 21.8 0 0 1-4.87 6.82"></path>
-                    <path d="M1 1l22 22"></path>
-                  </svg>
-                </span>
-                <span class="label">Hide controls</span>
-              </button>
-            </div>
-          </section>
+          <button class="ctrl-pill btn-eye" id="hide-controls" type="button" aria-pressed="false" aria-expanded="true" data-controls="controls-bar">
+            <span class="icon" data-eye="on" aria-hidden="true">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </span>
+            <span class="icon" data-eye="off" aria-hidden="true">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.8 21.8 0 0 1 5.06-6.94"></path>
+                <path d="M9.9 4.24A11 11 0 0 1 12 4c7 0 11 8 11 8a21.8 21.8 0 0 1-4.87 6.82"></path>
+                <path d="M1 1l22 22"></path>
+              </svg>
+            </span>
+            <span class="label">Hide controls</span>
+          </button>
         </div>
         <div class="sticky-content" data-controls-panel>
           <div id="activeFilterChips" class="active-filter-chips" hidden></div>
@@ -2594,19 +2492,16 @@ body.dark .plan-overlay{
   let __loadController = null;
 
 const $loading = () => document.getElementById('loadingOverlay');
-const getWeekBadges = () => document.querySelectorAll('#week-badge,[data-week-badge]');
-const updateWeekBadges = (fn) => {
-  const badges = getWeekBadges();
-  badges.forEach(fn);
-};
+const getWeekBadge = () => document.getElementById('week-badge');
 const showLoading = (message = 'Loading…') => {
   const overlay = $loading();
   if (overlay) overlay.style.display = 'grid';
-  updateWeekBadges((badge) => {
+  const badge = getWeekBadge();
+  if (badge) {
     badge.hidden = false;
     badge.dataset.state = 'loading';
     badge.textContent = message;
-  });
+  }
 };
 const hideLoading = () => {
   const overlay = $loading();
@@ -6441,11 +6336,11 @@ function chooseInitialWeek(weeks){
 }
 
 function setWeekBadge(text){
-  updateWeekBadges(badge => {
-    badge.hidden = false;
-    badge.dataset.state = 'ready';
-    badge.textContent = `Week: ${text || 'Latest'}`;
-  });
+  const badge = getWeekBadge();
+  if(!badge) return;
+  badge.hidden = false;
+  badge.dataset.state = 'ready';
+  badge.textContent = `Week: ${text || 'Latest'}`;
 }
 
 function normalizePriority(v){ if(v==null) return ''; let slug=slugify(String(v).trim()); if(!slug) return''; if(slug.endsWith('-priority')) slug=slug.replace(/-priority$/,''); if(slug==='med'||slug==='normal') slug='medium'; if(slug==='urgent'||slug==='emergency') slug='critical'; return slug; }
@@ -7454,14 +7349,13 @@ document.fonts?.ready?.then(()=>{ try { updateTableMaxHeight(); } catch{} });
   // --- collapsible sticky header ---
 const $sticky = document.querySelector('.sticky-top');
 const $collapseBtn = document.getElementById('hide-controls');
-const controlsTargetId = $collapseBtn?.dataset.controls || $collapseBtn?.getAttribute('aria-controls');
-const $controlsTarget = controlsTargetId ? document.getElementById(controlsTargetId) : null;
+const $controlsPanel = document.querySelector('[data-controls-panel]') || document.getElementById('controls-panel');
+const controlsTargetId = $collapseBtn?.dataset.controls;
+const $controlsBar = controlsTargetId ? document.getElementById(controlsTargetId) : null;
 
 function setCollapsed(isCollapsed){
-  if(!$collapseBtn) return;
-  if($sticky){
-    $sticky.dataset.collapsed = isCollapsed ? 'true' : 'false';
-  }
+  if(!$sticky || !$collapseBtn) return;
+  $sticky.dataset.collapsed = isCollapsed ? 'true' : 'false';
   const label = isCollapsed ? 'Show controls' : 'Hide controls';
   const labelEl = $collapseBtn.querySelector('.label');
   if(labelEl){
@@ -7474,14 +7368,20 @@ function setCollapsed(isCollapsed){
   $collapseBtn.setAttribute('aria-label', label);
   $collapseBtn.title = label;
 
-
-  if($controlsTarget){
-    $controlsTarget.classList.toggle('controls-collapsed', isCollapsed);
+  const hiddenTargets = $sticky.querySelectorAll('.sticky-content, .controls');
+  hiddenTargets.forEach(el => {
     if (isCollapsed){
-      $controlsTarget.setAttribute('aria-hidden', 'true');
+      el.setAttribute('aria-hidden', 'true');
     } else {
-      $controlsTarget.removeAttribute('aria-hidden');
+      el.removeAttribute('aria-hidden');
     }
+  });
+
+  if($controlsPanel){
+    $controlsPanel.style.display = isCollapsed ? 'none' : '';
+  }
+  if($controlsBar && $controlsBar !== $controlsPanel){
+    $controlsBar.style.display = isCollapsed ? 'none' : '';
   }
 
   // keep layout/overlays correct
