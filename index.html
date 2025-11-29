@@ -605,10 +605,21 @@ body.winter main,
 body.winter .kpi-panels,
 body.winter .dashboards,
 body.winter .dash{
-  backdrop-filter:blur(6px) saturate(120%);
-  background-color:rgba(15,25,45,0.45);
   border-radius:18px;
   box-shadow:0 18px 40px rgba(6,12,24,0.45);
+}
+
+/* Winter plan should keep the starfield visible, so drop tinted panel backdrops */
+body.winter main,
+body.winter .kpi-panels,
+body.winter .dashboards,
+body.winter .dash,
+body.winter .sticky-top,
+body.winter .controls-bar{
+  background-color:transparent;
+  backdrop-filter:none;
+  border-color:transparent;
+  box-shadow:none;
 }
 
 body.winter .table-scroll thead th{
