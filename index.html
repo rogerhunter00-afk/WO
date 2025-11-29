@@ -3985,6 +3985,10 @@ function syncPlanQuickAddState(dayOrderOverride=null){
 function updatePlanQuickAddDays(dayOrder){
   if(!$planQuickAddDay) return;
   const options = Array.isArray(dayOrder) ? dayOrder.filter(Boolean) : [];
+  const hasOpsOption = options.some(day => String(day).trim().toLowerCase() === 'ops');
+  if(!hasOpsOption){
+    options.push('Ops');
+  }
   PLAN_NEXT_WEEK_DAY_ORDER = options.slice();
   $planQuickAddDay.innerHTML = '';
   const placeholder = document.createElement('option');
