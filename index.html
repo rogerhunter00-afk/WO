@@ -331,21 +331,17 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:var(--ui-offs
   pointer-events:none;
 }
 
-.fx-layer{z-index:0;opacity:0;transition:opacity .6s ease;}
+.fx-layer{z-index:240;opacity:0;transition:opacity .6s ease;}
 
 .fx-layer canvas{z-index:2;}
 #snow-mid{z-index:3;}
 #snow-near{z-index:4;}
 .night-tint{z-index:0;}
 .aurora-glow{z-index:1;}
-#fx-layer .night-tint,
-#fx-layer .aurora-glow{
-  display:none;
-}
 
 .page,
 .page-head,
-main{position:relative;z-index:1;}
+main{position:relative;}
 
 /* === Atmospheric Tint + Glow === */
 .night-tint{
