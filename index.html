@@ -4249,7 +4249,16 @@ function updateActivePlanRange(nextRange){
 }
 
 function applyPlanContextFromWeek(weekEntry){
-  const planEntry = planIndexEntryForWeek(weekEntry);
+  const hasWeekPlanSource = Boolean(
+    sanitizePlanScalar(weekEntry?.planUrl)
+    || sanitizePlanScalar(weekEntry?.planGid)
+    || sanitizePlanScalar(weekEntry?.planRange)
+    || sanitizePlanScalar(weekEntry?.url)
+    || sanitizePlanScalar(weekEntry?.gid)
+  );
+
+  const planEntry = planIndexEntryForWeek(weekEntry) || (hasWeekPlanSource ? weekEntry : null);
+
   if(planEntry){
     applyPlanSourceFromIndex(planEntry);
   }
