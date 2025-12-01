@@ -1180,8 +1180,9 @@ async function refreshInBG(meta){
     return null;
   };
 
-  const url = resolveUrl();
-  if(!url) return null;
+  const baseUrl = resolveUrl();
+  if(!baseUrl) return null;
+  const url = withBust(baseUrl); // bust cache so we always revalidate against the live sheet
 
   try {
     const res = await fetch(url);
