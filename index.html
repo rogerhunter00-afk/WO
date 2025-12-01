@@ -4249,7 +4249,19 @@ function updateActivePlanRange(nextRange){
 }
 
 function applyPlanContextFromWeek(weekEntry){
-  const planEntry = planIndexEntryForWeek(weekEntry);
+  const weekHasExplicitPlanSheet = Boolean(
+    sanitizePlanScalar(weekEntry?.planUrl)
+    || sanitizePlanScalar(weekEntry?.planGid)
+  );
+
+  const planEntryFromIndex = planIndexEntryForWeek(weekEntry);
+  const planEntry = planEntryFromIndex || (weekHasExplicitPlanSheet ? {
+    label: weekEntry?.label,
+    planUrl: weekEntry?.planUrl,
+    planGid: weekEntry?.planGid,
+    planRange: weekEntry?.planRange,
+  } : null);
+
   if(planEntry){
     applyPlanSourceFromIndex(planEntry);
   }
