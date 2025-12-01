@@ -2548,13 +2548,6 @@ const url  = bust ? withBust(base) : base;
       throw new Error('Row dedupe failed – check required columns like ID/Title/Created on');
     }
 
-    try {
-      await ensureRawWorkOrders();
-      rows = applyHistoricalStatus(rows, meta.weekEnd);
-    } catch(rawErr){
-      console.warn('[MX_Raw_WorkOrders] fallback to weekly sheet rows:', rawErr);
-    }
-
     saveWeekToCache(meta, { headers, rows });
 
     LAST_HEADERS = headers;
@@ -2620,13 +2613,6 @@ async function refreshInBG(meta){
     } catch (dErr) {
       console.error('[refreshInBG] dedupeRows failed:', dErr);
       throw new Error('Row dedupe failed – check required columns like ID/Title/Created on');
-    }
-
-    try {
-      await ensureRawWorkOrders();
-      rows = applyHistoricalStatus(rows, meta.weekEnd);
-    } catch(rawErr){
-      console.warn('[refreshInBG] MX_Raw_WorkOrders fallback:', rawErr);
     }
 
     const cached = saveWeekToCache(meta, { headers, rows }) || { headers, rows };
