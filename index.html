@@ -2592,8 +2592,9 @@ async function refreshInBG(meta){
     return null;
   };
 
-  const url = resolveUrl();
-  if(!url) return null;
+  const baseUrl = resolveUrl();
+  if(!baseUrl) return null;
+  const url = withBust(baseUrl); // bust cache so background refreshes always revalidate
 
   try {
     const res = await fetch(url);
