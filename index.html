@@ -3068,14 +3068,9 @@ function refreshWeekArrowDisabled(){
 /* 1) After we fetch the index and choose the week, remember it globally */
 async function loadLatestOrChosenWeek(forceBust=false){
   try{
-    let weeks;
-    if (forceBust){
-      const bustUrl = new URL(SHEET_INDEX_CSV_URL);
-      bustUrl.searchParams.set('_ts', Date.now());
-      weeks = await loadWeeksIndexFrom(bustUrl.toString());
-    } else {
-      weeks = await loadWeeksIndex();
-    }
+    const weeks = forceBust
+      ? await loadWeeksIndexFrom(SHEET_INDEX_CSV_URL, { bust: true })
+      : await loadWeeksIndex();
     if (!weeks.length) throw new Error('Index is empty');
 
     __WEEKS = weeks.slice();                                // <—
@@ -3085,7 +3080,7 @@ async function loadLatestOrChosenWeek(forceBust=false){
 
     renderWeekControls(__WEEKS, chosen);
     rememberWeek(chosen);
-await loadChosenGid(chosen, { bust: forceBust });
+    await loadChosenGid(chosen, { bust: forceBust });
     prefetchAdjacent(__WEEKS, chosen);   // <— add this line
 
     wireExternalWeekArrows();                               // <— bind external arrows
@@ -6230,9 +6225,12 @@ async function loadWeeksIndex(){
   return loadWeeksIndexFrom(SHEET_INDEX_CSV_URL);
 }
 
-async function loadWeeksIndexFrom(url){
-    console.log('Index CSV URL:', url);   // 👈 add here
-  const res = await fetch(url);
+async function loadWeeksIndexFrom(url, { bust=false } = {}){
+  const finalUrl = bust ? withBust(url) : url;
+  const cacheMode = bust ? 'reload' : 'no-store';
+
+    console.log('Index CSV URL:', finalUrl);   // 👈 add here
+  const res = await fetch(finalUrl, { cache: cacheMode });
   if(!res.ok) throw new Error('Index load failed: ' + res.status);
 
   const text = await res.text();
