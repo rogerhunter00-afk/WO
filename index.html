@@ -7821,6 +7821,12 @@ function cardHTML(row){
   const ms     = row.__ageMs;
   const bucket = row.__ageBucket || ageBucket(ms);
   const ageLbl = getAgeLabel(row);
+  const assigned = row['Assigned to'] || row.Owner || '—';
+  const created  = row['Created on'] || '—';
+  const updated  = row['Last updated'] || row['Updated on'] || '—';
+  const completed = row['Completed on'] || '—';
+  const location = row['Location'] || '—';
+  const asset    = row['Asset'] || '';
 
   // ✅ compute these BEFORE returning the template
   const frozen  = isWinterPlanned(row);
@@ -7852,6 +7858,18 @@ function cardHTML(row){
           ${esc(ageLbl)}
         </span>
       </span>
+    </div>
+
+    <div class="mobile-card__row">
+      <span class="mobile-card__field"><strong>Location:</strong> ${esc(location)}</span>
+      ${asset ? `<span class="mobile-card__field"><strong>Asset:</strong> ${esc(asset)}</span>` : ''}
+    </div>
+
+    <div class="mobile-card__row">
+      <span class="mobile-card__field"><strong>Assigned:</strong> ${esc(assigned)}</span>
+      <span class="mobile-card__field"><strong>Created:</strong> ${esc(created)}</span>
+      <span class="mobile-card__field"><strong>Updated:</strong> ${esc(updated)}</span>
+      <span class="mobile-card__field"><strong>Completed:</strong> ${esc(completed)}</span>
     </div>
 
     ${shown || more ? `<div class="mobile-card__row">${shown}${more}</div>` : ''}
