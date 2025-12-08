@@ -3173,7 +3173,7 @@ function renderRowsScoped(tbodyEl, headers, rows, container){
           return `<td data-col="Categories"><div class="chip-stack">${buildCategoryChips(v)}</div></td>`;
         }
         if (key === 'status'){
-          return `<td data-col="Status"><span class="status-chip ${statusClass(v)}">${esc(v)}</span></td>`;
+          return `<td data-col="Status"><span class="status-chip ${statusClass(v)}">${esc(statusLabel(v))}</span></td>`;
         }
         if (key === 'age'){
           const ms      = row.__ageMs;
@@ -3236,7 +3236,7 @@ function renderRowsScopedChunked(tbodyEl, headers, rows, container){
           return `<td data-col="Categories"><div class="chip-stack">${buildCategoryChips(v)}</div></td>`;
         }
         if (key === 'status'){
-          return `<td data-col="Status"><span class="status-chip ${statusClass(v)}">${esc(v)}</span></td>`;
+          return `<td data-col="Status"><span class="status-chip ${statusClass(v)}">${esc(statusLabel(v))}</span></td>`;
         }
         if (key === 'age'){
           const ms      = row.__ageMs;
@@ -3385,6 +3385,12 @@ function handleJSON(text){
 function toSiteKey(loc){ const s=String(loc||'').toLowerCase(); if(s.includes('byron'))return'by'; if(s.includes('mugiemoss')||s.includes('bucksburn'))return'mm'; if(s.includes('keith'))return'keith'; if(s.includes('cathkin')||s.includes('east kilbride')||s.includes('ek'))return'ek'; return'other'; }
 function kpiCard(label,val){ const el=document.createElement('div'); el.className='card'; el.innerHTML=`<h3>${esc(label)}</h3><div class="big">${esc(val)}</div>`; return el; }
 const PRIORITY_ORDER=['critical','high','medium','low','']; const STATUS_ORDER=['open','in-progress','on-hold','done',''];
+const STATUS_LABELS=new Map([
+  ['open','Open'],
+  ['in-progress','In Progress'],
+  ['on-hold','On Hold'],
+  ['done','Done'],
+]);
 function parseDateLoose(v){
   if(!v) return null;
   const str = String(v).trim();
@@ -6343,6 +6349,14 @@ function setWeekBadge(text){
 function normalizePriority(v){ if(v==null) return ''; let slug=slugify(String(v).trim()); if(!slug) return''; if(slug.endsWith('-priority')) slug=slug.replace(/-priority$/,''); if(slug==='med'||slug==='normal') slug='medium'; if(slug==='urgent'||slug==='emergency') slug='critical'; return slug; }
 function cmpPriority(a,b){ const ia=PRIORITY_ORDER.indexOf(normalizePriority(a)), ib=PRIORITY_ORDER.indexOf(normalizePriority(b)); const safe=i=>(i===-1?PRIORITY_ORDER.length:i); const diff=safe(ia)-safe(ib); return diff||String(a??'').localeCompare(String(b??''),undefined,{numeric:true,sensitivity:'base'}); }
 function statusClass(v){ const map=new Map([['done','done'],['complete','done'],['completed','done'],['open','open'],['in-progress','in-progress'],['in progress','in-progress'],['progress','in-progress'],['inprogress','in-progress'],['on-hold','on-hold'],['on hold','on-hold'],['hold','on-hold'],['onhold','on-hold']]); const s=slugify(String(v||'')); return map.get(s)||s; }
+function statusLabel(v){
+  const cls=statusClass(v);
+  if(STATUS_LABELS.has(cls)) return STATUS_LABELS.get(cls);
+  const raw=String(v??'').trim();
+  if(!raw) return '';
+  const cleaned=raw.replace(/^[\s]*[✅✔️✔✓]+\s*/u,'').trim();
+  return cleaned||raw;
+}
 function cmpStatus(a,b){ const ia=STATUS_ORDER.indexOf(statusClass(a)), ib=STATUS_ORDER.indexOf(statusClass(b)); const safe=i=>(i===-1?STATUS_ORDER.length:i); const diff=safe(ia)-safe(ib); return diff||String(a??'').localeCompare(String(b??''),undefined,{numeric:true,sensitivity:'base'}); }
 function cmpId(a,b){ const na=parseInt(String(a).replace(/\D+/g,''),10)||0; const nb=parseInt(String(b).replace(/\D+/g,''),10)||0; return na-nb; }
 function detectType(col, rows){
@@ -7818,6 +7832,7 @@ function cardHTML(row){
   const more = unique.length>4 ? `<span class="chip-cat" style="opacity:.85;border-style:dashed">+${unique.length-4}</span>` : '';
 
   const statusCls = statusClass(row['Status']);
+  const statusText = statusLabel(row['Status']);
   const ms     = row.__ageMs;
   const bucket = row.__ageBucket || ageBucket(ms);
   const ageLbl = getAgeLabel(row);
@@ -7847,7 +7862,7 @@ function cardHTML(row){
       &nbsp;${esc(row['Title'])}
     </div>
     <div class="mobile-card__badge">
-      <span class="status-chip ${statusCls}">${esc(row['Status'])}</span>
+      <span class="status-chip ${statusCls}">${esc(statusText)}</span>
     </div>
 
     <div class="mobile-card__row mobile-card__meta-row">
