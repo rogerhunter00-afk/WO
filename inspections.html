@@ -2113,7 +2113,10 @@
     const INSPECTIONS_SHEET_NAME = 'Inspections';
     const DEFAULT_INSPECTIONS_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1DT58TWpncmpASlYnWzgSGFn61y4eoc9Qz6S5JXcB4ms/gviz/tq?tqx=out:csv';
     const DUE_SOON_DAYS = 30;
-    const HIDE_PPMS_UI = true; // Temporarily hide PPMs-related UI without deleting the logic
+    const HIDE_CATEGORY_UI = true; // Temporarily hide selected categories without deleting the logic
+    const HIDDEN_CATEGORY_KEYS = ['ppms', 'vent-duct-cleaning', 'flue-stack'];
+
+    const isCategoryHidden = key => HIDE_CATEGORY_UI && HIDDEN_CATEGORY_KEYS.includes(key);
 
     const PARAMS = new URLSearchParams(location.search);
     const FORCE_OFFLINE = PARAMS.get('offline') === '1';
@@ -3446,8 +3449,8 @@
         hotbar.__wired = true;
       }
       const active = state.categoryHot || 'all';
-      const definitions = HIDE_PPMS_UI
-        ? CATEGORY_DEFS.filter(def => def.key !== 'ppms')
+      const definitions = HIDE_CATEGORY_UI
+        ? CATEGORY_DEFS.filter(def => !isCategoryHidden(def.key))
         : CATEGORY_DEFS;
       const entries = definitions.map(def => {
         const value = def.value;
@@ -3712,7 +3715,7 @@
       const summary = computeCategoryCounts(rawRows);
       if(state.categoryHot !== 'all'){
         const activeKey = state.categoryHot.toLowerCase();
-        if(HIDE_PPMS_UI && activeKey === 'ppms'){
+        if(isCategoryHidden(activeKey)){
           state.categoryHot = 'all';
           state.category = 'all';
         }
