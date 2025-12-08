@@ -2858,7 +2858,7 @@
         if(!lowerCaseMap){
           lowerCaseMap = new Map();
           for(const [rawKey, rawValue] of Object.entries(raw)){
-            const lowerKey = String(rawKey).toLowerCase();
+            const lowerKey = String(rawKey).trim().toLowerCase();
             if(lowerCaseMap.has(lowerKey)) continue;
             const textValue = rawValue != null ? String(rawValue).trim() : '';
             if(textValue){
@@ -2866,7 +2866,7 @@
             }
           }
         }
-        const lookup = lowerCaseMap.get(String(key).toLowerCase());
+        const lookup = lowerCaseMap.get(String(key).trim().toLowerCase());
         return lookup != null ? String(lookup).trim() : '';
       };
       for(const key of keys){
