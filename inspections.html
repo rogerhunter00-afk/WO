@@ -2114,7 +2114,7 @@
     const DEFAULT_INSPECTIONS_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1DT58TWpncmpASlYnWzgSGFn61y4eoc9Qz6S5JXcB4ms/gviz/tq?tqx=out:csv';
     const DUE_SOON_DAYS = 30;
     const HIDE_CATEGORY_UI = true; // Temporarily hide selected categories without deleting the logic
-    const HIDDEN_CATEGORY_KEYS = ['ppms', 'vent-duct-cleaning', 'flue-stack'];
+    const HIDDEN_CATEGORY_KEYS = ['ppms', 'vent-duct-cleaning', 'flue-stack', 'e-stop-tests'];
 
     const isCategoryHidden = key => HIDE_CATEGORY_UI && HIDDEN_CATEGORY_KEYS.includes(key);
 
@@ -2386,6 +2386,16 @@
         }
       }
       return text;
+    }
+
+    function resolveCategoryKey(value){
+      const resolvedValue = resolveCategoryValue(value);
+      const lower = resolvedValue.toLowerCase();
+      if(lower && CATEGORY_DEF_BY_VALUE[lower]){
+        return CATEGORY_DEF_BY_VALUE[lower].key;
+      }
+      const fallback = slugify(resolvedValue || value || '');
+      return fallback;
     }
 
     function deriveCategoryFromText(title, categories){
@@ -2975,6 +2985,7 @@
       const resolvedCategoriesText = normalizedCategories.length
         ? normalizedCategories.join(', ')
         : (categories || resolvedCategory || '');
+      const resolvedCategoryKey = resolveCategoryKey(resolvedCategory);
 
       return {
         __id: id,
@@ -3009,7 +3020,7 @@
         __countdownDays: statusInfo.diffDays,
         __workOrderHref: workOrder.href,
         __siteKey: getSiteKeyFromName(site || resolvedLocation),
-        __categoryKey: (resolvedCategory || '').toLowerCase() || 'uncategorised',
+        __categoryKey: resolvedCategoryKey || 'uncategorised',
         __createdDate: createdDate instanceof Date && !isNaN(createdDate) ? createdDate : null,
         __plannedStartDate: plannedDate instanceof Date && !isNaN(plannedDate) ? plannedDate : null,
         __lastUpdatedDate: updatedDate instanceof Date && !isNaN(updatedDate) ? updatedDate : null,
@@ -3174,6 +3185,9 @@
     }
 
     function rowMatchesFilters(row, { ignoreSite = false } = {}){
+      if(HIDE_CATEGORY_UI && isCategoryHidden(row.__categoryKey || resolveCategoryKey(row.Category))){
+        return false;
+      }
       if(!ignoreSite && state.siteKey !== 'all' && row.__siteKey !== state.siteKey){
         return false;
       }
