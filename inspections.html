@@ -2114,7 +2114,7 @@
     const DEFAULT_INSPECTIONS_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1DT58TWpncmpASlYnWzgSGFn61y4eoc9Qz6S5JXcB4ms/gviz/tq?tqx=out:csv';
     const DUE_SOON_DAYS = 30;
     const HIDE_CATEGORY_UI = true; // Temporarily hide selected categories without deleting the logic
-    const HIDDEN_CATEGORY_KEYS = ['ppms', 'vent-duct-cleaning', 'flue-stack', 'e-stop-tests'];
+    const HIDDEN_CATEGORY_KEYS = ['ppms', 'pssr', 'vent-duct-cleaning', 'flue-stack', 'e-stop-tests'];
 
     const isCategoryHidden = key => HIDE_CATEGORY_UI && HIDDEN_CATEGORY_KEYS.includes(key);
 
@@ -3428,7 +3428,13 @@
 
     function computeCategoryCounts(allRows){
       const counts = new Map();
-      const rows = (Array.isArray(allRows) ? allRows : []).filter(row => !isDoneStatus(row));
+      const rows = (Array.isArray(allRows) ? allRows : []).filter(row => {
+        if(isDoneStatus(row)) return false;
+        if(HIDE_CATEGORY_UI && isCategoryHidden(row.__categoryKey || resolveCategoryKey(row?.Category))){
+          return false;
+        }
+        return true;
+      });
       rows.forEach(row => {
         const label = resolveCategoryValue(row?.Category) || 'Uncategorised';
         const key = label.toLowerCase();
