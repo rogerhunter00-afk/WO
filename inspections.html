@@ -1115,6 +1115,24 @@
       box-shadow:none;
     }
 
+    .ctrl-pill__status {
+      font-size:11px;
+      color:var(--ctrl-muted);
+      font-weight:700;
+      letter-spacing:.1px;
+    }
+
+    .ctrl-pill[data-state="on"] {
+      background:color-mix(in srgb,var(--ctrl-on) 16%,var(--ctrl-pill));
+      border-color:color-mix(in srgb,var(--ctrl-on) 55%,var(--ctrl-pill-border));
+      color:color-mix(in srgb,var(--ctrl-on) 90%,var(--ctrl-fg));
+      box-shadow:0 4px 12px rgba(11,103,194,0.18);
+    }
+
+    .ctrl-pill[data-state="on"] .ctrl-pill__status {
+      color:color-mix(in srgb,var(--ctrl-on) 80%,var(--ctrl-muted));
+    }
+
     .switch-wrap {
       display:inline-flex;
       align-items:center;
@@ -2023,6 +2041,10 @@
             <label for="inspection-search">Search</label>
             <input type="search" id="inspection-search" placeholder="Search inspections" data-role="search-input" autocomplete="off" />
           </div>
+          <button type="button" class="ctrl-pill" data-role="exclude-done-toggle" aria-pressed="false" data-state="off">
+            <span class="ctrl-pill__label">Exclude done</span>
+            <span class="ctrl-pill__status" data-role="exclude-done-status">Off</span>
+          </button>
           <div class="sort-control" data-role="sort-control">
             <label class="sort-control__label" for="desktop-sort-select">Sort by</label>
             <div class="sort-control__inputs">
@@ -2278,7 +2300,8 @@
       categoryHot: 'all',
       search: '',
       sortBy: 'Due date',
-      sortDir: 'asc'
+      sortDir: 'asc',
+      excludeDone: false
     };
 
     let selectedRowId = '';
@@ -3191,6 +3214,9 @@
       if(!ignoreSite && state.siteKey !== 'all' && row.__siteKey !== state.siteKey){
         return false;
       }
+      if(state.excludeDone && isDoneStatus(row)){
+        return false;
+      }
       const activeCategory = state.categoryHot || 'all';
       if(activeCategory !== 'all'){
         const rowCategory = resolveCategoryValue(row.Category) || row.Category || '';
@@ -3796,6 +3822,20 @@
       });
     }
 
+    function updateExcludeDoneToggle(){
+      const toggle = document.querySelector('[data-role="exclude-done-toggle"]');
+      if(!toggle) return;
+      const status = toggle.querySelector('[data-role="exclude-done-status"]');
+      toggle.setAttribute('aria-pressed', state.excludeDone ? 'true' : 'false');
+      toggle.dataset.state = state.excludeDone ? 'on' : 'off';
+      if(status){
+        status.textContent = state.excludeDone ? 'On' : 'Off';
+      }
+      const label = state.excludeDone ? 'Show done inspections' : 'Exclude done inspections';
+      toggle.setAttribute('aria-label', label);
+      toggle.title = label;
+    }
+
     function setSort(column, direction){
       state.sortBy = column;
       state.sortDir = direction;
@@ -4021,6 +4061,16 @@
       };
       document.querySelector('[data-role="sort-direction"]')?.addEventListener('click', toggleSortDir);
       document.querySelector('[data-role="mobile-sort-direction"]')?.addEventListener('click', toggleSortDir);
+
+      const excludeToggle = document.querySelector('[data-role="exclude-done-toggle"]');
+      excludeToggle?.addEventListener('click', () => {
+        state.excludeDone = !state.excludeDone;
+        updateExcludeDoneToggle();
+        if(window.__INSPECTIONS_ALL__){
+          renderAll(window.__INSPECTIONS_ALL__);
+        }
+      });
+      updateExcludeDoneToggle();
 
       const viewerToggle = document.querySelector('[data-role="viewer-toggle"]');
       const viewerContent = document.querySelector('[data-role="viewer-content"]');
