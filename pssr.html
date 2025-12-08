@@ -2112,6 +2112,54 @@
       'on track':'clear',
       'ontrack':'clear'
     };
+
+    function normalizeAssetKey(asset){
+      return String(asset ?? '').trim().toLowerCase();
+    }
+
+    function selectLatestInspections(rows){
+      if(!Array.isArray(rows) || !rows.length){
+        return [];
+      }
+
+      const latest = new Map();
+
+      const getComparableDate = (row, prop) => {
+        const value = row?.[prop];
+        return value instanceof Date && !isNaN(value) ? value.getTime() : null;
+      };
+
+      const isNewer = (candidate, current) => {
+        const candidateNext = getComparableDate(candidate, '__nextDate');
+        const currentNext = getComparableDate(current, '__nextDate');
+        if(candidateNext !== null || currentNext !== null){
+          if(currentNext === null) return true;
+          if(candidateNext === null) return false;
+          if(candidateNext !== currentNext) return candidateNext > currentNext;
+        }
+
+        const candidateLast = getComparableDate(candidate, '__lastDate');
+        const currentLast = getComparableDate(current, '__lastDate');
+        if(candidateLast !== null || currentLast !== null){
+          if(currentLast === null) return true;
+          if(candidateLast === null) return false;
+          if(candidateLast !== currentLast) return candidateLast > currentLast;
+        }
+
+        return false;
+      };
+
+      rows.forEach((row, index) => {
+        const assetKey = normalizeAssetKey(row?.Asset);
+        const mapKey = assetKey || `unknown-${index}`;
+        const current = latest.get(mapKey);
+        if(!current || isNewer(row, current)){
+          latest.set(mapKey, row);
+        }
+      });
+
+      return Array.from(latest.values());
+    }
     let __tableMinWidthCache = null;
 
     async function safeFetch(url, {timeout=7000, retries=2} = {}){
@@ -2513,7 +2561,8 @@
       updateSummaryMetrics(siteFiltered, {
         siteFilter: container.__siteFilter,
         riskFilter: container.__riskFilter,
-        totalRowCount: Array.isArray(container.__rows) ? container.__rows.length : 0
+        totalRowCount: Array.isArray(container.__rows) ? container.__rows.length : 0,
+        allRows: container.__rows
       });
     }
 
@@ -2997,15 +3046,19 @@
       const siteHintNode = document.querySelector('[data-role="pssr-site-hint"]');
 
       const list = Array.isArray(rows) ? rows : [];
-      const total = list.length;
+      const latestRows = selectLatestInspections(list);
+      const total = latestRows.length;
       const dueSoonThreshold = DUE_SOON_THRESHOLD_DAYS;
       const siteFilter = normalizeSiteKey(context.siteFilter);
       const riskFilter = normalizeRiskKey(context.riskFilter);
-      const overallCount = typeof context.totalRowCount === 'number' ? context.totalRowCount : total;
+      const overallLatestRows = Array.isArray(context.allRows)
+        ? selectLatestInspections(context.allRows)
+        : latestRows;
+      const overallCount = typeof overallLatestRows.length === 'number' ? overallLatestRows.length : total;
       const isFiltered = siteFilter !== 'all';
       const isRiskFiltered = riskFilter !== 'all';
-      const dueSoonRows = list.filter(row => typeof row?.__countdownDays === 'number' && row.__countdownDays >= 0 && row.__countdownDays <= dueSoonThreshold);
-      const overdueRows = list.filter(row => row?.__overdue);
+      const dueSoonRows = latestRows.filter(row => typeof row?.__countdownDays === 'number' && row.__countdownDays >= 0 && row.__countdownDays <= dueSoonThreshold);
+      const overdueRows = latestRows.filter(row => row?.__overdue);
       const compliantCount = Math.max(total - overdueRows.length - dueSoonRows.length, 0);
 
       const riskState = total === 0
@@ -3131,14 +3184,14 @@
       }
 
       if(siteListRoot){
-        if(!list.length){
+        if(!latestRows.length){
           const message = isFiltered && overallCount > 0
             ? `No inspections match ${resolveSiteLabel(siteFilter)}.`
             : 'Awaiting inspection data.';
           siteListRoot.innerHTML = `<li class="pssr-site-breakdown__item is-empty">${esc(message)}</li>`;
         }else{
           const siteStats = new Map();
-          list.forEach(row => {
+          latestRows.forEach(row => {
             const rawValue = String(row?.__siteName || '').trim();
             const normalizedName = rawValue && rawValue !== '—' ? rawValue : '';
             const name = normalizedName || FALLBACK_SITE_LABEL;
