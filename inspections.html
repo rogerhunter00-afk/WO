@@ -2842,6 +2842,22 @@
 
     function pickField(raw, keys){
       if(!raw || !Array.isArray(keys)) return '';
+      let lowerCaseMap = null;
+      const getLowerCaseValue = (key) => {
+        if(!lowerCaseMap){
+          lowerCaseMap = new Map();
+          for(const [rawKey, rawValue] of Object.entries(raw)){
+            const lowerKey = String(rawKey).toLowerCase();
+            if(lowerCaseMap.has(lowerKey)) continue;
+            const textValue = rawValue != null ? String(rawValue).trim() : '';
+            if(textValue){
+              lowerCaseMap.set(lowerKey, rawValue);
+            }
+          }
+        }
+        const lookup = lowerCaseMap.get(String(key).toLowerCase());
+        return lookup != null ? String(lookup).trim() : '';
+      };
       for(const key of keys){
         if(!key) continue;
         if(Object.prototype.hasOwnProperty.call(raw, key)){
@@ -2851,6 +2867,8 @@
             if(text) return text;
           }
         }
+        const fallback = getLowerCaseValue(key);
+        if(fallback) return fallback;
       }
       return '';
     }
