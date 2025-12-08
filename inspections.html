@@ -2134,7 +2134,7 @@
       { key: 'loler', label: 'LOLER', value: 'LOLER', rx: /\bLOLER\b/i },
       { key: 'compressor-servicing', label: 'Compressor Servicing', value: 'Compressor Servicing', rx: /Compressor/i },
       { key: 'burner-servicing', label: 'Burner Servicing', value: 'Burner Servicing', rx: /Burner/i },
-      { key: 'boiler-servicing', label: 'Boiler Servicing', value: 'Boiler Servicing', rx: /Boiler (?:Servicing|Service)/i },
+      { key: 'pssr', label: 'PSSR', value: 'PSSR', rx: /(?:PSSR|Boiler (?:Servicing|Service))/i },
       { key: 'vent-duct-cleaning', label: 'Vent/Duct Cleaning', value: 'Vent/Duct Cleaning', rx: /Vent|Duct/i },
       { key: 'flue-stack', label: 'Flue/Stack Inspection & Cleaning', value: 'Flue/Stack Inspection & Cleaning' }
     ];
@@ -2161,7 +2161,7 @@
       'LOLER': 12,
       'Compressor Servicing': 6,
       'Burner Servicing': 6,
-      'Boiler Servicing': 12,
+      'PSSR': 12,
       'Flue/Stack Inspection & Cleaning': 12,
       'Vent/Duct Cleaning': 6
     };
@@ -2361,6 +2361,13 @@
       const lower = text.toLowerCase();
       if(CATEGORY_DEF_BY_VALUE[lower]){
         return CATEGORY_DEF_BY_VALUE[lower].value;
+      }
+      for(const def of CATEGORY_REGEX_DEFS){
+        if(!(def.rx instanceof RegExp)) continue;
+        def.rx.lastIndex = 0;
+        if(def.rx.test(text)){
+          return def.value;
+        }
       }
       const slug = slugify(text);
       if(slug){
