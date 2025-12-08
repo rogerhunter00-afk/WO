@@ -2113,6 +2113,7 @@
     const INSPECTIONS_SHEET_NAME = 'Inspections';
     const DEFAULT_INSPECTIONS_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1DT58TWpncmpASlYnWzgSGFn61y4eoc9Qz6S5JXcB4ms/gviz/tq?tqx=out:csv';
     const DUE_SOON_DAYS = 30;
+    const HIDE_PPMS_UI = true; // Temporarily hide PPMs-related UI without deleting the logic
 
     const PARAMS = new URLSearchParams(location.search);
     const FORCE_OFFLINE = PARAMS.get('offline') === '1';
@@ -3427,7 +3428,10 @@
         hotbar.__wired = true;
       }
       const active = state.categoryHot || 'all';
-      const entries = CATEGORY_DEFS.map(def => {
+      const definitions = HIDE_PPMS_UI
+        ? CATEGORY_DEFS.filter(def => def.key !== 'ppms')
+        : CATEGORY_DEFS;
+      const entries = definitions.map(def => {
         const value = def.value;
         const label = def.label || def.value;
         const key = def.key || slugify(value);
@@ -3690,6 +3694,10 @@
       const summary = computeCategoryCounts(rawRows);
       if(state.categoryHot !== 'all'){
         const activeKey = state.categoryHot.toLowerCase();
+        if(HIDE_PPMS_UI && activeKey === 'ppms'){
+          state.categoryHot = 'all';
+          state.category = 'all';
+        }
         if(!summary.counts.has(activeKey)){
           state.categoryHot = 'all';
           state.category = 'all';
