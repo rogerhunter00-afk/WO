@@ -2834,15 +2834,7 @@
       const today = toStartOfDay(new Date());
       let displayStatus = String(row.Status ?? '').trim();
       let statusKey = '';
-      let effectiveDue = dueDate instanceof Date && !isNaN(dueDate) ? new Date(dueDate) : null;
-
-      if(!effectiveDue && lastDate instanceof Date && !isNaN(lastDate) && frequencyMonths){
-        const derived = new Date(lastDate);
-        derived.setMonth(derived.getMonth() + frequencyMonths);
-        if(!isNaN(derived)){
-          effectiveDue = derived;
-        }
-      }
+      const effectiveDue = dueDate instanceof Date && !isNaN(dueDate) ? new Date(dueDate) : null;
 
       if(displayStatus){
         const normalized = displayStatus.toLowerCase();
@@ -2869,9 +2861,6 @@
         diffDays = Math.floor((toStartOfDay(effectiveDue).getTime() - today.getTime()) / 86400000);
       }
 
-      const completedDateValid = lastDate instanceof Date && !isNaN(lastDate);
-      const frequencyValid = typeof frequencyMonths === 'number' && Number.isFinite(frequencyMonths) && frequencyMonths > 0;
-
       if(!statusKey){
         if(diffDays != null){
           if(diffDays < 0){
@@ -2883,28 +2872,6 @@
           }
         }else{
           statusKey = 'due';
-        }
-      }
-
-      if(statusKey === 'clear' && diffDays != null && diffDays < 0){
-        let nextDue = null;
-        if(completedDateValid){
-          if(frequencyValid){
-            const projected = new Date(lastDate);
-            projected.setMonth(projected.getMonth() + frequencyMonths);
-            if(!isNaN(projected) && (!effectiveDue || projected > effectiveDue)){
-              nextDue = projected;
-            }
-          }
-          if(!nextDue && effectiveDue && effectiveDue < lastDate){
-            nextDue = new Date(lastDate);
-          }
-        }
-        if(nextDue){
-          effectiveDue = nextDue;
-          diffDays = Math.floor((toStartOfDay(effectiveDue).getTime() - today.getTime()) / 86400000);
-        }else{
-          diffDays = null;
         }
       }
 
