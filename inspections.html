@@ -2205,6 +2205,11 @@
       return acc;
     }, {});
 
+    const SITE_NAME_ALIASES = {
+      'keith factory - kf (balloch road)': 'keith',
+      'keith sorting and packing unit - kp (westerton road)': 'keith'
+    };
+
     const OFFLINE_SAMPLE = [
       {
         'ID': 'MX-4012',
@@ -2805,6 +2810,7 @@
     function getSiteKeyFromName(name){
       const normalized = String(name ?? '').trim().toLowerCase();
       if(SITE_NAME_TO_KEY[normalized]) return SITE_NAME_TO_KEY[normalized];
+      if(SITE_NAME_ALIASES[normalized]) return SITE_NAME_ALIASES[normalized];
       return 'all';
     }
 
