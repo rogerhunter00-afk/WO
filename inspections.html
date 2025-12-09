@@ -2098,11 +2098,11 @@
                 <th scope="col" data-col="ID" aria-sort="none">ID <span class="sort-arrow" aria-hidden="true"></span></th>
                 <th scope="col" data-col="Title" aria-sort="none">Title <span class="sort-arrow" aria-hidden="true"></span></th>
                 <th scope="col" data-col="Status" aria-sort="none">Status <span class="sort-arrow" aria-hidden="true"></span></th>
+                <th scope="col" data-col="Due date" aria-sort="none">Due date <span class="sort-arrow" aria-hidden="true"></span></th>
                 <th scope="col" data-col="Priority" aria-sort="none">Priority <span class="sort-arrow" aria-hidden="true"></span></th>
                 <th scope="col" data-col="Assigned to" aria-sort="none">Assigned to <span class="sort-arrow" aria-hidden="true"></span></th>
                 <th scope="col" data-col="Created on" aria-sort="none">Created on <span class="sort-arrow" aria-hidden="true"></span></th>
                 <th scope="col" data-col="Planned Start Date" aria-sort="none">Planned Start Date <span class="sort-arrow" aria-hidden="true"></span></th>
-                <th scope="col" data-col="Due date" aria-sort="none">Due date <span class="sort-arrow" aria-hidden="true"></span></th>
                 <th scope="col" data-col="Completed on" aria-sort="none">Completed on <span class="sort-arrow" aria-hidden="true"></span></th>
                 <th scope="col" data-col="Last updated" aria-sort="none">Last updated <span class="sort-arrow" aria-hidden="true"></span></th>
                 <th scope="col" data-col="Location" aria-sort="none">Location <span class="sort-arrow" aria-hidden="true"></span></th>
@@ -3619,11 +3619,11 @@
             <td data-col="ID">${idCell}</td>
             <td data-col="Title">${esc(row.Title)}</td>
             <td data-col="Status"><span class="${statusCls}">${esc(row.Status)}</span></td>
+            <td data-col="Due date"${dueCellAttr}>${dueContent}</td>
             <td data-col="Priority">${esc(row.Priority)}</td>
             <td data-col="Assigned to">${esc(row['Assigned to'])}</td>
             <td data-col="Created on">${esc(row['Created on'])}</td>
             <td data-col="Planned Start Date">${esc(row['Planned Start Date'])}</td>
-            <td data-col="Due date"${dueCellAttr}>${dueContent}</td>
             <td data-col="Completed on">${esc(row['Completed on'])}</td>
             <td data-col="Last updated">${esc(row['Last updated'])}</td>
             <td data-col="Location">${esc(row.Location)}</td>
