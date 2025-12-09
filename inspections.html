@@ -2989,11 +2989,11 @@
       const fallbackFrequency = CATEGORY_FREQUENCY[category] || null;
       const statusFrequency = resolvedFrequency && resolvedFrequency > 0 ? resolvedFrequency : fallbackFrequency;
       const statusInfo = computeStatus(raw, completedDate, dueDate, statusFrequency);
-      const dueDisplay = statusInfo.effectiveDue || dueDate;
+      const dueForLogic = statusInfo.effectiveDue || dueDate;
       const id = `ins-${index + 1}`;
       const idLabel = workOrder.label || '—';
       const formattedCompleted = formatDisplayValue(completedDate, completedRaw);
-      const formattedDue = formatDisplayValue(dueDisplay, dueRaw);
+      const formattedDue = formatDisplayValue(null, dueRaw);
       const formattedCreated = formatDisplayValue(createdDate, createdRaw);
       const formattedPlanned = formatDisplayValue(plannedDate, plannedRaw);
       const formattedUpdated = formatDisplayValue(updatedDate, updatedRaw);
@@ -3035,7 +3035,7 @@
         FrequencyMonths: resolvedFrequency != null ? resolvedFrequency : fallbackFrequency,
         __lastDate: completedDate,
         __dueDate: dueDate,
-        __effectiveDue: dueDisplay,
+        __effectiveDue: dueForLogic,
         __statusKey: statusInfo.statusKey,
         __statusLabel: statusInfo.displayStatus,
         __countdownDays: statusInfo.diffDays,
