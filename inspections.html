@@ -1540,6 +1540,16 @@
       min-width:0;
     }
 
+    .status-pill--link {
+      cursor:pointer;
+      text-decoration:underline dotted;
+    }
+
+    .status-pill--link:focus-visible {
+      outline:2px solid var(--als-blue);
+      outline-offset:2px;
+    }
+
     .status-pill::before {
       content:"";
       width:14px;
@@ -2823,6 +2833,13 @@
       return { label: text, href: '' };
     }
 
+    function normalizeDocumentLink(value){
+      const text = String(value ?? '').trim();
+      if(!text) return '';
+      if(/^https?:\/\//i.test(text)) return text;
+      return '';
+    }
+
     function buildSearchText(parts){
       return parts
         .filter(Boolean)
@@ -2973,7 +2990,8 @@
       const assignedTo = pickField(raw, ['Assigned to', 'Owner', 'Owner/Team', 'Responsible', 'Inspector']) || owner;
       const priority = pickField(raw, ['Priority', 'Risk', 'Criticality', 'Severity']);
       const notes = pickField(raw, ['Notes', 'Comments', 'Remarks', 'Summary', 'Details', 'Description']);
-      const workOrderValue = pickField(raw, ['ID', 'WO/Link', 'WO', 'Work Order', 'Workorder', 'Link', 'URL', 'Document', 'Document Link', 'Attachment', 'Attachment URL', 'File Name', 'File', 'Document URL']);
+      const workOrderValue = pickField(raw, ['ID', 'WO/Link', 'WO', 'Work Order', 'Workorder', 'Link', 'URL', 'Attachment', 'Attachment URL', 'File Name', 'File']);
+      const documentLinkValue = pickField(raw, ['Document', 'Document Link', 'Document URL', 'Attachment', 'Attachment URL', 'File']);
       const completedDate = parseDate(completedRaw);
       const dueDate = parseDate(dueRaw);
       const createdDate = parseDate(createdRaw);
@@ -2981,6 +2999,7 @@
       const updatedDate = parseDate(updatedRaw);
       const frequencyMonths = parseFrequencyMonths(frequencyText);
       const workOrder = normalizeWorkOrder(workOrderValue);
+      const documentHref = normalizeDocumentLink(documentLinkValue);
       const derivationTitle = [title, asset].filter(Boolean).join(' ');
       const canonicalCategory = resolveCategoryValue(category);
       const derivedCategory = deriveCategoryFromText(derivationTitle, categories);
@@ -3040,6 +3059,7 @@
         __statusLabel: statusInfo.displayStatus,
         __countdownDays: statusInfo.diffDays,
         __workOrderHref: workOrder.href,
+        __documentHref: documentHref,
         __siteKey: getSiteKeyFromName(site || resolvedLocation),
         __categoryKey: resolvedCategoryKey || 'uncategorised',
         __createdDate: createdDate instanceof Date && !isNaN(createdDate) ? createdDate : null,
@@ -3548,6 +3568,7 @@
         const chip = countdownChip(row);
         const isDone = isDoneStatus(row);
         const statusCls = isDone ? 'status-pill is-completed' : statusClass(row.__statusKey);
+        const statusLinkAttr = isDone && row.__documentHref ? ' status-pill--link' : '';
         const classes = [];
         if(row.__statusKey === 'overdue') classes.push('row-overdue');
         if(isDone) classes.push('row-done');
@@ -3581,11 +3602,14 @@
         const dueContent = chip
           ? `<span class="${chip.className}"${dueAttr}>${esc(chip.label)}</span>`
           : '';
+        const statusAttrs = isDone
+          ? ` role="button" tabindex="0" data-row-id="${esc(row.__id)}" data-role="status-pill"${row.__documentHref ? ` data-document-href="${esc(row.__documentHref)}" title="Open document in new tab"` : ''}`
+          : '';
         return `
           <tr data-row-id="${esc(row.__id)}"${classAttr}>
             <td data-col="ID">${idCell}</td>
             <td data-col="Title">${esc(row.Title)}</td>
-            <td data-col="Status"><span class="${statusCls}">${esc(row.Status)}</span></td>
+            <td data-col="Status"><span class="${statusCls}${statusLinkAttr}"${statusAttrs}>${esc(row.Status)}</span></td>
             <td data-col="Due date"${dueCellAttr}>${dueContent}</td>
             <td data-col="Priority">${esc(row.Priority)}</td>
             <td data-col="Assigned to">${esc(row['Assigned to'])}</td>
@@ -3611,6 +3635,10 @@
         const chip = countdownChip(row);
         const isDone = isDoneStatus(row);
         const statusCls = isDone ? 'status-pill is-completed' : statusClass(row.__statusKey);
+        const statusLinkAttr = isDone && row.__documentHref ? ' status-pill--link' : '';
+        const statusAttrs = isDone
+          ? ` role="button" tabindex="0" data-row-id="${esc(row.__id)}" data-role="status-pill"${row.__documentHref ? ` data-document-href="${esc(row.__documentHref)}" title="Open document in new tab"` : ''}`
+          : '';
         const isActive = row.__id === selectedRowId;
         const classes = [];
         if(row.__statusKey === 'overdue') classes.push('row-overdue');
@@ -3639,7 +3667,7 @@
                 <div class="mobile-card__title">${esc(row.Title)}</div>
                 <div class="mobile-card__subtitle"><span>${esc(row.Location)}</span>${categoriesSubtitle}</div>
               </div>
-              <span class="${statusCls}">${esc(row.Status)}</span>
+              <span class="${statusCls}${statusLinkAttr}"${statusAttrs}>${esc(row.Status)}</span>
             </header>
             ${chipBlock}
             <dl class="mobile-card__details">
@@ -3723,6 +3751,24 @@
       body.hidden = false;
     }
 
+    function openDocumentLink(row){
+      if(!row || !row.__documentHref) return false;
+      window.open(row.__documentHref, '_blank', 'noopener');
+      return true;
+    }
+
+    function handleStatusInteraction(event){
+      const pill = event.target.closest('[data-role="status-pill"]');
+      if(!pill) return false;
+      const rowId = pill.getAttribute('data-row-id');
+      const row = rowLookup.get(rowId);
+      if(!row || !isDoneStatus(row) || !row.__documentHref) return false;
+      event.preventDefault();
+      event.stopPropagation();
+      openDocumentLink(row);
+      return true;
+    }
+
     function selectRow(id){
       if(!id){
         selectedRowId = '';
@@ -3749,16 +3795,26 @@
       const tbody = document.querySelector('tbody');
       const cards = document.querySelector('[data-role="mobile-cards"]');
       tbody?.addEventListener('click', event => {
+        if(handleStatusInteraction(event)) return;
         const row = event.target.closest('tr[data-row-id]');
         if(!row) return;
         const id = row.getAttribute('data-row-id');
         selectRow(selectedRowId === id ? '' : id);
       });
+      tbody?.addEventListener('keydown', event => {
+        if(event.key !== 'Enter' && event.key !== ' ') return;
+        if(handleStatusInteraction(event)) return;
+      });
       cards?.addEventListener('click', event => {
+        if(handleStatusInteraction(event)) return;
         const card = event.target.closest('[data-row-id]');
         if(!card) return;
         const id = card.getAttribute('data-row-id');
         selectRow(selectedRowId === id ? '' : id);
+      });
+      cards?.addEventListener('keydown', event => {
+        if(event.key !== 'Enter' && event.key !== ' ') return;
+        if(handleStatusInteraction(event)) return;
       });
     }
 
