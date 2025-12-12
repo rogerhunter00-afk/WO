@@ -866,7 +866,8 @@ body.force-desktop .mobile-sort{display:none!important}
 .legend-inline__btn{ font-weight:800; }
 .legend-inline__panel{
   position:absolute;
-  left:0;                          /* shows under the button at the left */
+  right:0;                         /* anchor to the right so the panel flows left */
+  left:auto;
   top:calc(100% + 8px);
   width:min(420px, 92vw);
   max-height:70vh;
@@ -886,15 +887,14 @@ body.force-desktop .mobile-sort{display:none!important}
 .legend-inline__panel::before{
   content:"";
   position:absolute;
-  top:-6px; left:16px;
+  top:-6px; right:20px;
   width:12px; height:12px;
   transform:rotate(45deg);
   background:var(--paper);
   border-left:1px solid var(--grid);
   border-top:1px solid var(--grid);
 }
-.legend-inline:hover .legend-inline__panel,
-.legend-inline:focus-within .legend-inline__panel{
+.legend-inline:hover .legend-inline__panel{
   opacity:1; transform:none; pointer-events:auto;
 }
 
