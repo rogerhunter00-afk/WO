@@ -799,53 +799,29 @@ tbody td{background:var(--zebra);border-bottom:1px solid var(--grid);padding:8px
 .dark .table-scroll tbody tr.row-priority:has(td[data-col="Status"] .status-chip.on-hold) > td{
   background: color-mix(in srgb, var(--hold-tx) 20%, color-mix(in srgb, var(--als-blue) 10%, var(--zebra)));
 }
-/* Mobile cards: show started states with tinted hatching */
+/* Mobile cards: show started states with tinted fills */
 .mobile-cards .mobile-card:has(.status-chip.in-progress){
   border-color: color-mix(in srgb, var(--open-tx) 60%, var(--grid));
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--open-tx) 20%, transparent);
-  background:
-    repeating-linear-gradient(135deg,
-      color-mix(in srgb, var(--open-tx) 16%, transparent) 0 12px,
-      color-mix(in srgb, var(--open-tx) 6%, transparent) 12px 24px),
-    var(--paper);
+  background: color-mix(in srgb, var(--open-tx) 12%, var(--paper));
 }
 .mobile-cards .mobile-card:has(.status-chip.on-hold){
   border-color: color-mix(in srgb, var(--hold-tx) 65%, var(--grid));
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--hold-tx) 22%, transparent);
-  background:
-    repeating-linear-gradient(135deg,
-      color-mix(in srgb, var(--hold-tx) 18%, transparent) 0 12px,
-      color-mix(in srgb, var(--hold-tx) 8%, transparent) 12px 24px),
-    var(--paper);
+  background: color-mix(in srgb, var(--hold-tx) 14%, var(--paper));
 }
-/* Work underway: add tinted hatching for In Progress/On Hold rows */
+/* Work underway: add solid tints for In Progress/On Hold rows */
 .table-scroll tbody tr:not(.row-priority):has(td[data-col="Status"] .status-chip.in-progress) > td{
-  background:
-    repeating-linear-gradient(135deg,
-      color-mix(in srgb, var(--open-tx) 16%, transparent) 0 12px,
-      color-mix(in srgb, var(--open-tx) 6%, transparent) 12px 24px),
-    color-mix(in srgb, var(--open-tx) 10%, var(--paper));
+  background: color-mix(in srgb, var(--open-tx) 12%, var(--paper));
 }
 .dark .table-scroll tbody tr:not(.row-priority):has(td[data-col="Status"] .status-chip.in-progress) > td{
-  background:
-    repeating-linear-gradient(135deg,
-      color-mix(in srgb, var(--open-tx) 22%, transparent) 0 12px,
-      color-mix(in srgb, var(--open-tx) 12%, transparent) 12px 24px),
-    color-mix(in srgb, var(--open-tx) 18%, var(--zebra));
+  background: color-mix(in srgb, var(--open-tx) 18%, var(--zebra));
 }
 .table-scroll tbody tr:not(.row-priority):has(td[data-col="Status"] .status-chip.on-hold) > td{
-  background:
-    repeating-linear-gradient(135deg,
-      color-mix(in srgb, var(--hold-tx) 18%, transparent) 0 12px,
-      color-mix(in srgb, var(--hold-tx) 8%, transparent) 12px 24px),
-    color-mix(in srgb, var(--hold-tx) 12%, var(--paper));
+  background: color-mix(in srgb, var(--hold-tx) 14%, var(--paper));
 }
 .dark .table-scroll tbody tr:not(.row-priority):has(td[data-col="Status"] .status-chip.on-hold) > td{
-  background:
-    repeating-linear-gradient(135deg,
-      color-mix(in srgb, var(--hold-tx) 24%, transparent) 0 12px,
-      color-mix(in srgb, var(--hold-tx) 12%, transparent) 12px 24px),
-    color-mix(in srgb, var(--hold-tx) 20%, var(--zebra));
+  background: color-mix(in srgb, var(--hold-tx) 20%, var(--zebra));
 }
   /* ✅ DONE + PRIORITY rows:
    keep the red Priority rail, but add a green DONE tint to the row */
