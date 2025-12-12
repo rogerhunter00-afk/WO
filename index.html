@@ -786,6 +786,43 @@ tbody td{background:var(--zebra);border-bottom:1px solid var(--grid);padding:8px
   border-color: color-mix(in srgb, var(--done-tx) 55%, var(--grid));
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--done-tx) 22%, transparent);
 }
+/* Priority + started: keep the red rail, layer a status tint */
+.table-scroll tbody tr.row-priority:has(td[data-col="Status"] .status-chip.in-progress) > td{
+  background: color-mix(in srgb, var(--open-tx) 14%, color-mix(in srgb, var(--als-blue) 6%, var(--paper)));
+}
+.dark .table-scroll tbody tr.row-priority:has(td[data-col="Status"] .status-chip.in-progress) > td{
+  background: color-mix(in srgb, var(--open-tx) 18%, color-mix(in srgb, var(--als-blue) 10%, var(--zebra)));
+}
+.table-scroll tbody tr.row-priority:has(td[data-col="Status"] .status-chip.on-hold) > td{
+  background: color-mix(in srgb, var(--hold-tx) 16%, color-mix(in srgb, var(--als-blue) 6%, var(--paper)));
+}
+.dark .table-scroll tbody tr.row-priority:has(td[data-col="Status"] .status-chip.on-hold) > td{
+  background: color-mix(in srgb, var(--hold-tx) 20%, color-mix(in srgb, var(--als-blue) 10%, var(--zebra)));
+}
+/* Mobile cards: show started states with tinted fills */
+.mobile-cards .mobile-card:has(.status-chip.in-progress){
+  border-color: color-mix(in srgb, var(--open-tx) 60%, var(--grid));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--open-tx) 20%, transparent);
+  background: color-mix(in srgb, var(--open-tx) 12%, var(--paper));
+}
+.mobile-cards .mobile-card:has(.status-chip.on-hold){
+  border-color: color-mix(in srgb, var(--hold-tx) 65%, var(--grid));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--hold-tx) 22%, transparent);
+  background: color-mix(in srgb, var(--hold-tx) 14%, var(--paper));
+}
+/* Work underway: add solid tints for In Progress/On Hold rows */
+.table-scroll tbody tr:not(.row-priority):has(td[data-col="Status"] .status-chip.in-progress) > td{
+  background: color-mix(in srgb, var(--open-tx) 12%, var(--paper));
+}
+.dark .table-scroll tbody tr:not(.row-priority):has(td[data-col="Status"] .status-chip.in-progress) > td{
+  background: color-mix(in srgb, var(--open-tx) 18%, var(--zebra));
+}
+.table-scroll tbody tr:not(.row-priority):has(td[data-col="Status"] .status-chip.on-hold) > td{
+  background: color-mix(in srgb, var(--hold-tx) 14%, var(--paper));
+}
+.dark .table-scroll tbody tr:not(.row-priority):has(td[data-col="Status"] .status-chip.on-hold) > td{
+  background: color-mix(in srgb, var(--hold-tx) 20%, var(--zebra));
+}
   /* ✅ DONE + PRIORITY rows:
    keep the red Priority rail, but add a green DONE tint to the row */
 .table-scroll tbody tr.row-priority:has(td[data-col="Status"] .status-chip.done) > td{
@@ -1461,6 +1498,15 @@ body.dark .plan-overlay{
 }
 .task-card[data-variant="note"]::before{
   background:var(--accent-grey, var(--muted));
+}
+/* Eng schedule: fill started states so cards match list colouring */
+.task-card[data-status*="progress"]:not([data-variant="done"], [data-variant="note"]){
+  background:color-mix(in srgb, var(--open-tx, var(--brand)) 12%, var(--card-bg, var(--paper)));
+  border-color:color-mix(in srgb, var(--card-border, var(--grid)) 65%, var(--open-tx, var(--brand)) 35%);
+}
+.task-card[data-status*="hold"]:not([data-variant="done"], [data-variant="note"]){
+  background:color-mix(in srgb, var(--hold-tx, #b45309) 14%, var(--card-bg, var(--paper)));
+  border-color:color-mix(in srgb, var(--card-border, var(--grid)) 65%, var(--hold-tx, #b45309) 35%);
 }
 .task-card + .task-card{
   margin-top:12px;
@@ -4926,15 +4972,20 @@ function planEntryPresentationType(entry){
   return entry.type || 'text';
 }
 
+function planEntryStatusSlug(entry){
+  if(!entry?.workOrder) return '';
+  return slugify(String(entry.workOrder.Status ?? entry.workOrder.status ?? ''));
+}
+
 function deriveTaskCardVariant(entry, entryType){
   if(!entry) return 'scheduled';
   const type = entryType || planEntryPresentationType(entry);
   if(type === 'missing') return 'critical';
   if(type === 'text') return entry.doneFromText ? 'done' : 'scheduled';
 
-  const statusSlug = entry.workOrder ? slugify(String(entry.workOrder.Status ?? entry.workOrder.status ?? '')) : '';
+  const statusSlug = planEntryStatusSlug(entry);
   const prioritySlug = entry.workOrder ? slugify(String(entry.workOrder.Priority ?? entry.workOrder.priority ?? '')) : '';
-  
+
   // Check if work order has "Priority" in its Categories field
   const hasPriorityTag = entry.workOrder ? hasPriorityCategory(entry.workOrder) : false;
 
@@ -4955,12 +5006,12 @@ function deriveTaskCardVariant(entry, entryType){
 
   // Amber bar for On Hold status
   if(statusSlug.includes('hold')) return 'hold';
-  
+
   // Red bar for critical/urgent status
   if(statusSlug.includes('critical') || statusSlug.includes('urgent')){
     return 'critical';
   }
-  
+
   return 'scheduled';
 }
 
@@ -5085,6 +5136,10 @@ function renderPlanEntry(entry){
   const entryType = planEntryPresentationType(entry);
   card.dataset.type = entryType;
   card.dataset.variant = deriveTaskCardVariant(entry, entryType);
+  const statusSlug = planEntryStatusSlug(entry);
+  if(statusSlug){
+    card.dataset.status = statusSlug;
+  }
   card.tabIndex = 0;
 
   const chipLabel = planCardChipLabel(entry, entryType);
@@ -5846,6 +5901,14 @@ const css = `
 }
 #plan-next-week .task-card[data-variant="hold"]::before{background:var(--accent-amber);}
 #plan-next-week .task-card[data-variant="critical"]::before{background:var(--accent-red);}
+#plan-next-week .task-card[data-status*="progress"]:not([data-variant="done"], [data-variant="note"]){
+  background:color-mix(in srgb, var(--open-tx, #0b67c2) 12%, var(--plan-card-bg));
+  border-color:color-mix(in srgb, var(--plan-card-border) 65%, var(--open-tx, #0b67c2) 35%);
+}
+#plan-next-week .task-card[data-status*="hold"]:not([data-variant="done"], [data-variant="note"]){
+  background:color-mix(in srgb, var(--hold-tx, #b45309) 14%, var(--plan-card-bg));
+  border-color:color-mix(in srgb, var(--plan-card-border) 65%, var(--hold-tx, #b45309) 35%);
+}
 #plan-next-week .task-card + .task-card{margin-top:8px;}
 #plan-next-week .task-card:focus-visible{
   outline:2px solid color-mix(in srgb, var(--brand, #0b67c2) 55%, transparent);
