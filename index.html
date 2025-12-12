@@ -1109,7 +1109,8 @@ body.force-desktop .mobile-sort{display:none!important}
   top:calc(100% + 8px);
   width:min(420px, 92vw);
   max-height:70vh;
-  overflow:auto;
+  overflow-y:auto;
+  overflow-x:hidden;
   background:transparent;
   color:var(--ink);
   border:1px solid var(--grid);
@@ -1142,12 +1143,12 @@ body.force-desktop .mobile-sort{display:none!important}
   visibility:visible;
 }
 
-/* Keep the Eng Schedule legend hidden until hover and position it to the left of the trigger */
+/* Keep the Eng Schedule legend hidden until hover and center it beneath the trigger */
 .plan-dialog__actions .legend-inline__panel{
-  top:50%;
-  right:calc(100% + 10px);
-  left:auto;
-  transform:translateY(-50%);
+  top:calc(100% + 8px);
+  left:50%;
+  right:auto;
+  transform:translate(-50%, -4px);
   display:none;
   opacity:0;
   visibility:hidden;
@@ -1155,13 +1156,13 @@ body.force-desktop .mobile-sort{display:none!important}
 }
 
 .plan-dialog__actions .legend-inline__panel::before{
-  top:50%;
-  right:-6px;
-  left:auto;
-  transform:translateY(-50%) rotate(45deg);
-  border-left:none;
+  top:-6px;
+  left:50%;
+  right:auto;
+  transform:translateX(-50%) rotate(45deg);
+  border-left:1px solid var(--grid);
   border-top:1px solid var(--grid);
-  border-right:1px solid var(--grid);
+  border-right:none;
 }
 
 .plan-dialog__actions .legend-inline:hover .legend-inline__panel{
@@ -1169,7 +1170,7 @@ body.force-desktop .mobile-sort{display:none!important}
   opacity:1;
   visibility:visible;
   pointer-events:auto;
-  transform:translateY(-50%);
+  transform:translate(-50%, 0);
 }
 
 /* --- Plan for Next Week overlay --- */
