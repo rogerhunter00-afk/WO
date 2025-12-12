@@ -786,6 +786,43 @@ tbody td{background:var(--zebra);border-bottom:1px solid var(--grid);padding:8px
   border-color: color-mix(in srgb, var(--done-tx) 55%, var(--grid));
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--done-tx) 22%, transparent);
 }
+/* Priority + started: keep the red rail, layer a status tint */
+.table-scroll tbody tr.row-priority:has(td[data-col="Status"] .status-chip.in-progress) > td{
+  background: color-mix(in srgb, var(--open-tx) 14%, color-mix(in srgb, var(--als-blue) 6%, var(--paper)));
+}
+.dark .table-scroll tbody tr.row-priority:has(td[data-col="Status"] .status-chip.in-progress) > td{
+  background: color-mix(in srgb, var(--open-tx) 18%, color-mix(in srgb, var(--als-blue) 10%, var(--zebra)));
+}
+.table-scroll tbody tr.row-priority:has(td[data-col="Status"] .status-chip.on-hold) > td{
+  background: color-mix(in srgb, var(--hold-tx) 16%, color-mix(in srgb, var(--als-blue) 6%, var(--paper)));
+}
+.dark .table-scroll tbody tr.row-priority:has(td[data-col="Status"] .status-chip.on-hold) > td{
+  background: color-mix(in srgb, var(--hold-tx) 20%, color-mix(in srgb, var(--als-blue) 10%, var(--zebra)));
+}
+/* Mobile cards: show started states with tinted fills */
+.mobile-cards .mobile-card:has(.status-chip.in-progress){
+  border-color: color-mix(in srgb, var(--open-tx) 60%, var(--grid));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--open-tx) 20%, transparent);
+  background: color-mix(in srgb, var(--open-tx) 12%, var(--paper));
+}
+.mobile-cards .mobile-card:has(.status-chip.on-hold){
+  border-color: color-mix(in srgb, var(--hold-tx) 65%, var(--grid));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--hold-tx) 22%, transparent);
+  background: color-mix(in srgb, var(--hold-tx) 14%, var(--paper));
+}
+/* Work underway: add solid tints for In Progress/On Hold rows */
+.table-scroll tbody tr:not(.row-priority):has(td[data-col="Status"] .status-chip.in-progress) > td{
+  background: color-mix(in srgb, var(--open-tx) 12%, var(--paper));
+}
+.dark .table-scroll tbody tr:not(.row-priority):has(td[data-col="Status"] .status-chip.in-progress) > td{
+  background: color-mix(in srgb, var(--open-tx) 18%, var(--zebra));
+}
+.table-scroll tbody tr:not(.row-priority):has(td[data-col="Status"] .status-chip.on-hold) > td{
+  background: color-mix(in srgb, var(--hold-tx) 14%, var(--paper));
+}
+.dark .table-scroll tbody tr:not(.row-priority):has(td[data-col="Status"] .status-chip.on-hold) > td{
+  background: color-mix(in srgb, var(--hold-tx) 20%, var(--zebra));
+}
   /* ✅ DONE + PRIORITY rows:
    keep the red Priority rail, but add a green DONE tint to the row */
 .table-scroll tbody tr.row-priority:has(td[data-col="Status"] .status-chip.done) > td{
