@@ -1982,7 +1982,7 @@ body.dark .plan-overlay{
                 <ul class="legend__list">
                   <li class="legend__sample">
                     <span><span class="legend__rail"></span> Priority rail</span>
-                    <span>Red rail highlights Priority-tagged work (including Critical/High/Urgent or missing WO IDs).</span>
+                    <span>Red rail highlights work orders tagged with the “Priority” category.</span>
                   </li>
                   <li class="legend__sample">
                     <span><span class="legend__swatch legend__swatch--progress"></span> In Progress tint</span>
@@ -5054,7 +5054,6 @@ function deriveTaskCardVariant(entry, entryType){
   if(type === 'text') return entry.doneFromText ? 'done' : 'scheduled';
 
   const statusSlug = planEntryStatusSlug(entry);
-  const prioritySlug = entry.workOrder ? slugify(String(entry.workOrder.Priority ?? entry.workOrder.priority ?? '')) : '';
 
   // Check if work order has "Priority" in its Categories field
   const hasPriorityTag = entry.workOrder ? hasPriorityCategory(entry.workOrder) : false;
@@ -5064,23 +5063,13 @@ function deriveTaskCardVariant(entry, entryType){
     return 'done';
   }
 
-  // Red bar for work orders with "Priority" category
+  // Red bar only when the work order is tagged with the "Priority" category
   if(hasPriorityTag){
-    return 'critical';
-  }
-
-  // Red bar for Critical/High/Urgent priority level
-  if(prioritySlug.includes('critical') || prioritySlug.includes('high') || prioritySlug.includes('urgent')){
     return 'critical';
   }
 
   // Amber bar for On Hold status
   if(statusSlug.includes('hold')) return 'hold';
-
-  // Red bar for critical/urgent status
-  if(statusSlug.includes('critical') || statusSlug.includes('urgent')){
-    return 'critical';
-  }
 
   return 'scheduled';
 }
