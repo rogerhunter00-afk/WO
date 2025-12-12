@@ -1104,7 +1104,8 @@ body.force-desktop .mobile-sort{display:none!important}
 .legend-inline__btn{ font-weight:800; }
 .legend-inline__panel{
   position:absolute;
-  left:0;                          /* shows under the button at the left */
+  right:0;                         /* anchor to the right so the panel flows left */
+  left:auto;
   top:calc(100% + 8px);
   width:min(420px, 92vw);
   max-height:70vh;
@@ -1115,25 +1116,60 @@ body.force-desktop .mobile-sort{display:none!important}
   border-radius:12px;
   padding:10px;
   box-shadow:0 12px 30px rgba(0,0,0,.18);
+  display:none;                   /* keep hidden unless the legend is hovered */
   opacity:0;
   transform:translateY(-4px);
   pointer-events:none;
+  visibility:hidden;
   transition:opacity .15s ease, transform .15s ease;
   z-index:600;                     /* above sticky bars */
 }
 .legend-inline__panel::before{
   content:"";
   position:absolute;
-  top:-6px; left:16px;
+  top:-6px; right:20px;
   width:12px; height:12px;
   transform:rotate(45deg);
   background:transparent;
   border-left:1px solid var(--grid);
   border-top:1px solid var(--grid);
 }
-.legend-inline:hover .legend-inline__panel,
-.legend-inline:focus-within .legend-inline__panel{
-  opacity:1; transform:none; pointer-events:auto;
+.legend-inline:hover .legend-inline__panel{
+  display:block;
+  opacity:1;
+  transform:none;
+  pointer-events:auto;
+  visibility:visible;
+}
+
+/* Keep the Eng Schedule legend hidden until hover and position it to the left of the trigger */
+.plan-dialog__actions .legend-inline__panel{
+  top:50%;
+  right:calc(100% + 10px);
+  left:auto;
+  transform:translateY(-50%);
+  display:none;
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+}
+
+.plan-dialog__actions .legend-inline__panel::before{
+  top:50%;
+  right:-6px;
+  left:auto;
+  transform:translateY(-50%) rotate(45deg);
+  border-left:none;
+  border-top:1px solid var(--grid);
+  border-right:1px solid var(--grid);
+}
+
+.plan-dialog__actions .legend-inline:hover .legend-inline__panel{
+  display:block;
+  opacity:1;
+  visibility:visible;
+  pointer-events:auto;
+  transform:translateY(-50%);
 }
 
 /* --- Plan for Next Week overlay --- */
