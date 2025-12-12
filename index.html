@@ -1143,12 +1143,12 @@ body.force-desktop .mobile-sort{display:none!important}
   visibility:visible;
 }
 
-/* Keep the Eng Schedule legend hidden until hover and position it just below and slightly left of the trigger */
+/* Keep the Eng Schedule legend hidden until hover and center it beneath the trigger */
 .plan-dialog__actions .legend-inline__panel{
   top:calc(100% + 8px);
-  left:-12px;
+  left:50%;
   right:auto;
-  transform:none;
+  transform:translate(-50%, -4px);
   display:none;
   opacity:0;
   visibility:hidden;
@@ -1157,9 +1157,9 @@ body.force-desktop .mobile-sort{display:none!important}
 
 .plan-dialog__actions .legend-inline__panel::before{
   top:-6px;
-  left:28px;
+  left:50%;
   right:auto;
-  transform:rotate(45deg);
+  transform:translateX(-50%) rotate(45deg);
   border-left:1px solid var(--grid);
   border-top:1px solid var(--grid);
   border-right:none;
@@ -1170,7 +1170,7 @@ body.force-desktop .mobile-sort{display:none!important}
   opacity:1;
   visibility:visible;
   pointer-events:auto;
-  transform:none;
+  transform:translate(-50%, 0);
 }
 
 /* --- Plan for Next Week overlay --- */
