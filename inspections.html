@@ -2912,6 +2912,11 @@
       return '';
     }
 
+    function getDocumentHref(row){
+      if(!row) return '';
+      return row.__documentHref || row.__documentHref2 || '';
+    }
+
     function buildSearchText(parts){
       return parts
         .filter(Boolean)
@@ -3064,6 +3069,7 @@
       const notes = pickField(raw, ['Notes', 'Comments', 'Remarks', 'Summary', 'Details', 'Description']);
       const workOrderValue = pickField(raw, ['ID', 'WO/Link', 'WO', 'Work Order', 'Workorder', 'Link', 'URL', 'Attachment', 'Attachment URL', 'File Name', 'File']);
       const documentLinkValue = pickField(raw, ['Document', 'Document Link', 'Document URL', 'Attachment', 'Attachment URL', 'File']);
+      const documentLinkValue2 = pickField(raw, ['Document 2', 'Document Link 2', 'Document URL 2', 'Attachment 2', 'Attachment URL 2', 'File 2']);
       const completedDate = parseDate(completedRaw);
       const dueDate = parseDate(dueRaw);
       const createdDate = parseDate(createdRaw);
@@ -3072,6 +3078,7 @@
       const frequencyMonths = parseFrequencyMonths(frequencyText);
       const workOrder = normalizeWorkOrder(workOrderValue);
       const documentHref = normalizeDocumentLink(documentLinkValue);
+      const documentHref2 = normalizeDocumentLink(documentLinkValue2);
       const derivationTitle = [title, asset].filter(Boolean).join(' ');
       const canonicalCategory = resolveCategoryValue(category);
       const derivedCategory = deriveCategoryFromText(derivationTitle, categories);
@@ -3132,6 +3139,7 @@
         __countdownDays: statusInfo.diffDays,
         __workOrderHref: workOrder.href,
         __documentHref: documentHref,
+        __documentHref2: documentHref2,
         __siteKey: getSiteKeyFromName(site || resolvedLocation),
         __categoryKey: resolvedCategoryKey || 'uncategorised',
         __createdDate: createdDate instanceof Date && !isNaN(createdDate) ? createdDate : null,
@@ -3632,7 +3640,7 @@
     }
 
     function renderStatusContent(row, isDone){
-      if(isDone && row.__documentHref){
+      if(isDone && getDocumentHref(row)){
         return `<span class="status-pill__text">${esc(row.Status)}</span><span class="status-pill__cta" aria-hidden="true">Open document</span><span class="visually-hidden"> – opens document in a new tab</span>`;
       }
       return esc(row.Status);
@@ -3647,7 +3655,7 @@
         const chip = countdownChip(row);
         const isDone = isDoneStatus(row);
         const statusCls = isDone ? 'status-pill is-completed' : statusClass(row.__statusKey);
-        const statusLinkAttr = isDone && row.__documentHref ? ' status-pill--link' : '';
+        const statusLinkAttr = isDone && getDocumentHref(row) ? ' status-pill--link' : '';
         const classes = [];
         if(row.__statusKey === 'overdue') classes.push('row-overdue');
         if(isDone) classes.push('row-done');
@@ -3682,7 +3690,7 @@
           ? `<span class="${chip.className}"${dueAttr}>${esc(chip.label)}</span>`
           : '';
         const statusAttrs = isDone
-          ? ` role="button" tabindex="0" data-row-id="${esc(row.__id)}" data-role="status-pill"${row.__documentHref ? ` data-document-href="${esc(row.__documentHref)}" title="Open document in new tab"` : ''}`
+          ? ` role="button" tabindex="0" data-row-id="${esc(row.__id)}" data-role="status-pill"${getDocumentHref(row) ? ` data-document-href="${esc(getDocumentHref(row))}" title="Open document in new tab"` : ''}`
           : '';
         return `
           <tr data-row-id="${esc(row.__id)}"${classAttr}>
@@ -3714,9 +3722,9 @@
         const chip = countdownChip(row);
         const isDone = isDoneStatus(row);
         const statusCls = isDone ? 'status-pill is-completed' : statusClass(row.__statusKey);
-        const statusLinkAttr = isDone && row.__documentHref ? ' status-pill--link' : '';
+        const statusLinkAttr = isDone && getDocumentHref(row) ? ' status-pill--link' : '';
         const statusAttrs = isDone
-          ? ` role="button" tabindex="0" data-row-id="${esc(row.__id)}" data-role="status-pill"${row.__documentHref ? ` data-document-href="${esc(row.__documentHref)}" title="Open document in new tab"` : ''}`
+          ? ` role="button" tabindex="0" data-row-id="${esc(row.__id)}" data-role="status-pill"${getDocumentHref(row) ? ` data-document-href="${esc(getDocumentHref(row))}" title="Open document in new tab"` : ''}`
           : '';
         const isActive = row.__id === selectedRowId;
         const classes = [];
@@ -3809,8 +3817,14 @@
       const categoriesDetail = categoriesChips
         ? `<span class="chip-stack chip-stack--inline">${categoriesChips}</span>`
         : `<span>${esc(categoriesLabel)}</span>`;
-      const documentDetail = row.__documentHref
-        ? `<div class="document-viewer__doc"><strong>Document:</strong><a class="document-viewer__link" href="${esc(row.__documentHref)}" target="_blank" rel="noopener">Open document in new tab</a><span class="document-viewer__note">Tip: click the completed status chip to open this document.</span></div>`
+      const documentLinkPrimary = row.__documentHref
+        ? `<div class="document-viewer__doc"><strong>Document:</strong><a class="document-viewer__link" href="${esc(row.__documentHref)}" target="_blank" rel="noopener">Open document in new tab</a></div>`
+        : '';
+      const documentLinkSecondary = row.__documentHref2
+        ? `<div class="document-viewer__doc"><strong>Document 2:</strong><a class="document-viewer__link" href="${esc(row.__documentHref2)}" target="_blank" rel="noopener">Open document 2 in new tab</a></div>`
+        : '';
+      const documentDetail = (documentLinkPrimary || documentLinkSecondary)
+        ? `${documentLinkPrimary}${documentLinkSecondary}<div class="document-viewer__note">Tip: click the completed status chip to open the first available document.</div>`
         : `<p><strong>Document:</strong> Not provided.</p>`;
       if(heading){
         heading.textContent = row.Title ? `${row.Title}` : 'Inspection details';
@@ -3835,8 +3849,9 @@
     }
 
     function openDocumentLink(row){
-      if(!row || !row.__documentHref) return false;
-      window.open(row.__documentHref, '_blank', 'noopener');
+      const docHref = getDocumentHref(row);
+      if(!docHref) return false;
+      window.open(docHref, '_blank', 'noopener');
       return true;
     }
 
@@ -3845,7 +3860,7 @@
       if(!pill) return false;
       const rowId = pill.getAttribute('data-row-id');
       const row = rowLookup.get(rowId);
-      if(!row || !isDoneStatus(row) || !row.__documentHref) return false;
+      if(!row || !isDoneStatus(row) || !getDocumentHref(row)) return false;
       event.preventDefault();
       event.stopPropagation();
       openDocumentLink(row);
