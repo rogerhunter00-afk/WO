@@ -3830,14 +3830,8 @@
       const documentLinkSecondary = row.__documentHref2
         ? `<div class="document-viewer__doc"><strong>Document 2:</strong><a class="document-viewer__link" href="${esc(row.__documentHref2)}" target="_blank" rel="noopener">Open document 2 in new tab</a></div>`
         : '';
-      const documentActions = (row.__documentHref || row.__documentHref2)
-        ? `<div class="document-viewer__actions">
-            ${row.__documentHref ? `<a class="btn btn--outline btn--sm" href="${esc(row.__documentHref)}" target="_blank" rel="noopener">Open Document</a>` : ''}
-            ${row.__documentHref2 ? `<a class="btn btn--outline btn--sm" href="${esc(row.__documentHref2)}" target="_blank" rel="noopener">Open Document 2</a>` : ''}
-          </div>`
-        : '';
       const documentDetail = (documentLinkPrimary || documentLinkSecondary)
-        ? `${documentActions}${documentLinkPrimary}${documentLinkSecondary}<div class="document-viewer__note">Tip: click the completed status chip to open the first available document.</div>`
+        ? `${documentLinkPrimary}${documentLinkSecondary}<div class="document-viewer__note">Tip: click the completed status chip to open the first available document.</div>`
         : `<p><strong>Document:</strong> Not provided.</p>`;
       if(heading){
         heading.textContent = row.Title ? `${row.Title}` : 'Inspection details';
