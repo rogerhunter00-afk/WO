@@ -1689,6 +1689,16 @@
       box-shadow:0 1px 2px rgba(0,0,0,.08);
     }
 
+    .status-pill__cta--link {
+      text-decoration:none;
+      color:inherit;
+    }
+
+    .status-pill__cta--link:focus-visible {
+      outline:2px solid var(--als-blue);
+      outline-offset:2px;
+    }
+
     .status-pill__cta::after {
       content:"↗";
       font-size:12px;
@@ -3644,6 +3654,17 @@
         // No state change but ensure filters clear when toggling All again.
         renderAll(window.__INSPECTIONS_ALL__);
       }
+    }
+
+    function renderDocumentPills(row){
+      if(!row) return '';
+      const docPill = row.__documentHref
+        ? `<a class="status-pill__cta status-pill__cta--link" href="${esc(row.__documentHref)}" target="_blank" rel="noopener" aria-label="Open Document 1 in a new tab">Doc 1</a>`
+        : '';
+      const docPill2 = row.__documentHref2
+        ? `<a class="status-pill__cta status-pill__cta--link" href="${esc(row.__documentHref2)}" target="_blank" rel="noopener" aria-label="Open Document 2 in a new tab">Doc 2</a>`
+        : '';
+      return `${docPill}${docPill2}`;
     }
 
     function renderStatusContent(row, isDone){
