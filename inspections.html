@@ -3669,7 +3669,7 @@
 
     function renderStatusContent(row, isDone){
       if(isDone && getDocumentHref(row)){
-        return `<span class="status-pill__text">${esc(row.Status)}</span>${renderDocumentPills(row)}`;
+        return `<span class="status-pill__text">${esc(row.Status)}</span><span class="status-pill__cta" aria-hidden="true">Open document</span><span class="visually-hidden"> – opens document in a new tab</span>`;
       }
       return esc(row.Status);
     }
@@ -3683,7 +3683,7 @@
         const chip = countdownChip(row);
         const isDone = isDoneStatus(row);
         const statusCls = isDone ? 'status-pill is-completed' : statusClass(row.__statusKey);
-        const statusLinkAttr = '';
+        const statusLinkAttr = isDone && getDocumentHref(row) ? ' status-pill--link' : '';
         const classes = [];
         if(row.__statusKey === 'overdue') classes.push('row-overdue');
         if(isDone) classes.push('row-done');
@@ -3717,7 +3717,9 @@
         const dueContent = chip
           ? `<span class="${chip.className}"${dueAttr}>${esc(chip.label)}</span>`
           : '';
-        const statusAttrs = '';
+        const statusAttrs = isDone
+          ? ` role="button" tabindex="0" data-row-id="${esc(row.__id)}" data-role="status-pill"${getDocumentHref(row) ? ` data-document-href="${esc(getDocumentHref(row))}" title="Open document in new tab"` : ''}`
+          : '';
         return `
           <tr data-row-id="${esc(row.__id)}"${classAttr}>
             <td data-col="ID">${idCell}</td>
@@ -3748,8 +3750,10 @@
         const chip = countdownChip(row);
         const isDone = isDoneStatus(row);
         const statusCls = isDone ? 'status-pill is-completed' : statusClass(row.__statusKey);
-        const statusLinkAttr = '';
-        const statusAttrs = '';
+        const statusLinkAttr = isDone && getDocumentHref(row) ? ' status-pill--link' : '';
+        const statusAttrs = isDone
+          ? ` role="button" tabindex="0" data-row-id="${esc(row.__id)}" data-role="status-pill"${getDocumentHref(row) ? ` data-document-href="${esc(getDocumentHref(row))}" title="Open document in new tab"` : ''}`
+          : '';
         const isActive = row.__id === selectedRowId;
         const classes = [];
         if(row.__statusKey === 'overdue') classes.push('row-overdue');
@@ -3847,14 +3851,8 @@
       const documentLinkSecondary = row.__documentHref2
         ? `<div class="document-viewer__doc"><strong>Document 2:</strong><a class="document-viewer__link" href="${esc(row.__documentHref2)}" target="_blank" rel="noopener">Open document 2 in new tab</a></div>`
         : '';
-      const documentActions = (row.__documentHref || row.__documentHref2)
-        ? `<div class="document-viewer__actions">
-            ${row.__documentHref ? `<a class="btn btn--outline btn--sm" href="${esc(row.__documentHref)}" target="_blank" rel="noopener">Open Document</a>` : ''}
-            ${row.__documentHref2 ? `<a class="btn btn--outline btn--sm" href="${esc(row.__documentHref2)}" target="_blank" rel="noopener">Open Document 2</a>` : ''}
-          </div>`
-        : '';
       const documentDetail = (documentLinkPrimary || documentLinkSecondary)
-        ? `${documentActions}${documentLinkPrimary}${documentLinkSecondary}<div class="document-viewer__note">Tip: click the completed status chip to open the first available document.</div>`
+        ? `${documentLinkPrimary}${documentLinkSecondary}<div class="document-viewer__note">Tip: click the completed status chip to open the first available document.</div>`
         : `<p><strong>Document:</strong> Not provided.</p>`;
       if(heading){
         heading.textContent = row.Title ? `${row.Title}` : 'Inspection details';
