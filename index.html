@@ -3765,7 +3765,7 @@ function applyHistoricalStatus(rows, weekEnd){
 
 /* --- Eng Schedule integration --- */
 const PLAN_DEFAULT_DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Non-Production Day'];
-const PLAN_DEFAULT_PEOPLE = ['Callum','Graeme','Shaun','Jim/Ciaren'];
+const PLAN_DEFAULT_PEOPLE = ['Callum','Graeme','MM','Jim/Ciaren'];
 const PLAN_FOCUS_SELECTOR = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 function normalizePlanList(value){
@@ -3947,8 +3947,8 @@ const PLAN_PERSON_ALIAS_TARGETS = new Map([
   ['callum keith engineering team','Callum'],
   ['graeme','Graeme'],
   ['graham','Graeme'],
-  ['shaun','Shaun'],
-  ['sean','Shaun'],
+  ['shaun','MM'],
+  ['sean','MM'],
   ['jim','Jim/Ciaren'],
   ['ciaren','Jim/Ciaren'],
   ['jimciaren','Jim/Ciaren'],
@@ -4817,7 +4817,7 @@ function buildPlanView(raw, context) {
       }
       return null;
     }
-    // array row (["Monday","Shaun","8430"])
+    // array row (["Monday","MM","8430"])
     if (Array.isArray(row)) {
       return typeof row[index] !== "undefined" ? row[index] : null;
     }
