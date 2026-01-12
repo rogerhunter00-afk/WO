@@ -2234,6 +2234,7 @@
     const INSPECTIONS_SHEET_NAME = 'Inspections';
     const DEFAULT_INSPECTIONS_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1DT58TWpncmpASlYnWzgSGFn61y4eoc9Qz6S5JXcB4ms/gviz/tq?tqx=out:csv';
     const DUE_SOON_DAYS = 30;
+    const FAR_FUTURE_DAYS = 120;
     const HIDE_CATEGORY_UI = true; // Temporarily hide selected categories without deleting the logic
     const HIDDEN_CATEGORY_KEYS = ['ppms', 'pssr', 'vent-duct-cleaning', 'flue-stack', 'e-stop-tests'];
 
@@ -3408,9 +3409,10 @@
       return { label: `${days} days`, className: 'countdown-chip is-excellent' };
     }
 
-    function statusClass(key){
+    function statusClass(key, days){
       if(key === 'overdue') return 'status-pill is-overdue';
       if(key === 'due') return 'status-pill is-due';
+      if(key === 'clear' && typeof days === 'number' && days > FAR_FUTURE_DAYS) return 'status-pill is-scheduled';
       if(key === 'clear') return 'status-pill is-clear';
       return 'status-pill is-unknown';
     }
@@ -3682,7 +3684,7 @@
       const html = rows.length ? rows.map(row => {
         const chip = countdownChip(row);
         const isDone = isDoneStatus(row);
-        const statusCls = isDone ? 'status-pill is-completed' : statusClass(row.__statusKey);
+        const statusCls = isDone ? 'status-pill is-completed' : statusClass(row.__statusKey, row.__countdownDays);
         const statusLinkAttr = isDone && getDocumentHref(row) ? ' status-pill--link' : '';
         const classes = [];
         if(row.__statusKey === 'overdue') classes.push('row-overdue');
@@ -3749,7 +3751,7 @@
       container.innerHTML = rows.length ? rows.map(row => {
         const chip = countdownChip(row);
         const isDone = isDoneStatus(row);
-        const statusCls = isDone ? 'status-pill is-completed' : statusClass(row.__statusKey);
+        const statusCls = isDone ? 'status-pill is-completed' : statusClass(row.__statusKey, row.__countdownDays);
         const statusLinkAttr = isDone && getDocumentHref(row) ? ' status-pill--link' : '';
         const statusAttrs = isDone
           ? ` role="button" tabindex="0" data-row-id="${esc(row.__id)}" data-role="status-pill"${getDocumentHref(row) ? ` data-document-href="${esc(getDocumentHref(row))}" title="Open document in new tab"` : ''}`
