@@ -5260,6 +5260,36 @@ function planUpdatesEnabled(){
   return Boolean(PLAN_NEXT_WEEK_UPDATE_URL);
 }
 
+function planRawFingerprint(raw){
+  if(!raw) return '';
+  try{
+    return JSON.stringify([raw.headers || [], raw.rows || []]);
+  }catch{
+    return String(Date.now());
+  }
+}
+
+function wait(ms){
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function refreshPlanAfterUpdate(previousFingerprint){
+  const maxAttempts = 4;
+  let delayMs = 500;
+  for(let attempt = 0; attempt < maxAttempts; attempt += 1){
+    if(attempt > 0){
+      await wait(delayMs);
+      delayMs = Math.round(delayMs * 1.6);
+    }
+    await loadPlanNextWeek(true);
+    const nextFingerprint = planRawFingerprint(PLAN_NEXT_WEEK_RAW);
+    if(!previousFingerprint || nextFingerprint !== previousFingerprint){
+      return true;
+    }
+  }
+  return false;
+}
+
 function planDragAndDropEnabledForEntry(entry){
   if(!planUpdatesEnabled()) return false;
   const meta = entry?.__meta;
@@ -5431,11 +5461,15 @@ async function submitPlanDayChange(entry, targetDay, targetPerson){
   PLAN_NEXT_WEEK_UPDATE_IN_PROGRESS = true;
   syncPlanQuickAddState();
   setPlanStatus(`Moving task to ${targetDay}…`, 'loading');
+  const previousFingerprint = planRawFingerprint(PLAN_NEXT_WEEK_RAW);
   try{
     const payload = buildPlanUpdatePayload(entry, targetDay, targetPerson);
     await sendPlanUpdateRequest(payload);
     setPlanStatus('Day updated. Refreshing…', 'info');
-    await loadPlanNextWeek(true);
+    const refreshed = await refreshPlanAfterUpdate(previousFingerprint);
+    if(!refreshed){
+      setPlanStatus('Update sent. The schedule may take a moment to refresh.', 'info');
+    }
   }catch(err){
     console.error('Plan update failed', err);
     setPlanStatus(err?.message || 'Could not update the schedule.', 'error');
@@ -5461,11 +5495,15 @@ async function submitPlanEntryRemoval(entry){
   const personText = meta.person ? ` for ${meta.person}` : '';
   const dayText = meta.day ? ` on ${meta.day}` : '';
   setPlanStatus(`Removing ${label}${personText}${dayText}…`, 'loading');
+  const previousFingerprint = planRawFingerprint(PLAN_NEXT_WEEK_RAW);
   try{
     const payload = buildPlanRemovePayload(entry);
     await sendPlanUpdateRequest(payload);
     setPlanStatus('Entry removed. Refreshing…', 'info');
-    await loadPlanNextWeek(true);
+    const refreshed = await refreshPlanAfterUpdate(previousFingerprint);
+    if(!refreshed){
+      setPlanStatus('Update sent. The schedule may take a moment to refresh.', 'info');
+    }
   }catch(err){
     console.error('Remove entry failed', err);
     setPlanStatus(err?.message || 'Could not remove the entry.', 'error');
@@ -5591,6 +5629,7 @@ async function submitPlanQuickAdd(workOrder, targetDay, targetPerson){
   syncPlanQuickAddState();
   const entryLabel = formatPlanEntryFromWorkOrder(workOrder) || 'work order';
   setPlanStatus(`Adding ${entryLabel} to ${targetPerson} on ${targetDay}…`, 'loading');
+  const previousFingerprint = planRawFingerprint(PLAN_NEXT_WEEK_RAW);
   try{
     const payload = buildPlanQuickAddPayload(workOrder, targetDay, targetPerson);
     await sendPlanUpdateRequest(payload);
@@ -5598,7 +5637,10 @@ async function submitPlanQuickAdd(workOrder, targetDay, targetPerson){
       $planQuickAddInput.value = '';
     }
     setPlanStatus('Work order added. Refreshing…', 'info');
-    await loadPlanNextWeek(true);
+    const refreshed = await refreshPlanAfterUpdate(previousFingerprint);
+    if(!refreshed){
+      setPlanStatus('Update sent. The schedule may take a moment to refresh.', 'info');
+    }
   }catch(err){
     console.error('Quick add failed', err);
     setPlanStatus(err?.message || 'Could not add the work order.', 'error');
