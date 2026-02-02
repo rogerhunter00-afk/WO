@@ -2006,6 +2006,7 @@ body.dark .plan-overlay{
               <option value="">Full week</option>
             </select>
           </div>
+          <button id="planNextWeekPrint" class="btn btn--ghost btn--sm" type="button">Print PDF</button>
           <button id="planNextWeekRefresh" class="btn btn--ghost btn--sm" type="button">Refresh</button>
           <button id="planNextWeekClose" class="btn btn--ghost btn--sm" type="button">Close</button>
         </div>
@@ -3971,6 +3972,7 @@ const $planButton = document.getElementById('planNextWeekBtn');
 const $planOverlay = document.getElementById('planNextWeekOverlay');
 const $planDialog = document.getElementById('planNextWeekDialog');
 const $planClose = document.getElementById('planNextWeekClose');
+const $planPrint = document.getElementById('planNextWeekPrint');
 const $planRefresh = document.getElementById('planNextWeekRefresh');
 const $planStatus = document.getElementById('planNextWeekStatus');
 const $planTable = document.getElementById('planNextWeekTable');
@@ -4558,6 +4560,7 @@ if($planButton){
 }
 
 $planClose?.addEventListener('click', () => closePlanOverlay());
+$planPrint?.addEventListener('click', () => openPlanPrintView());
 $planRefresh?.addEventListener('click', () => ensurePlanLoaded(true));
 $planDaySelect?.addEventListener('change', () => {
   if(!planSupportsSingleDayMode()){
@@ -5936,6 +5939,218 @@ function renderPlanTable(view){
       window.__planNextWeekNoteStyler__.apply();
     }catch{}
   }
+}
+
+function buildPlanPrintTable(view){
+  const table = document.createElement('table');
+  table.className = 'plan-print-table';
+  if(!view){
+    return table;
+  }
+  const peopleOrder = mergePlanOrder(view.order?.people, PLAN_NEXT_WEEK_PEOPLE);
+  const dayOrder = computePlanDayOrder(view);
+  const thead = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+  const thBlank = document.createElement('th');
+  thBlank.scope = 'col';
+  thBlank.textContent = 'Engineer';
+  headerRow.appendChild(thBlank);
+  dayOrder.forEach(day => {
+    const th = document.createElement('th');
+    th.scope = 'col';
+    th.textContent = day;
+    headerRow.appendChild(th);
+  });
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  peopleOrder.forEach(person => {
+    const tr = document.createElement('tr');
+    const th = document.createElement('th');
+    th.scope = 'row';
+    th.textContent = person;
+    tr.appendChild(th);
+    dayOrder.forEach(day => {
+      const td = document.createElement('td');
+      const dayBucket = view.matrix.get(day);
+      const entries = dayBucket?.get(person) || [];
+      const sortedEntries = entries.length > 1 ? entries.slice().sort(comparePlanEntryOrder) : entries;
+      if(sortedEntries.length){
+        sortedEntries.forEach(entry => {
+          const rendered = renderPlanEntry(entry);
+          if(rendered) td.appendChild(rendered);
+        });
+      }
+      if(!td.hasChildNodes()){
+        const empty = document.createElement('div');
+        empty.className = 'plan-empty';
+        empty.textContent = 'No plan';
+        td.appendChild(empty);
+      }
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+
+  const opsEntries = Array.isArray(view.opsEntries) ? view.opsEntries : [];
+  const opsRow = document.createElement('tr');
+  opsRow.className = 'plan-ops-row';
+  const opsHeader = document.createElement('th');
+  opsHeader.scope = 'row';
+  opsHeader.textContent = 'Ops';
+  opsRow.appendChild(opsHeader);
+  const opsCell = document.createElement('td');
+  opsCell.colSpan = Math.max(1, dayOrder.length);
+  opsCell.className = 'plan-ops-cell';
+  opsEntries.forEach(entry => {
+    const rendered = renderPlanEntry(entry);
+    if(rendered) opsCell.appendChild(rendered);
+  });
+  if(!opsCell.hasChildNodes()){
+    const opsEmpty = document.createElement('div');
+    opsEmpty.className = 'plan-empty';
+    opsEmpty.textContent = 'Add WOs to discuss in Ops Manager meeting';
+    opsCell.appendChild(opsEmpty);
+  }
+  opsRow.appendChild(opsCell);
+  tbody.appendChild(opsRow);
+  table.appendChild(tbody);
+
+  table.querySelectorAll('.task-card__remove').forEach(btn => btn.remove());
+  return table;
+}
+
+function openPlanPrintView(){
+  if(!planSourceIsConfigured()){
+    setPlanStatus('Configure the plan sheet ID/URL to view the schedule.', 'info');
+    return;
+  }
+  if(!PLAN_NEXT_WEEK_VIEW){
+    setPlanStatus('Load the schedule before printing.', 'info');
+    ensurePlanLoaded();
+    return;
+  }
+  const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+  if(!printWindow){
+    setPlanStatus('Pop-up blocked. Allow pop-ups to print the schedule.', 'error');
+    return;
+  }
+  const table = buildPlanPrintTable(PLAN_NEXT_WEEK_VIEW);
+  const summary = planStatsSummary(PLAN_NEXT_WEEK_VIEW.stats);
+  const updated = PLAN_NEXT_WEEK_LAST_UPDATED ? `Updated ${formatPlanTimestamp(PLAN_NEXT_WEEK_LAST_UPDATED)}` : '';
+  const metaParts = [summary, updated].filter(Boolean).join(' • ');
+  const titleText = planLabel();
+  const doc = printWindow.document;
+  const tableHtml = table.outerHTML;
+  doc.open();
+  doc.write(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>${titleText} - Print</title>
+  <style>
+    :root{
+      color-scheme: light;
+    }
+    body{
+      font-family: "Inter", "Segoe UI", Arial, sans-serif;
+      margin: 32px;
+      color: #0b0f1a;
+      background: #ffffff;
+    }
+    h1{
+      font-size: 22px;
+      margin: 0 0 6px;
+    }
+    .plan-print-meta{
+      font-size: 13px;
+      color: #4b5563;
+      margin-bottom: 18px;
+    }
+    .plan-print-table{
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    .plan-print-table th,
+    .plan-print-table td{
+      border: 1px solid #d7dde5;
+      padding: 8px;
+      vertical-align: top;
+    }
+    .plan-print-table th{
+      background: #f3f5f9;
+      font-weight: 700;
+      font-size: 13px;
+      text-align: left;
+    }
+    .task-card{
+      border: 1px solid #e5e9f2;
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      font-size: 12.5px;
+      line-height: 1.4;
+      page-break-inside: avoid;
+    }
+    .task-card:last-child{
+      margin-bottom: 0;
+    }
+    .task-card__chip-row{
+      margin-bottom: 6px;
+    }
+    .task-card__chip{
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid #d3d9e2;
+      font-size: 11px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .task-card__title{
+      font-weight: 600;
+      margin-bottom: 4px;
+      display: block;
+    }
+    .task-card__meta,
+    .task-card__note{
+      color: #6b7280;
+      font-size: 12px;
+    }
+    .plan-empty{
+      color: #6b7280;
+      font-style: italic;
+      font-size: 12px;
+    }
+    @media print{
+      body{
+        margin: 18mm;
+      }
+      h1{
+        font-size: 20px;
+      }
+      .plan-print-table th,
+      .plan-print-table td{
+        padding: 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>${titleText}</h1>
+  ${metaParts ? `<div class="plan-print-meta">${metaParts}</div>` : ''}
+  ${tableHtml}
+  <script>
+    window.addEventListener('load', () => {
+      window.focus();
+      window.print();
+    });
+  <\\/script>
+</body>
+</html>`);
+  doc.close();
 }
 
 // 1) css string
