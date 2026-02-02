@@ -6026,10 +6026,15 @@ async function openPlanPrintView(){
     setPlanStatus('Configure the plan sheet ID/URL to view the schedule.', 'info');
     return;
   }
-  const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+  const printWindow = window.open('about:blank', '_blank');
   if(!printWindow){
     setPlanStatus('Pop-up blocked. Allow pop-ups to print the schedule.', 'error');
     return;
+  }
+  try{
+    printWindow.opener = null;
+  }catch(err){
+    // ignore if browser blocks access
   }
   if(!PLAN_NEXT_WEEK_VIEW){
     setPlanStatus('Loading schedule for printing…', 'loading');
