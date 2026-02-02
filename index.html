@@ -6093,6 +6093,9 @@ async function openPlanPrintView(){
   <style>
     :root{
       color-scheme: light;
+      --open-tx:#0b67c2;
+      --hold-tx:#b45309;
+      --done-tx:#059669;
     }
     body{
       font-family: "Inter", "Segoe UI", Arial, sans-serif;
@@ -6134,6 +6137,34 @@ async function openPlanPrintView(){
       font-size: 12.5px;
       line-height: 1.4;
       page-break-inside: avoid;
+    }
+    .task-card[data-variant="done"]{
+      border-color: color-mix(in srgb, var(--done-tx) 35%, #e5e9f2);
+      background: color-mix(in srgb, var(--done-tx) 14%, #ffffff);
+    }
+    .task-card[data-variant="done"]::before{
+      background: var(--done-tx);
+    }
+    .task-card[data-variant="hold"]::before{
+      background: var(--hold-tx);
+    }
+    .task-card[data-variant="critical"]::before{
+      background: #ef4444;
+    }
+    .task-card[data-variant="note"]{
+      background: color-mix(in srgb, #ffffff 70%, #f3f5f9);
+      color: #6b7280;
+    }
+    .task-card[data-variant="note"]::before{
+      background: #6b7280;
+    }
+    .task-card[data-status*="progress"]:not([data-variant="done"], [data-variant="note"]){
+      background: color-mix(in srgb, var(--open-tx) 12%, #ffffff);
+      border-color: color-mix(in srgb, var(--open-tx) 35%, #e5e9f2);
+    }
+    .task-card[data-status*="hold"]:not([data-variant="done"], [data-variant="note"]){
+      background: color-mix(in srgb, var(--hold-tx) 14%, #ffffff);
+      border-color: color-mix(in srgb, var(--hold-tx) 35%, #e5e9f2);
     }
     .task-card:last-child{
       margin-bottom: 0;
