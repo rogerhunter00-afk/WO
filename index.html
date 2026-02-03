@@ -1367,6 +1367,14 @@ body.dark .plan-overlay{
 .plan-day-control[hidden]{
   display:none!important;
 }
+.plan-print-control{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.plan-print-control[hidden]{
+  display:none!important;
+}
 .plan-day-control__label{
   font-size:.8rem;
   color:var(--muted);
@@ -2005,6 +2013,10 @@ body.dark .plan-overlay{
             <select id="planNextWeekDaySelect" class="plan-day-control__select">
               <option value="">Full week</option>
             </select>
+          </div>
+          <div id="planNextWeekPrintPersonControl" class="plan-print-control" hidden>
+            <label for="planNextWeekPrintPerson" class="plan-day-control__label">Print</label>
+            <select id="planNextWeekPrintPerson" class="plan-day-control__select" aria-label="Select engineer to print"></select>
           </div>
           <button id="planNextWeekPrint" class="btn btn--ghost btn--sm" type="button">Print PDF</button>
           <button id="planNextWeekRefresh" class="btn btn--ghost btn--sm" type="button">Refresh</button>
@@ -3980,6 +3992,8 @@ const $planTitle = document.getElementById('planNextWeekTitle');
 const $planFilters = document.getElementById('planNextWeekFilters');
 const $planDayControl = document.getElementById('planNextWeekDayControl');
 const $planDaySelect = document.getElementById('planNextWeekDaySelect');
+const $planPrintPersonControl = document.getElementById('planNextWeekPrintPersonControl');
+const $planPrintPerson = document.getElementById('planNextWeekPrintPerson');
 const $planQuickAdd = document.getElementById('planQuickAdd');
 const $planQuickAddForm = document.getElementById('planQuickAddForm');
 const $planQuickAddInput = document.getElementById('planQuickAddInput');
@@ -3992,6 +4006,7 @@ let PLAN_NEXT_WEEK_PERSON_FILTER = null;
 let PLAN_NEXT_WEEK_PEOPLE_ORDER = [];
 let PLAN_NEXT_WEEK_DAY_ORDER = [];
 let PLAN_NEXT_WEEK_DAY_FOCUS = null;
+let PLAN_NEXT_WEEK_PRINT_PERSON = null;
 let PLAN_NEXT_WEEK_UPDATE_IN_PROGRESS = false;
 let PLAN_NEXT_WEEK_ACTIVE_DRAG = null;
 let PLAN_NEXT_WEEK_DROP_TARGET = null;
@@ -4008,6 +4023,9 @@ if($planTable){
   $planTable.addEventListener('drop', handlePlanDrop);
 }
 $planQuickAddForm?.addEventListener('submit', handlePlanQuickAddSubmit);
+$planPrintPerson?.addEventListener('change', () => {
+  PLAN_NEXT_WEEK_PRINT_PERSON = $planPrintPerson.value || null;
+});
 
 let __planReturnFocus = null;
 let __planPrevBodyOverflow = null;
@@ -4307,6 +4325,38 @@ function updatePlanDaySelector(dayOrder, activeCanonical){
   }
 }
 
+function updatePlanPrintPeople(peopleOrder){
+  if(!$planPrintPerson) return;
+  const order = Array.isArray(peopleOrder) ? peopleOrder : [];
+  $planPrintPerson.innerHTML = '';
+  const optionAll = document.createElement('option');
+  optionAll.value = '';
+  optionAll.textContent = 'All engineers';
+  $planPrintPerson.appendChild(optionAll);
+
+  order.forEach(person => {
+    const option = document.createElement('option');
+    option.value = person;
+    option.textContent = person;
+    $planPrintPerson.appendChild(option);
+  });
+
+  const hasOptions = order.length > 0;
+  if($planPrintPersonControl){
+    $planPrintPersonControl.hidden = !hasOptions;
+  }
+  if(!hasOptions){
+    PLAN_NEXT_WEEK_PRINT_PERSON = null;
+    $planPrintPerson.value = '';
+    return;
+  }
+
+  if(PLAN_NEXT_WEEK_PRINT_PERSON && !order.includes(PLAN_NEXT_WEEK_PRINT_PERSON)){
+    PLAN_NEXT_WEEK_PRINT_PERSON = null;
+  }
+  $planPrintPerson.value = PLAN_NEXT_WEEK_PRINT_PERSON || '';
+}
+
 function clearPlanFilterControls(){
   if(!$planFilters) return;
   $planFilters.innerHTML = '';
@@ -4355,6 +4405,7 @@ function markPlanDataStale(){
   PLAN_NEXT_WEEK_PERSON_FILTER = null;
   PLAN_NEXT_WEEK_DAY_FOCUS = null;
   if($planTable) $planTable.innerHTML = '';
+  updatePlanPrintPeople([]);
   if($planTable){
     $planTable.removeAttribute('data-view');
     $planTable.removeAttribute('data-day-focus');
@@ -5768,6 +5819,7 @@ function renderPlanTable(view){
   $planTable.innerHTML = '';
   clearPlanFilterControls();
   updatePlanDaySelector([], null);
+  updatePlanPrintPeople([]);
   if(!planSourceIsConfigured()){
     setPlanStatus('Configure the plan sheet ID/URL to view the schedule.', 'info');
     return;
@@ -5791,6 +5843,7 @@ function renderPlanTable(view){
     PLAN_NEXT_WEEK_PERSON_FILTER = null;
   }
   updatePlanFilterControls(peopleOrder);
+  updatePlanPrintPeople(peopleOrder);
   syncPlanQuickAddState(dayOrderFull);
   const activeFilter = PLAN_NEXT_WEEK_PERSON_FILTER;
   const visiblePeople = activeFilter ? peopleOrder.filter(person => person === activeFilter) : peopleOrder;
@@ -5941,13 +5994,20 @@ function renderPlanTable(view){
   }
 }
 
-function buildPlanPrintTable(view){
+function resolvePlanPrintPerson(view){
+  if(!view || !PLAN_NEXT_WEEK_PRINT_PERSON) return null;
+  const peopleOrder = mergePlanOrder(view.order?.people, PLAN_NEXT_WEEK_PEOPLE);
+  return peopleOrder.includes(PLAN_NEXT_WEEK_PRINT_PERSON) ? PLAN_NEXT_WEEK_PRINT_PERSON : null;
+}
+
+function buildPlanPrintTable(view, { person } = {}){
   const table = document.createElement('table');
   table.className = 'plan-print-table';
   if(!view){
     return table;
   }
-  const peopleOrder = mergePlanOrder(view.order?.people, PLAN_NEXT_WEEK_PEOPLE);
+  const peopleOrderFull = mergePlanOrder(view.order?.people, PLAN_NEXT_WEEK_PEOPLE);
+  const peopleOrder = person ? peopleOrderFull.filter(entry => entry === person) : peopleOrderFull;
   const dayOrder = computePlanDayOrder(view);
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
@@ -6077,11 +6137,12 @@ async function openPlanPrintView(){
     doc.close();
     return;
   }
-  const table = buildPlanPrintTable(PLAN_NEXT_WEEK_VIEW);
+  const printPerson = resolvePlanPrintPerson(PLAN_NEXT_WEEK_VIEW);
+  const table = buildPlanPrintTable(PLAN_NEXT_WEEK_VIEW, { person: printPerson });
   const summary = planStatsSummary(PLAN_NEXT_WEEK_VIEW.stats);
   const updated = PLAN_NEXT_WEEK_LAST_UPDATED ? `Updated ${formatPlanTimestamp(PLAN_NEXT_WEEK_LAST_UPDATED)}` : '';
-  const metaParts = [summary, updated].filter(Boolean).join(' • ');
-  const titleText = planLabel();
+  const metaParts = [summary, printPerson ? `Engineer: ${printPerson}` : '', updated].filter(Boolean).join(' • ');
+  const titleText = `${planLabel()}${printPerson ? ` - ${printPerson}` : ''}`;
   const doc = printWindow.document;
   const tableHtml = table.outerHTML;
   doc.open();
