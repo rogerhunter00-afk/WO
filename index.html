@@ -2018,6 +2018,13 @@ body.dark .plan-overlay{
             <label for="planNextWeekPrintPerson" class="plan-day-control__label">Print</label>
             <select id="planNextWeekPrintPerson" class="plan-day-control__select" aria-label="Select engineer to print"></select>
           </div>
+          <div id="planNextWeekPrintSplitControl" class="plan-print-control">
+            <label for="planNextWeekPrintSplit" class="plan-day-control__label">Pages</label>
+            <select id="planNextWeekPrintSplit" class="plan-day-control__select" aria-label="Select page break option">
+              <option value="continuous">Continuous</option>
+              <option value="split">Break per engineer</option>
+            </select>
+          </div>
           <button id="planNextWeekPrint" class="btn btn--ghost btn--sm" type="button">Print PDF</button>
           <button id="planNextWeekRefresh" class="btn btn--ghost btn--sm" type="button">Refresh</button>
           <button id="planNextWeekClose" class="btn btn--ghost btn--sm" type="button">Close</button>
@@ -3994,6 +4001,7 @@ const $planDayControl = document.getElementById('planNextWeekDayControl');
 const $planDaySelect = document.getElementById('planNextWeekDaySelect');
 const $planPrintPersonControl = document.getElementById('planNextWeekPrintPersonControl');
 const $planPrintPerson = document.getElementById('planNextWeekPrintPerson');
+const $planPrintSplit = document.getElementById('planNextWeekPrintSplit');
 const $planQuickAdd = document.getElementById('planQuickAdd');
 const $planQuickAddForm = document.getElementById('planQuickAddForm');
 const $planQuickAddInput = document.getElementById('planQuickAddInput');
@@ -4007,6 +4015,7 @@ let PLAN_NEXT_WEEK_PEOPLE_ORDER = [];
 let PLAN_NEXT_WEEK_DAY_ORDER = [];
 let PLAN_NEXT_WEEK_DAY_FOCUS = null;
 let PLAN_NEXT_WEEK_PRINT_PERSON = null;
+let PLAN_NEXT_WEEK_PRINT_SPLIT = false;
 let PLAN_NEXT_WEEK_UPDATE_IN_PROGRESS = false;
 let PLAN_NEXT_WEEK_ACTIVE_DRAG = null;
 let PLAN_NEXT_WEEK_DROP_TARGET = null;
@@ -4025,6 +4034,9 @@ if($planTable){
 $planQuickAddForm?.addEventListener('submit', handlePlanQuickAddSubmit);
 $planPrintPerson?.addEventListener('change', () => {
   PLAN_NEXT_WEEK_PRINT_PERSON = $planPrintPerson.value || null;
+});
+$planPrintSplit?.addEventListener('change', () => {
+  PLAN_NEXT_WEEK_PRINT_SPLIT = $planPrintSplit.value === 'split';
 });
 
 let __planReturnFocus = null;
@@ -6000,9 +6012,12 @@ function resolvePlanPrintPerson(view){
   return peopleOrder.includes(PLAN_NEXT_WEEK_PRINT_PERSON) ? PLAN_NEXT_WEEK_PRINT_PERSON : null;
 }
 
-function buildPlanPrintTable(view, { person } = {}){
+function buildPlanPrintTable(view, { person, splitByPerson } = {}){
   const table = document.createElement('table');
   table.className = 'plan-print-table';
+  if(splitByPerson){
+    table.classList.add('is-split');
+  }
   if(!view){
     return table;
   }
@@ -6027,6 +6042,7 @@ function buildPlanPrintTable(view, { person } = {}){
   const tbody = document.createElement('tbody');
   peopleOrder.forEach(person => {
     const tr = document.createElement('tr');
+    tr.className = 'plan-print-row';
     const th = document.createElement('th');
     th.scope = 'row';
     th.textContent = person;
@@ -6138,10 +6154,16 @@ async function openPlanPrintView(){
     return;
   }
   const printPerson = resolvePlanPrintPerson(PLAN_NEXT_WEEK_VIEW);
-  const table = buildPlanPrintTable(PLAN_NEXT_WEEK_VIEW, { person: printPerson });
+  const splitRows = PLAN_NEXT_WEEK_PRINT_SPLIT;
+  const table = buildPlanPrintTable(PLAN_NEXT_WEEK_VIEW, { person: printPerson, splitByPerson: splitRows });
   const summary = planStatsSummary(PLAN_NEXT_WEEK_VIEW.stats);
   const updated = PLAN_NEXT_WEEK_LAST_UPDATED ? `Updated ${formatPlanTimestamp(PLAN_NEXT_WEEK_LAST_UPDATED)}` : '';
-  const metaParts = [summary, printPerson ? `Engineer: ${printPerson}` : '', updated].filter(Boolean).join(' • ');
+  const metaParts = [
+    summary,
+    printPerson ? `Engineer: ${printPerson}` : '',
+    splitRows ? 'Page breaks: per engineer' : '',
+    updated,
+  ].filter(Boolean).join(' • ');
   const titleText = `${planLabel()}${printPerson ? ` - ${printPerson}` : ''}`;
   const doc = printWindow.document;
   const tableHtml = table.outerHTML;
@@ -6177,6 +6199,14 @@ async function openPlanPrintView(){
       width: 100%;
       border-collapse: collapse;
       table-layout: fixed;
+    }
+    .plan-print-table.is-split tbody tr.plan-print-row{
+      break-before: page;
+      page-break-before: always;
+    }
+    .plan-print-table.is-split tbody tr.plan-print-row:first-of-type{
+      break-before: auto;
+      page-break-before: auto;
     }
     .plan-print-table th,
     .plan-print-table td{
