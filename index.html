@@ -3168,6 +3168,7 @@ async function copyVisibleWorkOrderIds(){
 /* cache the weeks list + current selection so external arrows can work */
 let __WEEKS = [];          // [{label, weekEnd, gid}, ...]
 let __WEEK_SELECTED = null; // string weekEnd
+const RECENT_WEEK_OPTION_LIMIT = 8;
 
 /* Move by an offset relative to the current option (list is newest-first) */
 function gotoWeekByOffset(offset){
@@ -3234,14 +3235,26 @@ function renderWeekControls(weeks, chosen){
   const sel = document.createElement('select');
   sel.setAttribute('aria-label', 'Select dates');
 
+  const selectedIdx = weeks.findIndex(w => w.weekEnd === chosen.weekEnd);
+  const recentCutoff = Math.min(RECENT_WEEK_OPTION_LIMIT, weeks.length);
+  const shouldShowOlderDivider = weeks.length > RECENT_WEEK_OPTION_LIMIT;
+
   sel.innerHTML = weeks.map((w, i) => {
     const isSelected = (w.weekEnd === chosen.weekEnd);
-    return `<option value="${i}"${isSelected ? ' selected' : ''}>
-              ${esc(w.label || w.weekEnd)}
-            </option>`;
+    const selectedOutsideRecent = selectedIdx >= RECENT_WEEK_OPTION_LIMIT;
+    const inRecentWindow = i < recentCutoff;
+    const includeOlderOption = !shouldShowOlderDivider || inRecentWindow || selectedOutsideRecent;
+    if(!includeOlderOption) return '';
+
+    const option = `<option value="${i}"${isSelected ? ' selected' : ''}>${esc(w.label || w.weekEnd)}</option>`;
+    if(shouldShowOlderDivider && i === recentCutoff - 1){
+      return `${option}<option value="" disabled>… older weeks</option>`;
+    }
+    return option;
   }).join('');
 
   sel.addEventListener('change', () => {
+    if(sel.value === '') return;
     const idx = Number(sel.value);
     const wk = weeks[idx];
     if (wk){
@@ -6885,13 +6898,20 @@ const out = rows.map(r => {
     }
   });
 
+  const weekSortNewestFirst = (a,b) => {
+    const aDate = parseWeekEndDate(a.weekEnd)?.getTime() || 0;
+    const bDate = parseWeekEndDate(b.weekEnd)?.getTime() || 0;
+    if(aDate !== bDate) return bDate - aDate;
+    return String(b.label || '').localeCompare(String(a.label || ''), undefined, { numeric:true, sensitivity:'base' });
+  };
+
   if(planRows.length){
-    planRows.sort((a,b) => String(b.weekEnd).localeCompare(String(a.weekEnd)));
+    planRows.sort(weekSortNewestFirst);
     applyPlanSourceFromIndex(planRows[0]);
   }
 
-  // newest first by week_end (string compare ok if YYYY-MM-DD)
-  weekRows.sort((a,b) => String(b.weekEnd).localeCompare(String(a.weekEnd)));
+  // newest first by week_end (supports YYYY-MM-DD + DD/MM/YYYY)
+  weekRows.sort(weekSortNewestFirst);
   return weekRows;
 }
 
