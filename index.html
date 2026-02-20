@@ -2027,6 +2027,7 @@ body.dark .plan-overlay{
           </div>
           <button id="planNextWeekPrint" class="btn btn--ghost btn--sm" type="button">Print PDF</button>
           <button id="planNextWeekRefresh" class="btn btn--ghost btn--sm" type="button">Refresh</button>
+          <button id="planNextWeekCopyWo" class="btn btn--ghost btn--sm" type="button">Copy WO IDs</button>
           <button id="planNextWeekClose" class="btn btn--ghost btn--sm" type="button">Close</button>
         </div>
       </header>
@@ -4006,6 +4007,7 @@ const $planDialog = document.getElementById('planNextWeekDialog');
 const $planClose = document.getElementById('planNextWeekClose');
 const $planPrint = document.getElementById('planNextWeekPrint');
 const $planRefresh = document.getElementById('planNextWeekRefresh');
+const $planCopyWo = document.getElementById('planNextWeekCopyWo');
 const $planStatus = document.getElementById('planNextWeekStatus');
 const $planTable = document.getElementById('planNextWeekTable');
 const $planTitle = document.getElementById('planNextWeekTitle');
@@ -4022,6 +4024,10 @@ const $planQuickAddDay = document.getElementById('planQuickAddDay');
 const $planQuickAddPerson = document.getElementById('planQuickAddPerson');
 const $planQuickAddSuggestions = document.getElementById('planQuickAddSuggestions');
 const $planQuickAddSubmit = document.getElementById('planQuickAddSubmit');
+
+if($planCopyWo && !$planCopyWo.dataset.defaultLabel){
+  $planCopyWo.dataset.defaultLabel = $planCopyWo.textContent.trim();
+}
 
 let PLAN_NEXT_WEEK_PERSON_FILTER = null;
 let PLAN_NEXT_WEEK_PEOPLE_ORDER = [];
@@ -4134,7 +4140,82 @@ function syncPlanButtons(){
       $planButton.removeAttribute('title');
     }
   }
+  updatePlanCopyButtonState();
   syncPlanQuickAddState();
+}
+
+function collectPlanWorkOrderIds(view){
+  if(!view || !(view.matrix instanceof Map)) return [];
+  const ids = [];
+  const seen = new Set();
+  const pushId = candidate => {
+    const normalized = normalizeId(candidate);
+    if(!normalized || seen.has(normalized)) return;
+    seen.add(normalized);
+    ids.push(normalized);
+  };
+
+  view.matrix.forEach(dayBucket => {
+    if(!(dayBucket instanceof Map)) return;
+    dayBucket.forEach(entries => {
+      if(!Array.isArray(entries)) return;
+      entries.forEach(entry => {
+        pushId(entry?.lookupId || entry?.workOrder?.ID || null);
+      });
+    });
+  });
+
+  const opsEntries = Array.isArray(view.opsEntries) ? view.opsEntries : [];
+  opsEntries.forEach(entry => {
+    pushId(entry?.lookupId || entry?.workOrder?.ID || null);
+  });
+
+  return ids;
+}
+
+function updatePlanCopyButtonState(){
+  if(!$planCopyWo) return;
+  const ids = collectPlanWorkOrderIds(PLAN_NEXT_WEEK_VIEW);
+  const hasIds = ids.length > 0;
+  $planCopyWo.disabled = PLAN_NEXT_WEEK_LOADING || !hasIds;
+  if(PLAN_NEXT_WEEK_LOADING){
+    $planCopyWo.title = 'Loading schedule…';
+  }else if(!hasIds){
+    $planCopyWo.title = 'No work orders available to copy';
+  }else{
+    $planCopyWo.removeAttribute('title');
+  }
+}
+
+function planCopyFeedback(message){
+  if(!$planCopyWo) return;
+  const label = $planCopyWo.dataset.defaultLabel || 'Copy WO IDs';
+  $planCopyWo.textContent = message;
+  if($planCopyWo.__copyTimer){
+    clearTimeout($planCopyWo.__copyTimer);
+  }
+  $planCopyWo.__copyTimer = setTimeout(()=>{
+    $planCopyWo.textContent = label;
+  }, 1600);
+}
+
+async function copyPlanWorkOrderIds(){
+  if(!$planCopyWo) return;
+  const ids = collectPlanWorkOrderIds(PLAN_NEXT_WEEK_VIEW);
+  if(!ids.length){
+    setPlanStatus('No scheduled WO IDs were found to copy.', 'info');
+    updatePlanCopyButtonState();
+    return;
+  }
+  const text = ids.join(',');
+  const ok = await writeClipboard(text);
+  if(ok){
+    planCopyFeedback('Copied!');
+    setPlanStatus(`Copied ${ids.length} WO ID${ids.length === 1 ? '' : 's'} to clipboard.`, 'ready');
+  }else{
+    setPlanStatus('Could not copy automatically. A copy prompt is shown instead.', 'error');
+    alert('Could not copy to clipboard. Please copy manually: ' + text);
+  }
 }
 
 function setPlanStatus(message, state='info'){
@@ -4638,6 +4719,7 @@ if($planButton){
 $planClose?.addEventListener('click', () => closePlanOverlay());
 $planPrint?.addEventListener('click', () => openPlanPrintView());
 $planRefresh?.addEventListener('click', () => ensurePlanLoaded(true));
+$planCopyWo?.addEventListener('click', () => copyPlanWorkOrderIds());
 $planDaySelect?.addEventListener('change', () => {
   if(!planSupportsSingleDayMode()){
     PLAN_NEXT_WEEK_DAY_FOCUS = null;
@@ -5847,14 +5929,17 @@ function renderPlanTable(view){
   updatePlanPrintPeople([]);
   if(!planSourceIsConfigured()){
     setPlanStatus('Configure the plan sheet ID/URL to view the schedule.', 'info');
+    updatePlanCopyButtonState();
     return;
   }
   if(!view){
     setPlanStatus('Plan data has not been loaded yet.', 'info');
+    updatePlanCopyButtonState();
     return;
   }
   if(view.issues && view.issues.length){
     setPlanStatus(`Plan sheet is missing required column(s): ${view.issues.join(', ')}`, 'error');
+    updatePlanCopyButtonState();
     return;
   }
   const peopleOrder = mergePlanOrder(view.order?.people, PLAN_NEXT_WEEK_PEOPLE);
@@ -6012,6 +6097,7 @@ function renderPlanTable(view){
     statusParts.push(`Updated ${formatPlanTimestamp(PLAN_NEXT_WEEK_LAST_UPDATED)}`);
   }
   setPlanStatus(statusParts.join(' • '), 'ready');
+  updatePlanCopyButtonState();
   if(window.__planNextWeekNoteStyler__ && typeof window.__planNextWeekNoteStyler__.apply === 'function'){
     try{
       window.__planNextWeekNoteStyler__.apply();
