@@ -877,8 +877,8 @@ tbody td{padding:8px 6px;box-sizing:border-box}
 @supports not(mask:url("")){.status-chip::before{mask:none;-webkit-mask:none;background:none;width:auto;margin-right:2px;content:var(--glyph,"•")}.status-chip.open{--glyph:"○"}.status-chip.in-progress{--glyph:"⏳"}.status-chip.on-hold{--glyph:"⏸"}.status-chip.done{--glyph:"✓"}}
 
 .age-chip{--ring:color-mix(in srgb,currentColor 50%,transparent);--bg:color-mix(in srgb,currentColor 26%,transparent);display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;font-weight:800;font-size:12.5px;line-height:1;border:1px solid var(--ring);background:var(--bg);font-variant-numeric:tabular-nums}
-.age-chip.frozen{position:relative;padding-right:22px;border-style:dashed;background:var(--bg);cursor:help}
-.age-chip.frozen::after{content:"❄";font-size:12px;line-height:1;position:absolute;right:6px;top:50%;transform:translateY(-50%);opacity:.9}
+.age-chip.frozen{padding-right:9px;border-style:solid;background:var(--bg);cursor:default}
+.age-chip.frozen::after{content:none}
 .age-chip.age-fresh{color:#10b981}
 .age-chip.age-stale{color:#b45309}
 .age-chip.age-old{color:#dc2626;--bg:color-mix(in srgb,currentColor 32%,transparent)}
@@ -1631,10 +1631,6 @@ body.dark .plan-overlay{
   position:absolute;
   top:8px;
   right:8px;
-  font-size:11px;
-  font-weight:700;
-  padding:3px 7px;
-  line-height:1;
   pointer-events:none;
 }
 .task-card__chip{
@@ -5291,7 +5287,6 @@ function planCardAgeData(entry){
   const ms = row.__ageMs ?? ageMs(row);
   if(ms == null) return null;
   const bucket = row.__ageBucket || ageBucket(ms);
-  const frozen = /^done$/i.test(String(row.Status || '').trim());
   const label = getAgeLabel({ ...row, __ageMs:ms });
   const titleParts = [
     `Age: ${label}`,
@@ -5300,7 +5295,7 @@ function planCardAgeData(entry){
   ].filter(Boolean);
   return {
     label,
-    className:`age-chip age-${bucket}` + (frozen ? ' frozen' : ''),
+    className:`age-chip age-${bucket}`,
     title:titleParts.join(' • ')
   };
 }
@@ -5395,7 +5390,6 @@ function renderPlanEntry(entry){
   card.dataset.variant = deriveTaskCardVariant(entry, entryType);
   const ageData = planCardAgeData(entry);
   if(ageData){
-    card.classList.add('has-age');
     const ageEl = document.createElement('span');
     ageEl.className = `task-card__age ${ageData.className}`;
     ageEl.textContent = ageData.label;
