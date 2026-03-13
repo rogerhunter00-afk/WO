@@ -1594,6 +1594,9 @@ body.dark .plan-overlay{
   transform:scale(.85);
   transition:opacity .15s ease, transform .15s ease, background .15s ease, color .15s ease;
 }
+.task-card.has-age .task-card__remove{
+  top:28px;
+}
 .task-card__remove:hover{
   background:color-mix(in srgb, var(--brand) 12%, var(--paper));
   color:var(--brand);
@@ -1628,6 +1631,10 @@ body.dark .plan-overlay{
   position:absolute;
   top:8px;
   right:8px;
+  font-size:11px;
+  font-weight:700;
+  padding:3px 7px;
+  line-height:1;
   pointer-events:none;
 }
 .task-card__chip{
@@ -5284,6 +5291,7 @@ function planCardAgeData(entry){
   const ms = row.__ageMs ?? ageMs(row);
   if(ms == null) return null;
   const bucket = row.__ageBucket || ageBucket(ms);
+  const frozen = /^done$/i.test(String(row.Status || '').trim());
   const label = getAgeLabel({ ...row, __ageMs:ms });
   const titleParts = [
     `Age: ${label}`,
@@ -5292,7 +5300,7 @@ function planCardAgeData(entry){
   ].filter(Boolean);
   return {
     label,
-    className:`age-chip age-${bucket}`,
+    className:`age-chip age-${bucket}` + (frozen ? ' frozen' : ''),
     title:titleParts.join(' • ')
   };
 }
@@ -5387,6 +5395,7 @@ function renderPlanEntry(entry){
   card.dataset.variant = deriveTaskCardVariant(entry, entryType);
   const ageData = planCardAgeData(entry);
   if(ageData){
+    card.classList.add('has-age');
     const ageEl = document.createElement('span');
     ageEl.className = `task-card__age ${ageData.className}`;
     ageEl.textContent = ageData.label;
@@ -6557,6 +6566,9 @@ const css = `
   font-weight:600;
   text-transform:uppercase;
   letter-spacing:.04em;
+}
+#plan-next-week .task-card__age{
+  box-shadow:0 1px 2px rgba(0,0,0,.08);
 }
 #plan-next-week .task-card__body{
   display:flex;
