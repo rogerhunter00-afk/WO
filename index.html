@@ -1594,6 +1594,9 @@ body.dark .plan-overlay{
   transform:scale(.85);
   transition:opacity .15s ease, transform .15s ease, background .15s ease, color .15s ease;
 }
+.task-card.has-age .task-card__remove{
+  top:28px;
+}
 .task-card__remove:hover{
   background:color-mix(in srgb, var(--brand) 12%, var(--paper));
   color:var(--brand);
@@ -6557,6 +6560,9 @@ const css = `
   font-weight:600;
   text-transform:uppercase;
   letter-spacing:.04em;
+}
+#plan-next-week .task-card__age{
+  box-shadow:0 1px 2px rgba(0,0,0,.08);
 }
 #plan-next-week .task-card__body{
   display:flex;
