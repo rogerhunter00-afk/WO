@@ -877,8 +877,8 @@ tbody td{padding:8px 6px;box-sizing:border-box}
 @supports not(mask:url("")){.status-chip::before{mask:none;-webkit-mask:none;background:none;width:auto;margin-right:2px;content:var(--glyph,"•")}.status-chip.open{--glyph:"○"}.status-chip.in-progress{--glyph:"⏳"}.status-chip.on-hold{--glyph:"⏸"}.status-chip.done{--glyph:"✓"}}
 
 .age-chip{--ring:color-mix(in srgb,currentColor 50%,transparent);--bg:color-mix(in srgb,currentColor 26%,transparent);display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;font-weight:800;font-size:12.5px;line-height:1;border:1px solid var(--ring);background:var(--bg);font-variant-numeric:tabular-nums}
-.age-chip.frozen{position:relative;padding-right:22px;border-style:dashed;background:var(--bg);cursor:help}
-.age-chip.frozen::after{content:"❄";font-size:12px;line-height:1;position:absolute;right:6px;top:50%;transform:translateY(-50%);opacity:.9}
+.age-chip.frozen{padding-right:9px;border-style:solid;background:var(--bg);cursor:default}
+.age-chip.frozen::after{content:none}
 .age-chip.age-fresh{color:#10b981}
 .age-chip.age-stale{color:#b45309}
 .age-chip.age-old{color:#dc2626;--bg:color-mix(in srgb,currentColor 32%,transparent)}
@@ -1624,6 +1624,12 @@ body.dark .plan-overlay{
   margin:4px 0 0;
   min-height:0;
 }
+.task-card__age{
+  position:absolute;
+  top:8px;
+  right:8px;
+  pointer-events:none;
+}
 .task-card__chip{
   display:inline-flex;
   align-items:center;
@@ -1889,7 +1895,7 @@ body.dark .plan-overlay{
 
                     <li class="legend__sample">
                       <span><span class="age-chip age-old">14d</span></span>
-                      <span>Age shows how long the order has been active. Snowflake indicates a frozen winter task.</span>
+                      <span>Age shows how long the order has been active.</span>
                     </li>
                   </ul>
                 </div>
@@ -5272,6 +5278,25 @@ function planCardChipLabel(entry, entryType){
   return match ? `WO ${match[0]}` : null;
 }
 
+function planCardAgeData(entry){
+  const row = entry?.workOrder;
+  if(!row) return null;
+  const ms = row.__ageMs ?? ageMs(row);
+  if(ms == null) return null;
+  const bucket = row.__ageBucket || ageBucket(ms);
+  const label = getAgeLabel({ ...row, __ageMs:ms });
+  const titleParts = [
+    `Age: ${label}`,
+    row['Created on'] ? `Created: ${String(row['Created on']).trim()}` : null,
+    row['Last updated'] ? `Updated: ${String(row['Last updated']).trim()}` : null
+  ].filter(Boolean);
+  return {
+    label,
+    className:`age-chip age-${bucket}`,
+    title:titleParts.join(' • ')
+  };
+}
+
 function describePlanEntry(entry){
   const fallback = 'this entry';
   if(!entry) return fallback;
@@ -5360,6 +5385,14 @@ function renderPlanEntry(entry){
   const entryType = planEntryPresentationType(entry);
   card.dataset.type = entryType;
   card.dataset.variant = deriveTaskCardVariant(entry, entryType);
+  const ageData = planCardAgeData(entry);
+  if(ageData){
+    const ageEl = document.createElement('span');
+    ageEl.className = `task-card__age ${ageData.className}`;
+    ageEl.textContent = ageData.label;
+    ageEl.title = ageData.title;
+    card.appendChild(ageEl);
+  }
   const statusSlug = planEntryStatusSlug(entry);
   if(statusSlug){
     card.dataset.status = statusSlug;
