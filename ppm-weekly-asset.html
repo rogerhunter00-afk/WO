@@ -11,7 +11,7 @@
       --paper:#ffffff;
       --ink:#0b0f1a;
       --muted:#6b7280;
-      --border:#e5e9f2;
+      --border:#d9e1ee;
       --brand:#0b67c2;
       --brand-strong:#0a5cb0;
       --als-blue:var(--brand);
@@ -19,15 +19,12 @@
       --shadow:0 1px 2px rgba(16,24,40,.06),0 4px 10px rgba(16,24,40,.06);
       --sticky-controls-offset:0px;
       --ui-offset:0px;
-      --ctrl-bg:#ffffff;
-      --ctrl-fg:#0b0f1a;
-      --ctrl-pill:#f3f6fb;
-      --ctrl-pill-border:#dfe6ef;
-      --ctrl-ring:#3b82f6;
-      --ctrl-shadow:0 1px 2px rgba(0,0,0,.05);
-      --ctrl-hover:rgba(11,103,194,.08);
-      --ctrl-on:#0b67c2;
-      color-scheme:light;
+      --planner-columns:260px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);
+      --planner-min-width:960px;
+      --card-red:#fde8e8;
+      --card-green:#e7f8ee;
+      --card-orange:#fff0dd;
+      --card-blue:#e7f2ff;
     }
 
     .dark {
@@ -36,19 +33,15 @@
       --paper:#131a2b;
       --ink:#f3f4f6;
       --muted:#9ca3af;
-      --border:#233150;
+      --border:#2a3656;
       --brand:#3b82f6;
       --brand-strong:#2563eb;
       --als-blue:var(--brand);
-      --grid:#233150;
-      --ctrl-bg:#0d1117;
-      --ctrl-fg:#e8edf5;
-      --ctrl-pill:#111827;
-      --ctrl-pill-border:#1f2937;
-      --ctrl-ring:#60a5fa;
-      --ctrl-shadow:0 1px 0 rgba(255,255,255,.06) inset;
-      --ctrl-hover:rgba(96,165,250,.15);
-      --ctrl-on:#60a5fa;
+      --grid:#2a3656;
+      --card-red:#4a2222;
+      --card-green:#1c3f2f;
+      --card-orange:#4d351c;
+      --card-blue:#1f3557;
     }
 
     body {
@@ -124,10 +117,10 @@
       height:36px;
       padding:0 .75rem;
       border-radius:9999px;
-      border:1px solid var(--ctrl-pill-border);
-      background:var(--ctrl-pill);
-      color:var(--ctrl-fg);
-      box-shadow:var(--ctrl-shadow);
+      border:1px solid var(--grid);
+      background:var(--paper);
+      color:var(--ink);
+      box-shadow:0 1px 2px rgba(0,0,0,.05);
       font:inherit;
       font-weight:600;
       cursor:pointer;
@@ -147,7 +140,7 @@
     }
     .site-filter__tab[aria-pressed="true"] { border-color:var(--als-blue); background:color-mix(in srgb,var(--als-blue) 12%,var(--paper)); }
 
-    .kpi-row { display:grid; grid-template-columns:repeat(3,minmax(180px,1fr)); gap:12px; margin:0 0 16px; }
+    .kpi-row { display:grid; grid-template-columns:repeat(3,minmax(180px,1fr)); gap:12px; margin:0 0 20px; }
     .kpi-card {
       background:var(--paper);
       border:1px solid var(--grid);
@@ -158,52 +151,117 @@
     .kpi-card__label { color:var(--muted); font-size:12px; font-weight:600; }
     .kpi-card__value { margin-top:4px; font-size:24px; font-weight:800; }
 
-    .matrix {
-      background:var(--paper);
+    .planner {
       border:1px solid var(--grid);
       border-radius:14px;
-      overflow:auto;
+      background:var(--paper);
       box-shadow:var(--shadow);
+      overflow:auto;
     }
-    .matrix-grid {
-      min-width:900px;
+    .planner__surface {
+      min-width:var(--planner-min-width);
+    }
+    .planner-header,
+    .planner-row {
       display:grid;
-      grid-template-columns:260px repeat(3,minmax(210px,1fr));
+      grid-template-columns:var(--planner-columns);
+      align-items:stretch;
     }
-    .matrix-head { display:contents; }
-    .matrix-head > div {
+
+    .planner-header {
       position:sticky;
       top:0;
-      z-index:3;
-      background:var(--paper);
-      border-bottom:1px solid var(--grid);
-      padding:12px;
-      font-weight:700;
-    }
-    .asset-col-head, .asset-col {
-      position:sticky;
-      left:0;
       z-index:4;
       background:var(--paper);
-      border-right:1px solid var(--grid);
+      border-bottom:1px solid var(--grid);
     }
-    .asset-col { padding:12px; border-bottom:1px solid var(--grid); font-weight:700; }
-    .cell { padding:10px; border-bottom:1px solid var(--grid); border-right:1px solid var(--grid); min-height:94px; }
+
+    .planner-cell {
+      border-right:1px solid var(--grid);
+      border-bottom:1px solid var(--grid);
+      padding:12px;
+      box-sizing:border-box;
+      min-width:0;
+      overflow:hidden;
+    }
+    .planner-cell:last-child { border-right:none; }
+
+    .planner-header .planner-cell {
+      font-weight:800;
+      font-size:14px;
+      min-height:52px;
+      display:flex;
+      align-items:center;
+    }
+
+    .planner-row .planner-cell {
+      min-height:116px;
+      vertical-align:top;
+    }
+
+    .asset-cell {
+      background:color-mix(in srgb,var(--brand) 4%,var(--paper));
+      font-weight:800;
+      display:flex;
+      align-items:flex-start;
+      justify-content:flex-start;
+      word-break:break-word;
+      overflow-wrap:anywhere;
+    }
+
+    .week-cell {
+      display:flex;
+      flex-direction:column;
+      align-items:stretch;
+      justify-content:flex-start;
+      gap:8px;
+    }
 
     .wo-card {
       border:1px solid color-mix(in srgb,var(--als-blue) 28%,var(--grid));
       border-radius:10px;
-      background:color-mix(in srgb,var(--als-blue) 8%,var(--paper));
-      padding:8px;
-      margin-bottom:8px;
+      padding:8px 9px;
+      background:var(--card-blue);
+      overflow:hidden;
     }
-    .wo-card__id { font-size:12px; font-weight:700; color:var(--muted); }
-    .wo-card__title { font-size:13px; font-weight:700; margin-top:2px; }
-    .wo-card__meta { font-size:12px; color:var(--muted); margin-top:3px; }
+    .wo-card--red { background:var(--card-red); }
+    .wo-card--green { background:var(--card-green); }
+    .wo-card--orange { background:var(--card-orange); }
+    .wo-card--blue { background:var(--card-blue); }
+
+    .wo-card__id { font-size:12px; font-weight:800; color:var(--muted); }
+    .wo-card__title {
+      font-size:13px;
+      font-weight:700;
+      margin-top:2px;
+      white-space:normal;
+      word-break:break-word;
+      overflow-wrap:anywhere;
+    }
+    .wo-card__meta {
+      font-size:12px;
+      color:var(--muted);
+      margin-top:4px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .empty-state {
+      margin:0;
+      padding:16px;
+      color:var(--muted);
+      font-weight:600;
+      border-top:1px solid var(--grid);
+      background:color-mix(in srgb,var(--brand) 2%,var(--paper));
+    }
+
+    .planner-row:last-child .planner-cell { border-bottom:none; }
 
     @media (max-width: 820px){
       .kpi-row{grid-template-columns:1fr;}
       .logo{display:none;}
+      .planner { border-radius:10px; }
     }
   </style>
 </head>
@@ -230,10 +288,10 @@
           <span class="site-filter__label">Site: <span data-role="site-filter-active">All</span></span>
           <div class="site-filter__tabs" role="group" aria-label="Filter by site">
             <button type="button" class="site-filter__tab" data-site-key="all" aria-pressed="true">All</button>
-            <button type="button" class="site-filter__tab" data-site-key="east-kilbride" aria-pressed="false">East Kilbride</button>
-            <button type="button" class="site-filter__tab" data-site-key="mugiemoss" aria-pressed="false">Mugiemoss</button>
-            <button type="button" class="site-filter__tab" data-site-key="keith" aria-pressed="false">Keith</button>
-            <button type="button" class="site-filter__tab" data-site-key="byron" aria-pressed="false">Byron</button>
+            <button type="button" class="site-filter__tab" data-site-key="East Kilbride" aria-pressed="false">East Kilbride</button>
+            <button type="button" class="site-filter__tab" data-site-key="Mugiemoss" aria-pressed="false">Mugiemoss</button>
+            <button type="button" class="site-filter__tab" data-site-key="Keith" aria-pressed="false">Keith</button>
+            <button type="button" class="site-filter__tab" data-site-key="Byron" aria-pressed="false">Byron</button>
           </div>
         </div>
       </div>
@@ -242,62 +300,159 @@
     <section class="kpi-row" aria-label="PPM summary KPIs">
       <article class="kpi-card">
         <div class="kpi-card__label">Active PPM Work Orders</div>
-        <div class="kpi-card__value">124</div>
+        <div class="kpi-card__value" data-kpi="total-work-orders">0</div>
       </article>
       <article class="kpi-card">
         <div class="kpi-card__label">Assets with Active PPMs</div>
-        <div class="kpi-card__value">63</div>
+        <div class="kpi-card__value" data-kpi="total-assets">0</div>
       </article>
       <article class="kpi-card">
         <div class="kpi-card__label">WOs Due This Week</div>
-        <div class="kpi-card__value">41</div>
+        <div class="kpi-card__value" data-kpi="week1-work-orders">0</div>
       </article>
     </section>
 
-    <section class="matrix" aria-label="Weekly PPM planning matrix">
-      <div class="matrix-grid">
-        <div class="matrix-head asset-col-head">Asset</div>
-        <div class="matrix-head">Week 1</div>
-        <div class="matrix-head">Week 2</div>
-        <div class="matrix-head">Week 3</div>
-
-        <div class="asset-col">Boiler Plant 01</div>
-        <div class="cell">
-          <div class="wo-card"><div class="wo-card__id">WO-10452</div><div class="wo-card__title">Safety valve test</div><div class="wo-card__meta">Due Tue • EK</div></div>
-          <div class="wo-card"><div class="wo-card__id">WO-10461</div><div class="wo-card__title">Combustion check</div><div class="wo-card__meta">Due Fri • EK</div></div>
-        </div>
-        <div class="cell"><div class="wo-card"><div class="wo-card__id">WO-10512</div><div class="wo-card__title">Burner service</div><div class="wo-card__meta">Due Wed • EK</div></div></div>
-        <div class="cell"></div>
-
-        <div class="asset-col">Tunnel Washer 04</div>
-        <div class="cell"></div>
-        <div class="cell"><div class="wo-card"><div class="wo-card__id">WO-10488</div><div class="wo-card__title">Drive chain inspection</div><div class="wo-card__meta">Due Mon • Mugiemoss</div></div></div>
-        <div class="cell"><div class="wo-card"><div class="wo-card__id">WO-10544</div><div class="wo-card__title">Bearing lubrication</div><div class="wo-card__meta">Due Thu • Mugiemoss</div></div></div>
-
-        <div class="asset-col">Air Compressor C2</div>
-        <div class="cell"><div class="wo-card"><div class="wo-card__id">WO-10477</div><div class="wo-card__title">Filter replacement</div><div class="wo-card__meta">Due Wed • Keith</div></div></div>
-        <div class="cell"></div>
-        <div class="cell"><div class="wo-card"><div class="wo-card__id">WO-10503</div><div class="wo-card__title">Pressure cut-out calibration</div><div class="wo-card__meta">Due Tue • Byron</div></div></div>
-      </div>
+    <section class="planner" aria-label="Weekly PPM planning matrix">
+      <div class="planner__surface" data-role="planner-surface"></div>
     </section>
   </div>
 
+  <script src="ppm-weekly-asset-transform.js"></script>
   <script>
     (function(){
-      const THEME_KEY = 'theme';
+      const RAW_WORK_ORDERS = [
+        { WO: 'WO-10452', Categories: 'PPM', Asset: 'Boiler Plant 01', Site: 'East Kilbride', Status: 'Open', 'Due Date': '2026-04-14', Title: 'Safety valve test' },
+        { WO: 'WO-10461', Categories: 'PPM', Asset: 'Boiler Plant 01', Site: 'East Kilbride', Status: 'Scheduled', 'Due Date': '2026-04-17', Title: 'Combustion check' },
+        { WO: 'WO-10512', Categories: 'PPM', Asset: 'Boiler Plant 01', Site: 'East Kilbride', Status: 'In Progress', 'Due Date': '2026-04-24', Title: 'Burner service' },
+        { WO: 'WO-10488', Categories: 'PPM', Asset: 'Tunnel Washer 04', Site: 'Mugiemoss', Status: 'On Hold', 'Due Date': '2026-04-22', Title: 'Drive chain inspection' },
+        { WO: 'WO-10544', Categories: 'PPM', Asset: 'Air Compressor C2', Site: 'Mugiemoss', Status: 'Open', 'Due Date': '2026-04-18', Title: 'Bearing lubrication' },
+        { WO: 'WO-10477', Categories: 'PPM', Asset: 'Air Compressor C2', Site: 'Keith', Status: 'Completed', 'Due Date': '2026-04-23', Title: 'Filter replacement' },
+        { WO: 'WO-10503', Categories: 'PPM', Asset: 'Mixer Skid 09 - Very Long Asset Name To Test Overflow Handling', Site: 'Byron', Status: 'Scheduled', 'Due Date': '2026-04-29', Title: 'Pressure cut-out calibration' },
+        { WO: 'WO-20001', Categories: 'Corrective', Asset: 'Boiler Plant 01', Site: 'East Kilbride', Status: 'Open', 'Due Date': '2026-04-16', Title: 'Not PPM, should be filtered out' },
+        { WO: 'WO-20002', Categories: 'PPM', Asset: 'Tunnel Washer 04', Site: 'Mugiemoss', Status: 'Closed', 'Due Date': '2026-04-20', Title: 'Closed, should be filtered out' }
+      ];
+
+      const plannerSurface = document.querySelector('[data-role="planner-surface"]');
+      const siteLabel = document.querySelector('[data-role="site-filter-active"]');
+      const siteButtons = Array.from(document.querySelectorAll('.site-filter__tab'));
       const themeBtn = document.getElementById('dark-toggle');
       const root = document.body;
+
+      let selectedSiteKey = 'all';
+
+      function startOfWeek(date){
+        const d = new Date(date);
+        const day = d.getDay();
+        const mondayOffset = (day + 6) % 7;
+        d.setDate(d.getDate() - mondayOffset);
+        d.setHours(0, 0, 0, 0);
+        return d;
+      }
+
+      function cardStatusClass(status){
+        const normalized = String(status || '').toLowerCase();
+        if(normalized.includes('complete')) return 'wo-card--green';
+        if(normalized.includes('hold')) return 'wo-card--orange';
+        if(normalized.includes('progress')) return 'wo-card--blue';
+        return 'wo-card--red';
+      }
+
+      function formatDueMeta(wo){
+        const date = wo.dueDate ? new Date(wo.dueDate) : new Date(wo.dueDateRaw);
+        const dayLabel = Number.isNaN(date.getTime())
+          ? 'Day n/a'
+          : date.toLocaleDateString('en-GB', { weekday: 'short' });
+        return `Due ${dayLabel} • ${wo.site || 'Unknown site'}`;
+      }
+
+      function mapPlannerRows(model){
+        return model.rows.map((row) => ({
+          assetName: row.assetName,
+          week1: row.weeks.week1,
+          week2: row.weeks.week2,
+          week3: row.weeks.week3
+        }));
+      }
+
+      function PPMPlannerHeader(){
+        return `
+          <div class="planner-header" role="row">
+            <div class="planner-cell" role="columnheader">Asset</div>
+            <div class="planner-cell" role="columnheader">Week 1</div>
+            <div class="planner-cell" role="columnheader">Week 2</div>
+            <div class="planner-cell" role="columnheader">Week 3</div>
+          </div>
+        `;
+      }
+
+      function renderWeekCards(weekOrders){
+        if(!weekOrders.length){
+          return '';
+        }
+
+        return weekOrders.map((wo) => {
+          const safeTitle = wo.title && wo.title !== wo.woNumber ? `<div class="wo-card__title">${wo.title}</div>` : '';
+          return `
+            <article class="wo-card ${cardStatusClass(wo.status)}" aria-label="${wo.woNumber}">
+              <div class="wo-card__id">${wo.woNumber}</div>
+              ${safeTitle}
+              <div class="wo-card__meta">${formatDueMeta(wo)}</div>
+            </article>
+          `;
+        }).join('');
+      }
+
+      function PPMAssetRow(row){
+        return `
+          <div class="planner-row" role="row">
+            <div class="planner-cell asset-cell" role="rowheader" title="${row.assetName}">${row.assetName}</div>
+            <div class="planner-cell week-cell" role="gridcell">${renderWeekCards(row.week1)}</div>
+            <div class="planner-cell week-cell" role="gridcell">${renderWeekCards(row.week2)}</div>
+            <div class="planner-cell week-cell" role="gridcell">${renderWeekCards(row.week3)}</div>
+          </div>
+        `;
+      }
+
+      function renderPlanner(){
+        const model = window.PPMWeeklyAssetTransform.buildPPMPlannerModel(RAW_WORK_ORDERS, {
+          siteKey: selectedSiteKey,
+          selectedPeriodStart: startOfWeek(new Date())
+        });
+
+        const plannerRows = mapPlannerRows(model);
+
+        const totalWeek1 = plannerRows.reduce((acc, row) => acc + row.week1.length, 0);
+        document.querySelector('[data-kpi="total-work-orders"]').textContent = String(model.summary.totalWorkOrders);
+        document.querySelector('[data-kpi="total-assets"]').textContent = String(model.summary.totalAssets);
+        document.querySelector('[data-kpi="week1-work-orders"]').textContent = String(totalWeek1);
+
+        const rowsMarkup = plannerRows.map(PPMAssetRow).join('');
+        const emptyMarkup = plannerRows.length === 0
+          ? '<p class="empty-state">No active PPM work orders found for the selected site and 3-week period.</p>'
+          : '';
+
+        plannerSurface.innerHTML = `
+          ${PPMPlannerHeader()}
+          ${rowsMarkup}
+          ${emptyMarkup}
+        `;
+      }
 
       function applyTheme(theme){
         const isDark = theme === 'dark';
         root.classList.toggle('dark', isDark);
         root.classList.toggle('light', !isDark);
-        if(themeBtn){
-          themeBtn.setAttribute('aria-checked', isDark ? 'true' : 'false');
-          themeBtn.textContent = isDark ? 'Theme: Dark' : 'Theme: Light';
-        }
+        themeBtn?.setAttribute('aria-checked', isDark ? 'true' : 'false');
+        themeBtn.textContent = isDark ? 'Theme: Dark' : 'Theme: Light';
       }
 
+      function updateStickyOffset(){
+        const sticky = document.querySelector('[data-component="sticky-controls"]');
+        const rect = sticky?.getBoundingClientRect();
+        document.documentElement.style.setProperty('--sticky-controls-offset', `${Math.ceil(rect ? rect.height : 0)}px`);
+      }
+
+      const THEME_KEY = 'theme';
       const stored = localStorage.getItem(THEME_KEY) || 'light';
       applyTheme(stored);
       themeBtn?.addEventListener('click', () => {
@@ -306,21 +461,16 @@
         applyTheme(next);
       });
 
-      const siteLabel = document.querySelector('[data-role="site-filter-active"]');
-      const siteButtons = Array.from(document.querySelectorAll('.site-filter__tab'));
       siteButtons.forEach((button) => {
         button.addEventListener('click', () => {
+          selectedSiteKey = button.dataset.siteKey || 'all';
           siteButtons.forEach((tab) => tab.setAttribute('aria-pressed', tab === button ? 'true' : 'false'));
-          if(siteLabel){ siteLabel.textContent = button.textContent.trim(); }
+          if(siteLabel) siteLabel.textContent = button.textContent.trim();
+          renderPlanner();
         });
       });
 
-      function updateStickyOffset(){
-        const sticky = document.querySelector('[data-component="sticky-controls"]');
-        const rect = sticky?.getBoundingClientRect();
-        const h = rect ? rect.height : 0;
-        document.documentElement.style.setProperty('--sticky-controls-offset', `${Math.ceil(h)}px`);
-      }
+      renderPlanner();
       updateStickyOffset();
       window.addEventListener('resize', updateStickyOffset, { passive:true });
     })();
