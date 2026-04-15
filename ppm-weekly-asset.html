@@ -320,25 +320,15 @@
   <script src="ppm-weekly-asset-transform.js"></script>
   <script>
     (function(){
-      const RAW_WORK_ORDERS = [
-        { WO: 'WO-10452', Categories: 'PPM', Asset: 'Boiler Plant 01', Site: 'East Kilbride', Status: 'Open', 'Due Date': '2026-04-14', Title: 'Safety valve test' },
-        { WO: 'WO-10461', Categories: 'PPM', Asset: 'Boiler Plant 01', Site: 'East Kilbride', Status: 'Scheduled', 'Due Date': '2026-04-17', Title: 'Combustion check' },
-        { WO: 'WO-10512', Categories: 'PPM', Asset: 'Boiler Plant 01', Site: 'East Kilbride', Status: 'In Progress', 'Due Date': '2026-04-24', Title: 'Burner service' },
-        { WO: 'WO-10488', Categories: 'PPM', Asset: 'Tunnel Washer 04', Site: 'Mugiemoss', Status: 'On Hold', 'Due Date': '2026-04-22', Title: 'Drive chain inspection' },
-        { WO: 'WO-10544', Categories: 'PPM', Asset: 'Air Compressor C2', Site: 'Mugiemoss', Status: 'Open', 'Due Date': '2026-04-18', Title: 'Bearing lubrication' },
-        { WO: 'WO-10477', Categories: 'PPM', Asset: 'Air Compressor C2', Site: 'Keith', Status: 'Completed', 'Due Date': '2026-04-23', Title: 'Filter replacement' },
-        { WO: 'WO-10503', Categories: 'PPM', Asset: 'Mixer Skid 09 - Very Long Asset Name To Test Overflow Handling', Site: 'Byron', Status: 'Scheduled', 'Due Date': '2026-04-29', Title: 'Pressure cut-out calibration' },
-        { WO: 'WO-20001', Categories: 'Corrective', Asset: 'Boiler Plant 01', Site: 'East Kilbride', Status: 'Open', 'Due Date': '2026-04-16', Title: 'Not PPM, should be filtered out' },
-        { WO: 'WO-20002', Categories: 'PPM', Asset: 'Tunnel Washer 04', Site: 'Mugiemoss', Status: 'Closed', 'Due Date': '2026-04-20', Title: 'Closed, should be filtered out' }
-      ];
-
       const plannerSurface = document.querySelector('[data-role="planner-surface"]');
       const siteLabel = document.querySelector('[data-role="site-filter-active"]');
-      const siteButtons = Array.from(document.querySelectorAll('.site-filter__tab'));
+      const siteFilterTabs = document.querySelector('.site-filter__tabs');
       const themeBtn = document.getElementById('dark-toggle');
       const root = document.body;
 
       let selectedSiteKey = 'all';
+      let plannerData = null;
+      let plannerError = null;
 
       function startOfWeek(date){
         const d = new Date(date);
@@ -351,7 +341,7 @@
 
       function cardStatusClass(status){
         const normalized = String(status || '').toLowerCase();
-        if(normalized.includes('complete')) return 'wo-card--green';
+        if(normalized.includes('complete') || normalized.includes('done')) return 'wo-card--green';
         if(normalized.includes('hold')) return 'wo-card--orange';
         if(normalized.includes('progress')) return 'wo-card--blue';
         return 'wo-card--red';
@@ -362,16 +352,8 @@
         const dayLabel = Number.isNaN(date.getTime())
           ? 'Day n/a'
           : date.toLocaleDateString('en-GB', { weekday: 'short' });
-        return `Due ${dayLabel} • ${wo.site || 'Unknown site'}`;
-      }
-
-      function mapPlannerRows(model){
-        return model.rows.map((row) => ({
-          assetName: row.assetName,
-          week1: row.weeks.week1,
-          week2: row.weeks.week2,
-          week3: row.weeks.week3
-        }));
+        const site = wo.site || window.PPMWeeklyAssetTransform.SITE_KEY_LABELS[wo.siteKey] || 'Unknown site';
+        return `Due ${dayLabel} • ${site}`;
       }
 
       function PPMPlannerHeader(){
@@ -406,36 +388,100 @@
         return `
           <div class="planner-row" role="row">
             <div class="planner-cell asset-cell" role="rowheader" title="${row.assetName}">${row.assetName}</div>
-            <div class="planner-cell week-cell" role="gridcell">${renderWeekCards(row.week1)}</div>
-            <div class="planner-cell week-cell" role="gridcell">${renderWeekCards(row.week2)}</div>
-            <div class="planner-cell week-cell" role="gridcell">${renderWeekCards(row.week3)}</div>
+            <div class="planner-cell week-cell" role="gridcell">${renderWeekCards(row.weeks.week1)}</div>
+            <div class="planner-cell week-cell" role="gridcell">${renderWeekCards(row.weeks.week2)}</div>
+            <div class="planner-cell week-cell" role="gridcell">${renderWeekCards(row.weeks.week3)}</div>
           </div>
         `;
       }
 
-      function renderPlanner(){
-        const model = window.PPMWeeklyAssetTransform.buildPPMPlannerModel(RAW_WORK_ORDERS, {
-          siteKey: selectedSiteKey,
-          selectedPeriodStart: startOfWeek(new Date())
+      function renderSiteFilter(siteKeys){
+        const keys = ['all', ...(siteKeys || [])];
+        const labels = window.PPMWeeklyAssetTransform.SITE_KEY_LABELS;
+        siteFilterTabs.innerHTML = keys.map(siteKey => {
+          const text = labels[siteKey] || siteKey;
+          const pressed = selectedSiteKey === siteKey ? 'true' : 'false';
+          return `<button type="button" class="site-filter__tab" data-site-key="${siteKey}" aria-pressed="${pressed}">${text}</button>`;
+        }).join('');
+
+        siteFilterTabs.querySelectorAll('.site-filter__tab').forEach((button) => {
+          button.addEventListener('click', () => {
+            selectedSiteKey = button.dataset.siteKey || 'all';
+            siteFilterTabs.querySelectorAll('.site-filter__tab')
+              .forEach((tab) => tab.setAttribute('aria-pressed', tab === button ? 'true' : 'false'));
+            if(siteLabel) siteLabel.textContent = labels[selectedSiteKey] || selectedSiteKey;
+            renderPlanner();
+          });
         });
 
-        const plannerRows = mapPlannerRows(model);
+        if(siteLabel){
+          siteLabel.textContent = labels[selectedSiteKey] || selectedSiteKey;
+        }
+      }
 
-        const totalWeek1 = plannerRows.reduce((acc, row) => acc + row.week1.length, 0);
-        document.querySelector('[data-kpi="total-work-orders"]').textContent = String(model.summary.totalWorkOrders);
-        document.querySelector('[data-kpi="total-assets"]').textContent = String(model.summary.totalAssets);
+      function renderError(message){
+        plannerSurface.innerHTML = `${PPMPlannerHeader()}<p class="empty-state">${message}</p>`;
+        document.querySelector('[data-kpi="total-work-orders"]').textContent = '0';
+        document.querySelector('[data-kpi="total-assets"]').textContent = '0';
+        document.querySelector('[data-kpi="week1-work-orders"]').textContent = '0';
+      }
+
+      function renderPlanner(){
+        if(plannerError){
+          renderError(plannerError);
+          return;
+        }
+
+        if(!plannerData){
+          renderError('Loading MaintainX work orders…');
+          return;
+        }
+
+        const grouped = window.PPMWeeklyAssetTransform.groupPPMWorkOrdersByAssetAndWeek(
+          plannerData.activePPM,
+          selectedSiteKey,
+          startOfWeek(new Date())
+        );
+
+        const totalWeek1 = grouped.rows.reduce((acc, row) => acc + row.weeks.week1.length, 0);
+        document.querySelector('[data-kpi="total-work-orders"]').textContent = String(grouped.summary.totalWorkOrders);
+        document.querySelector('[data-kpi="total-assets"]').textContent = String(grouped.summary.totalAssets);
         document.querySelector('[data-kpi="week1-work-orders"]').textContent = String(totalWeek1);
 
-        const rowsMarkup = plannerRows.map(PPMAssetRow).join('');
-        const emptyMarkup = plannerRows.length === 0
-          ? '<p class="empty-state">No active PPM work orders found for the selected site and 3-week period.</p>'
+        const rowsMarkup = grouped.rows.map(PPMAssetRow).join('');
+        const selectedWeekLabel = plannerData.selectedWeek?.label || plannerData.selectedWeek?.weekEnd || 'latest published week';
+        const emptyMarkup = grouped.rows.length === 0
+          ? `<p class="empty-state">No active PPM work orders found for the selected site and 3-week period (source: ${selectedWeekLabel}).</p>`
           : '';
 
-        plannerSurface.innerHTML = `
-          ${PPMPlannerHeader()}
-          ${rowsMarkup}
-          ${emptyMarkup}
-        `;
+        plannerSurface.innerHTML = `${PPMPlannerHeader()}${rowsMarkup}${emptyMarkup}`;
+      }
+
+      async function loadPlannerData(){
+        try {
+          const source = await window.PPMWeeklyAssetTransform.loadMaintainXRawData();
+          const normalized = window.PPMWeeklyAssetTransform.getNormalizedWorkOrders(source.rawRows);
+          const activePPM = window.PPMWeeklyAssetTransform.getActivePPMWorkOrders(normalized);
+
+          plannerData = {
+            selectedWeek: source.selectedWeek,
+            activePPM
+          };
+
+          const initialGroup = window.PPMWeeklyAssetTransform.groupPPMWorkOrdersByAssetAndWeek(
+            activePPM,
+            'all',
+            startOfWeek(new Date())
+          );
+
+          renderSiteFilter(initialGroup.sites);
+          renderPlanner();
+        } catch (err){
+          console.error('[PPM Weekly Asset] Failed to load shared MaintainX source', err);
+          plannerError = `MaintainX source unavailable. ${err?.message || 'Could not load shared work order data.'}`;
+          renderSiteFilter([]);
+          renderPlanner();
+        }
       }
 
       function applyTheme(theme){
@@ -461,16 +507,9 @@
         applyTheme(next);
       });
 
-      siteButtons.forEach((button) => {
-        button.addEventListener('click', () => {
-          selectedSiteKey = button.dataset.siteKey || 'all';
-          siteButtons.forEach((tab) => tab.setAttribute('aria-pressed', tab === button ? 'true' : 'false'));
-          if(siteLabel) siteLabel.textContent = button.textContent.trim();
-          renderPlanner();
-        });
-      });
-
+      renderSiteFilter([]);
       renderPlanner();
+      loadPlannerData();
       updateStickyOffset();
       window.addEventListener('resize', updateStickyOffset, { passive:true });
     })();
