@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>PPM Weekly Asset View – ALS Engineering Dashboard</title>
+  <style>
+    :root {
+      --bg:#f3f5f9;
+      --paper:#ffffff;
+      --ink:#0b0f1a;
+      --muted:#6b7280;
+      --border:#e5e9f2;
+      --brand:#0b67c2;
+      --brand-strong:#0a5cb0;
+      --als-blue:var(--brand);
+      --grid:var(--border);
+      --shadow:0 1px 2px rgba(16,24,40,.06),0 4px 10px rgba(16,24,40,.06);
+      --sticky-controls-offset:0px;
+      --ui-offset:0px;
+      --ctrl-bg:#ffffff;
+      --ctrl-fg:#0b0f1a;
+      --ctrl-pill:#f3f6fb;
+      --ctrl-pill-border:#dfe6ef;
+      --ctrl-ring:#3b82f6;
+      --ctrl-shadow:0 1px 2px rgba(0,0,0,.05);
+      --ctrl-hover:rgba(11,103,194,.08);
+      --ctrl-on:#0b67c2;
+      color-scheme:light;
+    }
+
+    .dark {
+      color-scheme:dark;
+      --bg:#0f1422;
+      --paper:#131a2b;
+      --ink:#f3f4f6;
+      --muted:#9ca3af;
+      --border:#233150;
+      --brand:#3b82f6;
+      --brand-strong:#2563eb;
+      --als-blue:var(--brand);
+      --grid:#233150;
+      --ctrl-bg:#0d1117;
+      --ctrl-fg:#e8edf5;
+      --ctrl-pill:#111827;
+      --ctrl-pill-border:#1f2937;
+      --ctrl-ring:#60a5fa;
+      --ctrl-shadow:0 1px 0 rgba(255,255,255,.06) inset;
+      --ctrl-hover:rgba(96,165,250,.15);
+      --ctrl-on:#60a5fa;
+    }
+
+    body {
+      margin:0;
+      background:var(--bg);
+      color:var(--ink);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      font-size:13px;
+      line-height:1.4;
+    }
+
+    body::before {
+      content:"";
+      position:fixed;
+      inset:0 0 auto 0;
+      height:var(--ui-offset, var(--sticky-controls-offset, 0px));
+      background:var(--bg);
+      pointer-events:none;
+      z-index:180;
+    }
+
+    .page {
+      --page-pad-top:12px;
+      --page-pad-inline:clamp(20px,4vw,36px);
+      --page-pad-bottom:48px;
+      padding:var(--page-pad-top) var(--page-pad-inline) var(--page-pad-bottom);
+      max-width:clamp(960px,96vw,1680px);
+      margin-inline:auto;
+      box-sizing:border-box;
+    }
+
+    .page-head { display:flex; align-items:center; justify-content:space-between; gap:16px; padding-bottom:12px; }
+    .page-head__title { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+    .title { margin:0; font-size:24px; font-weight:800; }
+    .logo { height:50px; margin-left:auto; }
+
+    .nav { display:flex; gap:6px; flex-wrap:wrap; margin:4px 0 0; }
+    .nav .tab {
+      padding:7px 12px;
+      border-radius:999px;
+      border:1px solid var(--grid);
+      background:transparent;
+      color:var(--ink);
+      font-weight:700;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      transition:box-shadow .15s ease,border-color .15s ease,background .15s ease;
+    }
+    .nav .tab[aria-selected="true"], .nav .tab:focus-visible {
+      outline:none;
+      border-color:var(--als-blue);
+      background:color-mix(in srgb,var(--als-blue) 8%,var(--paper));
+      box-shadow:0 0 0 2px color-mix(in srgb,var(--als-blue) 30%,transparent);
+    }
+
+    .sticky-top { position:sticky; top:0; z-index:220; }
+    .sticky-controls {
+      display:flex;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:10px;
+      padding:10px 0 12px;
+      background:var(--bg);
+      border-bottom:1px solid color-mix(in srgb,var(--grid) 60%,transparent);
+      margin-bottom:16px;
+    }
+
+    .ctrl-pill {
+      display:inline-flex;
+      align-items:center;
+      gap:.5rem;
+      height:36px;
+      padding:0 .75rem;
+      border-radius:9999px;
+      border:1px solid var(--ctrl-pill-border);
+      background:var(--ctrl-pill);
+      color:var(--ctrl-fg);
+      box-shadow:var(--ctrl-shadow);
+      font:inherit;
+      font-weight:600;
+      cursor:pointer;
+    }
+
+    .site-filter { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .site-filter__label { font-weight:600; color:var(--muted); }
+    .site-filter__tabs { display:flex; gap:6px; flex-wrap:wrap; }
+    .site-filter__tab {
+      border:1px solid var(--grid);
+      background:var(--paper);
+      color:var(--ink);
+      border-radius:9999px;
+      padding:6px 10px;
+      font-weight:600;
+      cursor:pointer;
+    }
+    .site-filter__tab[aria-pressed="true"] { border-color:var(--als-blue); background:color-mix(in srgb,var(--als-blue) 12%,var(--paper)); }
+
+    .kpi-row { display:grid; grid-template-columns:repeat(3,minmax(180px,1fr)); gap:12px; margin:0 0 16px; }
+    .kpi-card {
+      background:var(--paper);
+      border:1px solid var(--grid);
+      border-radius:12px;
+      padding:12px 14px;
+      box-shadow:var(--shadow);
+    }
+    .kpi-card__label { color:var(--muted); font-size:12px; font-weight:600; }
+    .kpi-card__value { margin-top:4px; font-size:24px; font-weight:800; }
+
+    .matrix {
+      background:var(--paper);
+      border:1px solid var(--grid);
+      border-radius:14px;
+      overflow:auto;
+      box-shadow:var(--shadow);
+    }
+    .matrix-grid {
+      min-width:900px;
+      display:grid;
+      grid-template-columns:260px repeat(3,minmax(210px,1fr));
+    }
+    .matrix-head { display:contents; }
+    .matrix-head > div {
+      position:sticky;
+      top:0;
+      z-index:3;
+      background:var(--paper);
+      border-bottom:1px solid var(--grid);
+      padding:12px;
+      font-weight:700;
+    }
+    .asset-col-head, .asset-col {
+      position:sticky;
+      left:0;
+      z-index:4;
+      background:var(--paper);
+      border-right:1px solid var(--grid);
+    }
+    .asset-col { padding:12px; border-bottom:1px solid var(--grid); font-weight:700; }
+    .cell { padding:10px; border-bottom:1px solid var(--grid); border-right:1px solid var(--grid); min-height:94px; }
+
+    .wo-card {
+      border:1px solid color-mix(in srgb,var(--als-blue) 28%,var(--grid));
+      border-radius:10px;
+      background:color-mix(in srgb,var(--als-blue) 8%,var(--paper));
+      padding:8px;
+      margin-bottom:8px;
+    }
+    .wo-card__id { font-size:12px; font-weight:700; color:var(--muted); }
+    .wo-card__title { font-size:13px; font-weight:700; margin-top:2px; }
+    .wo-card__meta { font-size:12px; color:var(--muted); margin-top:3px; }
+
+    @media (max-width: 820px){
+      .kpi-row{grid-template-columns:1fr;}
+      .logo{display:none;}
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="page-head">
+      <div class="page-head__title">
+        <h1 class="title">PPM Weekly Asset View</h1>
+        <nav class="nav" aria-label="Dashboard sections">
+          <a class="tab" href="index.html">Work Orders</a>
+          <a class="tab" href="facilities.html">Facilities</a>
+          <a class="tab" href="pssr.html">PSSR Inspections</a>
+          <a class="tab" href="inspections.html">Inspections Tracker</a>
+          <a class="tab" aria-selected="true" href="ppm-weekly-asset.html">PPM Weekly Asset View</a>
+        </nav>
+      </div>
+      <img class="logo" src="LOGOlesswhitespace.png" alt="ALS logo" />
+    </header>
+
+    <section class="sticky-top" data-component="sticky-controls">
+      <div class="sticky-controls">
+        <button class="ctrl-pill" id="dark-toggle" type="button" role="switch" aria-checked="false" aria-label="Toggle dark theme">Theme: Light</button>
+        <div class="site-filter" data-role="site-filter">
+          <span class="site-filter__label">Site: <span data-role="site-filter-active">All</span></span>
+          <div class="site-filter__tabs" role="group" aria-label="Filter by site">
+            <button type="button" class="site-filter__tab" data-site-key="all" aria-pressed="true">All</button>
+            <button type="button" class="site-filter__tab" data-site-key="east-kilbride" aria-pressed="false">East Kilbride</button>
+            <button type="button" class="site-filter__tab" data-site-key="mugiemoss" aria-pressed="false">Mugiemoss</button>
+            <button type="button" class="site-filter__tab" data-site-key="keith" aria-pressed="false">Keith</button>
+            <button type="button" class="site-filter__tab" data-site-key="byron" aria-pressed="false">Byron</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="kpi-row" aria-label="PPM summary KPIs">
+      <article class="kpi-card">
+        <div class="kpi-card__label">Active PPM Work Orders</div>
+        <div class="kpi-card__value">124</div>
+      </article>
+      <article class="kpi-card">
+        <div class="kpi-card__label">Assets with Active PPMs</div>
+        <div class="kpi-card__value">63</div>
+      </article>
+      <article class="kpi-card">
+        <div class="kpi-card__label">WOs Due This Week</div>
+        <div class="kpi-card__value">41</div>
+      </article>
+    </section>
+
+    <section class="matrix" aria-label="Weekly PPM planning matrix">
+      <div class="matrix-grid">
+        <div class="matrix-head asset-col-head">Asset</div>
+        <div class="matrix-head">Week 1</div>
+        <div class="matrix-head">Week 2</div>
+        <div class="matrix-head">Week 3</div>
+
+        <div class="asset-col">Boiler Plant 01</div>
+        <div class="cell">
+          <div class="wo-card"><div class="wo-card__id">WO-10452</div><div class="wo-card__title">Safety valve test</div><div class="wo-card__meta">Due Tue • EK</div></div>
+          <div class="wo-card"><div class="wo-card__id">WO-10461</div><div class="wo-card__title">Combustion check</div><div class="wo-card__meta">Due Fri • EK</div></div>
+        </div>
+        <div class="cell"><div class="wo-card"><div class="wo-card__id">WO-10512</div><div class="wo-card__title">Burner service</div><div class="wo-card__meta">Due Wed • EK</div></div></div>
+        <div class="cell"></div>
+
+        <div class="asset-col">Tunnel Washer 04</div>
+        <div class="cell"></div>
+        <div class="cell"><div class="wo-card"><div class="wo-card__id">WO-10488</div><div class="wo-card__title">Drive chain inspection</div><div class="wo-card__meta">Due Mon • Mugiemoss</div></div></div>
+        <div class="cell"><div class="wo-card"><div class="wo-card__id">WO-10544</div><div class="wo-card__title">Bearing lubrication</div><div class="wo-card__meta">Due Thu • Mugiemoss</div></div></div>
+
+        <div class="asset-col">Air Compressor C2</div>
+        <div class="cell"><div class="wo-card"><div class="wo-card__id">WO-10477</div><div class="wo-card__title">Filter replacement</div><div class="wo-card__meta">Due Wed • Keith</div></div></div>
+        <div class="cell"></div>
+        <div class="cell"><div class="wo-card"><div class="wo-card__id">WO-10503</div><div class="wo-card__title">Pressure cut-out calibration</div><div class="wo-card__meta">Due Tue • Byron</div></div></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    (function(){
+      const THEME_KEY = 'theme';
+      const themeBtn = document.getElementById('dark-toggle');
+      const root = document.body;
+
+      function applyTheme(theme){
+        const isDark = theme === 'dark';
+        root.classList.toggle('dark', isDark);
+        root.classList.toggle('light', !isDark);
+        if(themeBtn){
+          themeBtn.setAttribute('aria-checked', isDark ? 'true' : 'false');
+          themeBtn.textContent = isDark ? 'Theme: Dark' : 'Theme: Light';
+        }
+      }
+
+      const stored = localStorage.getItem(THEME_KEY) || 'light';
+      applyTheme(stored);
+      themeBtn?.addEventListener('click', () => {
+        const next = root.classList.contains('dark') ? 'light' : 'dark';
+        localStorage.setItem(THEME_KEY, next);
+        applyTheme(next);
+      });
+
+      const siteLabel = document.querySelector('[data-role="site-filter-active"]');
+      const siteButtons = Array.from(document.querySelectorAll('.site-filter__tab'));
+      siteButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          siteButtons.forEach((tab) => tab.setAttribute('aria-pressed', tab === button ? 'true' : 'false'));
+          if(siteLabel){ siteLabel.textContent = button.textContent.trim(); }
+        });
+      });
+
+      function updateStickyOffset(){
+        const sticky = document.querySelector('[data-component="sticky-controls"]');
+        const rect = sticky?.getBoundingClientRect();
+        const h = rect ? rect.height : 0;
+        document.documentElement.style.setProperty('--sticky-controls-offset', `${Math.ceil(h)}px`);
+      }
+      updateStickyOffset();
+      window.addEventListener('resize', updateStickyOffset, { passive:true });
+    })();
+  </script>
+</body>
+</html>
