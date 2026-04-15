@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PPM Weekly Asset Grid</title>
+  <style>
+    :root{
+      --bg:#0f172a;
+      --surface:#111827;
+      --surface-soft:#1f2937;
+      --border:#334155;
+      --text:#e5e7eb;
+      --muted:#94a3b8;
+      --accent:#38bdf8;
+      --status-red:#ef4444;
+      --status-green:#22c55e;
+      --status-orange:#f59e0b;
+      --status-blue:#3b82f6;
+      --status-neutral:#64748b;
+      --radius:12px;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      padding:20px;
+      font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color:var(--text);
+      background:linear-gradient(180deg, #020617 0%, #111827 100%);
+      min-height:100vh;
+    }
+
+    .ppm-controls{
+      display:flex;
+      gap:12px;
+      margin-bottom:14px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .ppm-site-switcher{
+      min-width:220px;
+      background:var(--surface-soft);
+      color:var(--text);
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:10px 12px;
+      font-weight:600;
+    }
+
+    .ppm-grid-wrap{
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      overflow:auto;
+      background:rgba(15, 23, 42, 0.72);
+      backdrop-filter: blur(4px);
+    }
+
+    .ppm-grid{
+      width:100%;
+      min-width:980px;
+      border-collapse:separate;
+      border-spacing:0;
+      table-layout:fixed;
+    }
+
+    .ppm-grid thead th{
+      position:sticky;
+      top:0;
+      z-index:3;
+      background:var(--surface);
+      border-bottom:1px solid var(--border);
+      text-align:left;
+      font-size:12px;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+      color:#cbd5e1;
+      padding:12px;
+    }
+
+    .ppm-grid tbody td,
+    .ppm-grid tbody th{
+      border-bottom:1px solid rgba(148, 163, 184, .2);
+      vertical-align:top;
+      padding:10px;
+      background:rgba(15, 23, 42, 0.52);
+    }
+
+    .ppm-grid .asset-col{
+      width:280px;
+      min-width:280px;
+      max-width:320px;
+      position:sticky;
+      left:0;
+      z-index:2;
+      background:var(--surface);
+      border-right:1px solid var(--border);
+      font-weight:700;
+    }
+
+    .ppm-grid .asset-label{
+      display:block;
+      overflow-wrap:anywhere;
+      word-break:break-word;
+      line-height:1.35;
+      color:#f8fafc;
+    }
+
+    .ppm-cell-stack{
+      min-height:72px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .ppm-cell-placeholder{
+      border:1px dashed rgba(148,163,184,.38);
+      border-radius:10px;
+      color:var(--muted);
+      font-size:12px;
+      padding:8px;
+      text-align:center;
+      background:rgba(30, 41, 59, .2);
+    }
+
+    .wo-status-card{
+      border-radius:10px;
+      border:1px solid transparent;
+      padding:8px 10px;
+      display:grid;
+      gap:4px;
+      line-height:1.2;
+      box-shadow:0 2px 8px rgba(0,0,0,.25);
+      color:#fff;
+      font-size:12px;
+      font-weight:700;
+      background:var(--status-neutral);
+    }
+
+    .wo-status-card__id{font-size:14px;font-weight:800;letter-spacing:.01em;}
+    .wo-status-card__meta{font-weight:600;opacity:.95}
+
+    .wo-status-card[data-status-tone="red"]{background:var(--status-red)}
+    .wo-status-card[data-status-tone="green"]{background:var(--status-green)}
+    .wo-status-card[data-status-tone="orange"]{background:var(--status-orange)}
+    .wo-status-card[data-status-tone="blue"]{background:var(--status-blue)}
+    .wo-status-card[data-status-tone="neutral"]{background:var(--status-neutral)}
+  </style>
+</head>
+<body>
+  <div class="ppm-controls" id="controls"></div>
+  <div id="app"></div>
+
+  <script>
+    function formatDueDate(value){
+      if(!value) return '';
+      const d = new Date(value);
+      if(Number.isNaN(d.getTime())) return String(value);
+      return d.toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
+    }
+
+    function mapWOStatusTone(status){
+      const s = String(status || '').trim().toLowerCase();
+      if(['open','scheduled','not started'].includes(s)) return 'red';
+      if(s === 'completed') return 'green';
+      if(s === 'on hold') return 'orange';
+      if(s === 'in progress') return 'blue';
+      return 'neutral';
+    }
+
+    function toTooltip(wo){
+      const bits = [
+        `WO: ${wo?.number || '—'}`,
+        `Title: ${wo?.title || '—'}`,
+        `Status: ${wo?.status || '—'}`,
+        `Due: ${formatDueDate(wo?.dueDate) || '—'}`,
+        `Site: ${wo?.site || '—'}`,
+        `Asset: ${wo?.asset || '—'}`
+      ];
+      return bits.join('\n');
+    }
+
+    function renderWOStatusCard(wo){
+      const article = document.createElement('article');
+      const tone = mapWOStatusTone(wo?.status);
+      article.className = 'wo-status-card';
+      article.dataset.statusTone = tone;
+      article.title = toTooltip(wo || {});
+
+      const id = document.createElement('div');
+      id.className = 'wo-status-card__id';
+      id.textContent = wo?.number || '—';
+      article.appendChild(id);
+
+      const lines = [
+        wo?.title,
+        formatDueDate(wo?.dueDate),
+        wo?.status
+      ].filter(Boolean);
+
+      lines.forEach(line => {
+        const meta = document.createElement('div');
+        meta.className = 'wo-status-card__meta';
+        meta.textContent = line;
+        article.appendChild(meta);
+      });
+
+      return article;
+    }
+
+    function renderAssetRow(row){
+      const tr = document.createElement('tr');
+
+      const assetCell = document.createElement('th');
+      assetCell.className = 'asset-col';
+      assetCell.scope = 'row';
+      assetCell.title = row?.asset || '';
+
+      const assetLabel = document.createElement('span');
+      assetLabel.className = 'asset-label';
+      assetLabel.textContent = row?.asset || '—';
+      assetCell.appendChild(assetLabel);
+      tr.appendChild(assetCell);
+
+      ['week1','week2','week3'].forEach(weekKey => {
+        const td = document.createElement('td');
+        const stack = document.createElement('div');
+        stack.className = 'ppm-cell-stack';
+        const list = Array.isArray(row?.[weekKey]) ? row[weekKey] : [];
+
+        if(!list.length){
+          const empty = document.createElement('div');
+          empty.className = 'ppm-cell-placeholder';
+          empty.textContent = '—';
+          stack.appendChild(empty);
+        } else {
+          list.forEach(wo => stack.appendChild(renderWOStatusCard(wo)));
+        }
+
+        td.appendChild(stack);
+        tr.appendChild(td);
+      });
+
+      return tr;
+    }
+
+    function renderPPMGrid(rows){
+      const wrap = document.createElement('div');
+      wrap.className = 'ppm-grid-wrap';
+
+      const table = document.createElement('table');
+      table.className = 'ppm-grid';
+
+      const thead = document.createElement('thead');
+      thead.innerHTML = `
+        <tr>
+          <th class="asset-col">Asset</th>
+          <th>Week 1</th>
+          <th>Week 2</th>
+          <th>Week 3</th>
+        </tr>`;
+
+      const tbody = document.createElement('tbody');
+      (Array.isArray(rows) ? rows : []).forEach(row => tbody.appendChild(renderAssetRow(row)));
+
+      table.append(thead, tbody);
+      wrap.appendChild(table);
+      return wrap;
+    }
+
+    function renderSiteSwitcher(model, activeSite, onChange){
+      const select = document.createElement('select');
+      select.className = 'ppm-site-switcher';
+      select.setAttribute('aria-label', 'Site selector');
+
+      const sites = Array.isArray(model?.sites) ? model.sites : [];
+      sites.forEach(site => {
+        const option = document.createElement('option');
+        option.value = site.id;
+        option.textContent = site.label || site.id;
+        option.selected = site.id === activeSite;
+        select.appendChild(option);
+      });
+
+      select.addEventListener('change', evt => {
+        if(typeof onChange === 'function') onChange(evt.target.value);
+      });
+
+      return select;
+    }
+
+    window.PPMWeeklyAssetRenderers = {
+      renderSiteSwitcher,
+      renderPPMGrid,
+      renderAssetRow,
+      renderWOStatusCard
+    };
+
+    // Demo wiring for local verification.
+    const model = {
+      sites:[
+        { id:'all', label:'All Sites' },
+        { id:'east', label:'East Hub' },
+        { id:'west', label:'West Hub' }
+      ],
+      rows:[
+        {
+          asset:'Boiler Room AHU-Long-Asset-Name-Example-That-Wraps-Cleanly',
+          week1:[
+            { number:'WO-1012', title:'Filter replacement', status:'Open', dueDate:'2026-04-17', site:'East Hub', asset:'Boiler Room AHU' },
+            { number:'WO-1020', title:'Safety inspection', status:'In Progress', dueDate:'2026-04-18', site:'East Hub', asset:'Boiler Room AHU' }
+          ],
+          week2:[],
+          week3:[
+            { number:'WO-1101', title:'Belt alignment', status:'Completed', dueDate:'2026-04-25', site:'East Hub', asset:'Boiler Room AHU' }
+          ]
+        },
+        {
+          asset:'Chilled Water Pump 2',
+          week1:[{ number:'WO-1200', title:'Vibration check', status:'On Hold', dueDate:'2026-04-20', site:'West Hub', asset:'Chilled Water Pump 2' }],
+          week2:[{ number:'WO-1254', title:'Lubrication', status:'Scheduled', dueDate:'2026-04-24', site:'West Hub', asset:'Chilled Water Pump 2' }],
+          week3:[]
+        }
+      ]
+    };
+
+    const controls = document.getElementById('controls');
+    const app = document.getElementById('app');
+    let activeSite = 'all';
+
+    function draw(){
+      app.innerHTML = '';
+      const siteLabel = model.sites.find(s => s.id === activeSite)?.label;
+      const filteredRows = activeSite === 'all'
+        ? model.rows
+        : model.rows.map(row => ({
+            ...row,
+            week1: row.week1.filter(wo => wo.site === siteLabel),
+            week2: row.week2.filter(wo => wo.site === siteLabel),
+            week3: row.week3.filter(wo => wo.site === siteLabel)
+          }));
+      app.appendChild(renderPPMGrid(filteredRows));
+    }
+
+    controls.appendChild(renderSiteSwitcher(model, activeSite, next => {
+      activeSite = next;
+      draw();
+    }));
+
+    draw();
+  </script>
+</body>
+</html>
