@@ -332,11 +332,14 @@
     const normalized = normalizeKey(status);
     if(!normalized) return false;
     const includeDone = statusMode === PPM_STATUS_MODES.INCLUDE_DONE;
+    const hasDoneStatus = DONE_STATUS_TOKENS.some(token => normalized.includes(token));
+    const hasActiveStatus = ACTIVE_STATUS_ALLOWLIST.some(token => normalized.includes(token));
     if(INACTIVE_STATUS_BLOCKLIST.some((token) => {
       if(includeDone && DONE_STATUS_TOKENS.includes(token)) return false;
       return normalized.includes(token);
     })) return false;
-    return ACTIVE_STATUS_ALLOWLIST.some(token => normalized.includes(token));
+    if(includeDone) return hasDoneStatus || hasActiveStatus;
+    return hasActiveStatus;
   }
 
   function filterCategoryPPM(workOrders){
