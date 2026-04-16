@@ -150,6 +150,32 @@
     }
     .kpi-card__label { color:var(--muted); font-size:12px; font-weight:600; }
     .kpi-card__value { margin-top:4px; font-size:24px; font-weight:800; }
+    .diagnostics-panel {
+      margin:0 0 16px;
+      padding:10px 12px;
+      border:1px solid var(--grid);
+      border-radius:10px;
+      background:var(--paper);
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.45;
+      box-shadow:var(--shadow);
+    }
+    .diagnostics-panel__title {
+      color:var(--ink);
+      font-weight:700;
+      margin:0 0 4px;
+    }
+    .diagnostics-panel__meta {
+      margin:0;
+    }
+    .diagnostics-panel__list {
+      margin:8px 0 0;
+      padding:0 0 0 18px;
+      max-height:160px;
+      overflow:auto;
+    }
+    .diagnostics-panel__list li { margin:2px 0; }
 
     .planner {
       border:1px solid var(--grid);
@@ -311,6 +337,7 @@
         <div class="kpi-card__value" data-kpi="week1-work-orders">0</div>
       </article>
     </section>
+    <section class="diagnostics-panel" aria-live="polite" data-role="diagnostics-panel"></section>
 
     <section class="planner" aria-label="Weekly PPM planning matrix">
       <div class="planner__surface" data-role="planner-surface"></div>
@@ -321,6 +348,7 @@
   <script>
     (function(){
       const plannerSurface = document.querySelector('[data-role="planner-surface"]');
+      const diagnosticsPanel = document.querySelector('[data-role="diagnostics-panel"]');
       const siteLabel = document.querySelector('[data-role="site-filter-active"]');
       const siteFilterTabs = document.querySelector('.site-filter__tabs');
       const themeBtn = document.getElementById('dark-toggle');
@@ -337,6 +365,10 @@
         d.setDate(d.getDate() - mondayOffset);
         d.setHours(0, 0, 0, 0);
         return d;
+      }
+
+      function getPeriodAnchorFromSelectedWeek(selectedWeek){
+        return selectedWeek?.weekEnd || new Date();
       }
 
       function cardStatusClass(status){
@@ -421,6 +453,9 @@
 
       function renderError(message){
         plannerSurface.innerHTML = `${PPMPlannerHeader()}<p class="empty-state">${message}</p>`;
+        if(diagnosticsPanel){
+          diagnosticsPanel.innerHTML = '<p class="diagnostics-panel__title">Diagnostics</p><p class="diagnostics-panel__meta">Unavailable while planner data is loading.</p>';
+        }
         document.querySelector('[data-kpi="total-work-orders"]').textContent = '0';
         document.querySelector('[data-kpi="total-assets"]').textContent = '0';
         document.querySelector('[data-kpi="week1-work-orders"]').textContent = '0';
@@ -437,16 +472,18 @@
           return;
         }
 
+        const selectedPeriodStart = startOfWeek(getPeriodAnchorFromSelectedWeek(plannerData.selectedWeek));
         const grouped = window.PPMWeeklyAssetTransform.groupPPMWorkOrdersByAssetAndWeek(
           plannerData.activePPM,
           selectedSiteKey,
-          startOfWeek(new Date())
+          selectedPeriodStart
         );
 
         const totalWeek1 = grouped.rows.reduce((acc, row) => acc + row.weeks.week1.length, 0);
         document.querySelector('[data-kpi="total-work-orders"]').textContent = String(grouped.summary.totalWorkOrders);
         document.querySelector('[data-kpi="total-assets"]').textContent = String(grouped.summary.totalAssets);
         document.querySelector('[data-kpi="week1-work-orders"]').textContent = String(totalWeek1);
+        renderDiagnostics(grouped.diagnostics);
 
         const rowsMarkup = grouped.rows.map(PPMAssetRow).join('');
         const selectedWeekLabel = plannerData.selectedWeek?.label || plannerData.selectedWeek?.weekEnd || 'latest published week';
@@ -455,6 +492,28 @@
           : '';
 
         plannerSurface.innerHTML = `${PPMPlannerHeader()}${rowsMarkup}${emptyMarkup}`;
+      }
+
+      function renderDiagnostics(diagnostics){
+        if(!diagnosticsPanel) return;
+        const bucketed = diagnostics?.bucketed || {};
+        const excluded = diagnostics?.excluded || {};
+        const excludedRows = Array.isArray(excluded?.outOfRangeWorkOrders)
+          ? excluded.outOfRangeWorkOrders
+          : (Array.isArray(diagnostics?.excludedWorkOrders) ? diagnostics.excludedWorkOrders : []);
+        const detailItems = excludedRows.slice(0, 8).map((row) => {
+          const delta = Number.isFinite(row.deltaDays) ? `${row.deltaDays}d` : 'n/a';
+          return `<li>${row.id || 'Unknown'} • due ${row.dueDate || 'n/a'} • Δ ${delta}</li>`;
+        }).join('');
+        const remainingCount = Math.max(excludedRows.length - 8, 0);
+        const remainingMarkup = remainingCount > 0 ? `<li>+${remainingCount} more excluded</li>` : '';
+
+        diagnosticsPanel.innerHTML = `
+          <p class="diagnostics-panel__title">Diagnostics</p>
+          <p class="diagnostics-panel__meta">Bucketed — W1: ${bucketed.week1 || 0}, W2: ${bucketed.week2 || 0}, W3: ${bucketed.week3 || 0}.</p>
+          <p class="diagnostics-panel__meta">Excluded (out of 3-week range): ${excluded.outOfRange || 0}.</p>
+          ${excludedRows.length ? `<ol class="diagnostics-panel__list">${detailItems}${remainingMarkup}</ol>` : ''}
+        `;
       }
 
       async function loadPlannerData(){
@@ -468,10 +527,11 @@
             activePPM
           };
 
+          const selectedPeriodStart = startOfWeek(getPeriodAnchorFromSelectedWeek(source.selectedWeek));
           const initialGroup = window.PPMWeeklyAssetTransform.groupPPMWorkOrdersByAssetAndWeek(
             activePPM,
             'all',
-            startOfWeek(new Date())
+            selectedPeriodStart
           );
 
           renderSiteFilter(initialGroup.sites);

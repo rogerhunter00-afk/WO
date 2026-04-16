@@ -361,19 +361,57 @@
     return 'outOfRange';
   }
 
+  function classifyDueDate(date, selectedPeriodStart){
+    const workDate = startOfDay(parseDateValue(date));
+    const periodStart = startOfDay(parseDateValue(selectedPeriodStart));
+    if(!workDate || !periodStart){
+      return { bucket: 'outOfRange', deltaDays: null };
+    }
+    const deltaMs = workDate.getTime() - periodStart.getTime();
+    const deltaDays = Math.floor(deltaMs / (24 * 60 * 60 * 1000));
+    return {
+      bucket: computeWeekBucket(workDate, periodStart),
+      deltaDays
+    };
+  }
+
   function createEmptyWeeks(){
     return { week1: [], week2: [], week3: [] };
+  }
+
+  function formatDateISO(date){
+    const parsed = startOfDay(parseDateValue(date));
+    if(!parsed) return 'n/a';
+    const y = parsed.getFullYear();
+    const m = String(parsed.getMonth() + 1).padStart(2, '0');
+    const d = String(parsed.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 
   function groupPPMWorkOrdersByAssetAndWeek(workOrders, selectedSite, selectedPeriodStart){
     const filteredSiteKey = selectedSite && selectedSite !== 'all' ? selectedSite : 'all';
     const bySite = new Map();
+    const diagnostics = {
+      bucketed: { week1: 0, week2: 0, week3: 0 },
+      excluded: { outOfRange: 0, outOfRangeWorkOrders: [] }
+    };
 
     for(const order of (Array.isArray(workOrders) ? workOrders : [])){
       if(filteredSiteKey !== 'all' && order.siteKey !== filteredSiteKey) continue;
 
-      const bucket = computeWeekBucket(order.dueDate || order.dueDateRaw, selectedPeriodStart);
-      if(bucket === 'outOfRange') continue;
+      const dueDateInput = order.dueDate || order.dueDateRaw;
+      const classification = classifyDueDate(dueDateInput, selectedPeriodStart);
+      const bucket = classification.bucket;
+      if(bucket === 'outOfRange'){
+        diagnostics.excluded.outOfRange += 1;
+        diagnostics.excluded.outOfRangeWorkOrders.push({
+          id: order.woNumber || order.id || '',
+          dueDate: formatDateISO(order.dueDate || order.dueDateRaw),
+          deltaDays: classification.deltaDays
+        });
+        continue;
+      }
+      diagnostics.bucketed[bucket] += 1;
 
       const siteKey = order.siteKey || 'other';
       if(!bySite.has(siteKey)) bySite.set(siteKey, new Map());
@@ -420,7 +458,8 @@
       summary: {
         totalAssets,
         totalWorkOrders
-      }
+      },
+      diagnostics
     };
   }
 
@@ -465,7 +504,8 @@
     const source = await loadMaintainXRawData(options);
     const normalized = getNormalizedWorkOrders(source.rawRows);
     const activePPM = getActivePPMWorkOrders(normalized);
-    const selectedPeriodStart = options.selectedPeriodStart || startOfWeek(new Date());
+    const selectedPeriodAnchor = options.selectedPeriodStart || source.selectedWeek?.weekEnd || new Date();
+    const selectedPeriodStart = startOfWeek(selectedPeriodAnchor);
     const grouped = groupPPMWorkOrdersByAssetAndWeek(activePPM, options.siteKey || 'all', selectedPeriodStart);
 
     return {
@@ -491,7 +531,7 @@
     buildPPMPlannerModel(rawRows, { siteKey = 'all', selectedPeriodStart } = {}){
       const normalized = getNormalizedWorkOrders(rawRows);
       const activePPM = getActivePPMWorkOrders(normalized);
-      const grouped = groupPPMWorkOrdersByAssetAndWeek(activePPM, siteKey, selectedPeriodStart || startOfWeek(new Date()));
+      const grouped = groupPPMWorkOrdersByAssetAndWeek(activePPM, siteKey, startOfWeek(selectedPeriodStart || new Date()));
       return {
         ...grouped,
         summary: {
