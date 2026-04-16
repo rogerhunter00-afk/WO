@@ -28,6 +28,11 @@
     'done',
     'rejected'
   ];
+  const DONE_STATUS_TOKENS = ['complete', 'completed', 'done'];
+  const PPM_STATUS_MODES = Object.freeze({
+    ACTIVE_ONLY: 'active_only',
+    INCLUDE_DONE: 'include_done'
+  });
 
   const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -323,21 +328,82 @@
     return parts.some(part => /\bppm\b/i.test(part));
   }
 
-  function isActivePlanningStatus(status){
+  function isActivePlanningStatus(status, statusMode = PPM_STATUS_MODES.ACTIVE_ONLY){
     const normalized = normalizeKey(status);
     if(!normalized) return false;
-    if(INACTIVE_STATUS_BLOCKLIST.some(token => normalized.includes(token))) return false;
+    const includeDone = statusMode === PPM_STATUS_MODES.INCLUDE_DONE;
+    if(INACTIVE_STATUS_BLOCKLIST.some((token) => {
+      if(includeDone && DONE_STATUS_TOKENS.includes(token)) return false;
+      return normalized.includes(token);
+    })) return false;
     return ACTIVE_STATUS_ALLOWLIST.some(token => normalized.includes(token));
   }
 
-  function getActivePPMWorkOrders(workOrders){
-    return (Array.isArray(workOrders) ? workOrders : []).filter(order => {
-      if(!isPPMCategory(order.category)) return false;
-      if(!isActivePlanningStatus(order.status)) return false;
-      if(!order.assetName) return false;
-      if(!order.woNumber) return false;
-      return true;
-    });
+  function filterCategoryPPM(workOrders){
+    const inputRows = Array.isArray(workOrders) ? workOrders : [];
+    const kept = [];
+    const excluded = [];
+    for(const order of inputRows){
+      if(isPPMCategory(order.category)){
+        kept.push(order);
+      } else {
+        excluded.push({ reason: 'non_ppm_category', order });
+      }
+    }
+    return { kept, excluded, counters: { input: inputRows.length, kept: kept.length, excluded: excluded.length } };
+  }
+
+  function filterStatus(workOrders, { statusMode = PPM_STATUS_MODES.ACTIVE_ONLY } = {}){
+    const inputRows = Array.isArray(workOrders) ? workOrders : [];
+    const kept = [];
+    const excluded = [];
+    for(const order of inputRows){
+      if(isActivePlanningStatus(order.status, statusMode)){
+        kept.push(order);
+      } else {
+        const statusRaw = toStringSafe(order.status);
+        console.info('[PPM Weekly Asset] Excluded row', { reason: 'inactive_status', status: statusRaw, id: order.woNumber || order.id || null });
+        excluded.push({ reason: 'inactive_status', status: statusRaw, order });
+      }
+    }
+    return { kept, excluded, counters: { input: inputRows.length, kept: kept.length, excluded: excluded.length } };
+  }
+
+  function filterHasAsset(workOrders){
+    const inputRows = Array.isArray(workOrders) ? workOrders : [];
+    const kept = [];
+    const excluded = [];
+    for(const order of inputRows){
+      if(order.assetName){
+        kept.push(order);
+      } else {
+        excluded.push({ reason: 'missing_asset', order });
+      }
+    }
+    return { kept, excluded, counters: { input: inputRows.length, kept: kept.length, excluded: excluded.length } };
+  }
+
+  function filterHasId(workOrders){
+    const inputRows = Array.isArray(workOrders) ? workOrders : [];
+    const kept = [];
+    const excluded = [];
+    for(const order of inputRows){
+      if(order.woNumber){
+        kept.push(order);
+      } else {
+        excluded.push({ reason: 'missing_id', order });
+      }
+    }
+    return { kept, excluded, counters: { input: inputRows.length, kept: kept.length, excluded: excluded.length } };
+  }
+
+  function getActivePPMWorkOrders(workOrders, { statusMode = PPM_STATUS_MODES.ACTIVE_ONLY } = {}){
+    const stageCategory = filterCategoryPPM(workOrders);
+    const stageStatus = filterStatus(stageCategory.kept, { statusMode });
+    const stageAsset = filterHasAsset(stageStatus.kept);
+    const stageId = filterHasId(stageAsset.kept);
+
+    return stageId.kept;
   }
 
   function computeWeekBucket(date, selectedPeriodStart){
@@ -464,7 +530,7 @@
   async function buildPPMPlannerModelFromMaintainX(options = {}){
     const source = await loadMaintainXRawData(options);
     const normalized = getNormalizedWorkOrders(source.rawRows);
-    const activePPM = getActivePPMWorkOrders(normalized);
+    const activePPM = getActivePPMWorkOrders(normalized, { statusMode: options.statusMode || PPM_STATUS_MODES.ACTIVE_ONLY });
     const selectedPeriodStart = options.selectedPeriodStart || startOfWeek(new Date());
     const grouped = groupPPMWorkOrdersByAssetAndWeek(activePPM, options.siteKey || 'all', selectedPeriodStart);
 
@@ -487,10 +553,15 @@
     getNormalizedWorkOrders,
     getActivePPMWorkOrders,
     groupPPMWorkOrdersByAssetAndWeek,
+    filterCategoryPPM,
+    filterStatus,
+    filterHasAsset,
+    filterHasId,
+    PPM_STATUS_MODES,
     buildPPMPlannerModelFromMaintainX,
-    buildPPMPlannerModel(rawRows, { siteKey = 'all', selectedPeriodStart } = {}){
+    buildPPMPlannerModel(rawRows, { siteKey = 'all', selectedPeriodStart, statusMode = PPM_STATUS_MODES.ACTIVE_ONLY } = {}){
       const normalized = getNormalizedWorkOrders(rawRows);
-      const activePPM = getActivePPMWorkOrders(normalized);
+      const activePPM = getActivePPMWorkOrders(normalized, { statusMode });
       const grouped = groupPPMWorkOrdersByAssetAndWeek(activePPM, siteKey, selectedPeriodStart || startOfWeek(new Date()));
       return {
         ...grouped,

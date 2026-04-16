@@ -139,6 +139,8 @@
       cursor:pointer;
     }
     .site-filter__tab[aria-pressed="true"] { border-color:var(--als-blue); background:color-mix(in srgb,var(--als-blue) 12%,var(--paper)); }
+    .status-mode-toggle { display:inline-flex; align-items:center; gap:6px; font-weight:600; color:var(--muted); }
+    .status-mode-toggle input { accent-color:var(--als-blue); }
 
     .kpi-row { display:grid; grid-template-columns:repeat(3,minmax(180px,1fr)); gap:12px; margin:0 0 20px; }
     .kpi-card {
@@ -294,12 +296,16 @@
             <button type="button" class="site-filter__tab" data-site-key="Byron" aria-pressed="false">Byron</button>
           </div>
         </div>
+        <label class="status-mode-toggle" title="Include completed PPM work orders in planner totals">
+          <input type="checkbox" data-role="status-mode-toggle" />
+          Include completed PPMs
+        </label>
       </div>
     </section>
 
     <section class="kpi-row" aria-label="PPM summary KPIs">
       <article class="kpi-card">
-        <div class="kpi-card__label">Active PPM Work Orders</div>
+        <div class="kpi-card__label" data-role="kpi-total-label">Active PPM Work Orders</div>
         <div class="kpi-card__value" data-kpi="total-work-orders">0</div>
       </article>
       <article class="kpi-card">
@@ -323,10 +329,13 @@
       const plannerSurface = document.querySelector('[data-role="planner-surface"]');
       const siteLabel = document.querySelector('[data-role="site-filter-active"]');
       const siteFilterTabs = document.querySelector('.site-filter__tabs');
+      const statusModeToggle = document.querySelector('[data-role="status-mode-toggle"]');
+      const kpiTotalLabel = document.querySelector('[data-role="kpi-total-label"]');
       const themeBtn = document.getElementById('dark-toggle');
       const root = document.body;
 
       let selectedSiteKey = 'all';
+      let statusMode = window.PPMWeeklyAssetTransform.PPM_STATUS_MODES.ACTIVE_ONLY;
       let plannerData = null;
       let plannerError = null;
 
@@ -438,20 +447,28 @@
         }
 
         const grouped = window.PPMWeeklyAssetTransform.groupPPMWorkOrdersByAssetAndWeek(
-          plannerData.activePPM,
+          plannerData.filteredPPM,
           selectedSiteKey,
           startOfWeek(new Date())
         );
 
         const totalWeek1 = grouped.rows.reduce((acc, row) => acc + row.weeks.week1.length, 0);
+        if(kpiTotalLabel){
+          kpiTotalLabel.textContent = statusMode === window.PPMWeeklyAssetTransform.PPM_STATUS_MODES.INCLUDE_DONE
+            ? 'PPM Work Orders (Including Completed)'
+            : 'Active PPM Work Orders';
+        }
         document.querySelector('[data-kpi="total-work-orders"]').textContent = String(grouped.summary.totalWorkOrders);
         document.querySelector('[data-kpi="total-assets"]').textContent = String(grouped.summary.totalAssets);
         document.querySelector('[data-kpi="week1-work-orders"]').textContent = String(totalWeek1);
 
         const rowsMarkup = grouped.rows.map(PPMAssetRow).join('');
         const selectedWeekLabel = plannerData.selectedWeek?.label || plannerData.selectedWeek?.weekEnd || 'latest published week';
+        const statusPhrase = statusMode === window.PPMWeeklyAssetTransform.PPM_STATUS_MODES.INCLUDE_DONE
+          ? 'PPM work orders'
+          : 'active PPM work orders';
         const emptyMarkup = grouped.rows.length === 0
-          ? `<p class="empty-state">No active PPM work orders found for the selected site and 3-week period (source: ${selectedWeekLabel}).</p>`
+          ? `<p class="empty-state">No ${statusPhrase} found for the selected site and 3-week period (source: ${selectedWeekLabel}).</p>`
           : '';
 
         plannerSurface.innerHTML = `${PPMPlannerHeader()}${rowsMarkup}${emptyMarkup}`;
@@ -461,15 +478,15 @@
         try {
           const source = await window.PPMWeeklyAssetTransform.loadMaintainXRawData();
           const normalized = window.PPMWeeklyAssetTransform.getNormalizedWorkOrders(source.rawRows);
-          const activePPM = window.PPMWeeklyAssetTransform.getActivePPMWorkOrders(normalized);
+          const filteredPPM = window.PPMWeeklyAssetTransform.getActivePPMWorkOrders(normalized, { statusMode });
 
           plannerData = {
             selectedWeek: source.selectedWeek,
-            activePPM
+            filteredPPM
           };
 
           const initialGroup = window.PPMWeeklyAssetTransform.groupPPMWorkOrdersByAssetAndWeek(
-            activePPM,
+            filteredPPM,
             'all',
             startOfWeek(new Date())
           );
@@ -509,6 +526,12 @@
 
       renderSiteFilter([]);
       renderPlanner();
+      statusModeToggle?.addEventListener('change', () => {
+        statusMode = statusModeToggle.checked
+          ? window.PPMWeeklyAssetTransform.PPM_STATUS_MODES.INCLUDE_DONE
+          : window.PPMWeeklyAssetTransform.PPM_STATUS_MODES.ACTIVE_ONLY;
+        loadPlannerData();
+      });
       loadPlannerData();
       updateStickyOffset();
       window.addEventListener('resize', updateStickyOffset, { passive:true });
