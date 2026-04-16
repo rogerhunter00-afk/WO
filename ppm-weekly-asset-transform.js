@@ -347,12 +347,12 @@
     const excludedRows = [];
 
     const EXCLUSION_REASONS = Object.freeze({
-      NOT_PPM: 'Not a PPM category',
-      MISSING_WO: 'Missing WO number',
-      MISSING_ASSET: 'Missing asset',
-      INACTIVE_STATUS: 'Inactive status',
-      FILTERED_BY_SITE: 'Filtered out by selected site',
-      OUT_OF_RANGE: 'Due date is outside selected 3-week window'
+      NOT_PPM: { code: 'not_ppm_category', label: 'Not a PPM category' },
+      MISSING_WO: { code: 'missing_wo_number', label: 'Missing WO number' },
+      MISSING_ASSET: { code: 'missing_asset', label: 'Missing asset' },
+      INACTIVE_STATUS: { code: 'inactive_status', label: 'Inactive status' },
+      FILTERED_BY_SITE: { code: 'filtered_by_site', label: 'Filtered out by selected site' },
+      OUT_OF_RANGE: { code: 'due_date_out_of_range', label: 'Due date is outside selected 3-week window' }
     });
 
     const toExcluded = (row, exclusionReason) => ({
@@ -363,7 +363,8 @@
       rawAsset: row.assetName || '',
       rawStatus: row.status || '',
       rawDueDate: row.dueDateRaw || '',
-      exclusionReason
+      exclusionReason: exclusionReason.label,
+      exclusionReasonCode: exclusionReason.code
     });
 
     const ppmMatches = [];

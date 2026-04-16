@@ -499,7 +499,7 @@
         }
 
         const excludedPPMRows = (plannerDiagnostics.excludedRows || [])
-          .filter(row => row.exclusionReason !== 'Not a PPM category');
+          .filter(row => row.exclusionReasonCode !== 'not_ppm_category');
 
         debugPanel.dataset.visible = 'true';
         if(debugSummary){
