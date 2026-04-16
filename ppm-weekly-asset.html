@@ -258,6 +258,43 @@
 
     .planner-row:last-child .planner-cell { border-bottom:none; }
 
+    .debug-panel {
+      margin-top:18px;
+      border:1px solid var(--grid);
+      border-radius:12px;
+      background:var(--paper);
+      box-shadow:var(--shadow);
+      overflow:auto;
+      display:none;
+    }
+    .debug-panel[data-visible="true"] { display:block; }
+    .debug-panel__head {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      padding:10px 12px;
+      border-bottom:1px solid var(--grid);
+      font-weight:700;
+    }
+    .debug-table {
+      width:100%;
+      border-collapse:collapse;
+      font-size:12px;
+    }
+    .debug-table th,
+    .debug-table td {
+      border-bottom:1px solid var(--grid);
+      border-right:1px solid var(--grid);
+      padding:6px 8px;
+      text-align:left;
+      vertical-align:top;
+      white-space:nowrap;
+    }
+    .debug-table th:last-child,
+    .debug-table td:last-child { border-right:none; }
+    .debug-table tr:last-child td { border-bottom:none; }
+
     @media (max-width: 820px){
       .kpi-row{grid-template-columns:1fr;}
       .logo{display:none;}
@@ -315,6 +352,28 @@
     <section class="planner" aria-label="Weekly PPM planning matrix">
       <div class="planner__surface" data-role="planner-surface"></div>
     </section>
+
+    <section class="debug-panel" data-role="debug-panel" aria-label="PPM diagnostics">
+      <div class="debug-panel__head">
+        <span>Developer diagnostics (excluded PPM rows)</span>
+        <span data-role="debug-summary">No rows</span>
+      </div>
+      <table class="debug-table">
+        <thead>
+          <tr>
+            <th>WO</th>
+            <th>Title</th>
+            <th>Category</th>
+            <th>Site</th>
+            <th>Asset</th>
+            <th>Status</th>
+            <th>Due date</th>
+            <th>Reason</th>
+          </tr>
+        </thead>
+        <tbody data-role="debug-body"></tbody>
+      </table>
+    </section>
   </div>
 
   <script src="ppm-weekly-asset-transform.js"></script>
@@ -324,11 +383,16 @@
       const siteLabel = document.querySelector('[data-role="site-filter-active"]');
       const siteFilterTabs = document.querySelector('.site-filter__tabs');
       const themeBtn = document.getElementById('dark-toggle');
+      const debugPanel = document.querySelector('[data-role="debug-panel"]');
+      const debugBody = document.querySelector('[data-role="debug-body"]');
+      const debugSummary = document.querySelector('[data-role="debug-summary"]');
       const root = document.body;
+      const debugMode = new URLSearchParams(window.location.search).get('debug') === '1';
 
       let selectedSiteKey = 'all';
       let plannerData = null;
       let plannerError = null;
+      let plannerDiagnostics = null;
 
       function startOfWeek(date){
         const d = new Date(date);
@@ -426,6 +490,53 @@
         document.querySelector('[data-kpi="week1-work-orders"]').textContent = '0';
       }
 
+      function renderDiagnostics(){
+        if(!debugPanel) return;
+        if(!debugMode || !plannerDiagnostics){
+          debugPanel.dataset.visible = 'false';
+          if(debugBody) debugBody.innerHTML = '';
+          return;
+        }
+
+        const excludedPPMRows = (plannerDiagnostics.excludedRows || [])
+          .filter(row => row.exclusionReason !== 'Not a PPM category');
+
+        debugPanel.dataset.visible = 'true';
+        if(debugSummary){
+          debugSummary.textContent = [
+            `raw=${plannerDiagnostics.totalRawRowsLoaded}`,
+            `ppm=${plannerDiagnostics.ppmCategoryMatches}`,
+            `active=${plannerDiagnostics.activeCount}`,
+            `inactive=${plannerDiagnostics.inactiveCount}`,
+            `site=${plannerDiagnostics.selectedSiteSurvivors}`,
+            `w1=${plannerDiagnostics.week1Count}`,
+            `w2=${plannerDiagnostics.week2Count}`,
+            `w3=${plannerDiagnostics.week3Count}`,
+            `final=${plannerDiagnostics.finalRenderedCardCount}`,
+            `excluded=${excludedPPMRows.length}`
+          ].join(' • ');
+        }
+
+        if(!debugBody) return;
+        if(!excludedPPMRows.length){
+          debugBody.innerHTML = '<tr><td colspan="8">No excluded PPM rows for the current selection.</td></tr>';
+          return;
+        }
+
+        debugBody.innerHTML = excludedPPMRows.map((row) => `
+          <tr>
+            <td>${row.woNumber || ''}</td>
+            <td>${row.title || ''}</td>
+            <td>${row.rawCategory || ''}</td>
+            <td>${row.rawSite || ''}</td>
+            <td>${row.rawAsset || ''}</td>
+            <td>${row.rawStatus || ''}</td>
+            <td>${row.rawDueDate || ''}</td>
+            <td>${row.exclusionReason || ''}</td>
+          </tr>
+        `).join('');
+      }
+
       function renderPlanner(){
         if(plannerError){
           renderError(plannerError);
@@ -442,6 +553,10 @@
           selectedSiteKey,
           startOfWeek(new Date())
         );
+        plannerDiagnostics = window.PPMWeeklyAssetTransform.buildPPMPipelineDiagnostics(
+          plannerData.rawRows || [],
+          { siteKey: selectedSiteKey, selectedPeriodStart: startOfWeek(new Date()) }
+        );
 
         const totalWeek1 = grouped.rows.reduce((acc, row) => acc + row.weeks.week1.length, 0);
         document.querySelector('[data-kpi="total-work-orders"]').textContent = String(grouped.summary.totalWorkOrders);
@@ -455,6 +570,7 @@
           : '';
 
         plannerSurface.innerHTML = `${PPMPlannerHeader()}${rowsMarkup}${emptyMarkup}`;
+        renderDiagnostics();
       }
 
       async function loadPlannerData(){
@@ -465,6 +581,7 @@
 
           plannerData = {
             selectedWeek: source.selectedWeek,
+            rawRows: source.rawRows || [],
             activePPM
           };
 
@@ -481,6 +598,7 @@
           plannerError = `MaintainX source unavailable. ${err?.message || 'Could not load shared work order data.'}`;
           renderSiteFilter([]);
           renderPlanner();
+          renderDiagnostics();
         }
       }
 

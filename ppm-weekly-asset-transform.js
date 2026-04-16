@@ -340,6 +340,109 @@
     });
   }
 
+  function buildPPMPipelineDiagnostics(rawRows, options = {}){
+    const selectedSite = options.siteKey || 'all';
+    const selectedPeriodStart = options.selectedPeriodStart || startOfWeek(new Date());
+    const normalizedRows = getNormalizedWorkOrders(rawRows);
+    const excludedRows = [];
+
+    const EXCLUSION_REASONS = Object.freeze({
+      NOT_PPM: 'Not a PPM category',
+      MISSING_WO: 'Missing WO number',
+      MISSING_ASSET: 'Missing asset',
+      INACTIVE_STATUS: 'Inactive status',
+      FILTERED_BY_SITE: 'Filtered out by selected site',
+      OUT_OF_RANGE: 'Due date is outside selected 3-week window'
+    });
+
+    const toExcluded = (row, exclusionReason) => ({
+      woNumber: row.woNumber || '',
+      title: row.title || '',
+      rawCategory: row.category || '',
+      rawSite: row.site || '',
+      rawAsset: row.assetName || '',
+      rawStatus: row.status || '',
+      rawDueDate: row.dueDateRaw || '',
+      exclusionReason
+    });
+
+    const ppmMatches = [];
+    for(const row of normalizedRows){
+      if(isPPMCategory(row.category)){
+        ppmMatches.push(row);
+      } else {
+        excludedRows.push(toExcluded(row, EXCLUSION_REASONS.NOT_PPM));
+      }
+    }
+
+    const validAssetRows = [];
+    for(const row of ppmMatches){
+      if(!row.woNumber){
+        excludedRows.push(toExcluded(row, EXCLUSION_REASONS.MISSING_WO));
+        continue;
+      }
+      if(!row.assetName){
+        excludedRows.push(toExcluded(row, EXCLUSION_REASONS.MISSING_ASSET));
+        continue;
+      }
+      validAssetRows.push(row);
+    }
+
+    const activeRows = [];
+    const inactiveRows = [];
+    for(const row of validAssetRows){
+      if(isActivePlanningStatus(row.status)){
+        activeRows.push(row);
+      } else {
+        inactiveRows.push(row);
+        excludedRows.push(toExcluded(row, EXCLUSION_REASONS.INACTIVE_STATUS));
+      }
+    }
+
+    const selectedSiteRows = [];
+    for(const row of activeRows){
+      if(selectedSite !== 'all' && row.siteKey !== selectedSite){
+        excludedRows.push(toExcluded(row, EXCLUSION_REASONS.FILTERED_BY_SITE));
+        continue;
+      }
+      selectedSiteRows.push(row);
+    }
+
+    let week1Count = 0;
+    let week2Count = 0;
+    let week3Count = 0;
+    for(const row of selectedSiteRows){
+      const bucket = computeWeekBucket(row.dueDate || row.dueDateRaw, selectedPeriodStart);
+      if(bucket === 'week1'){
+        week1Count += 1;
+      } else if(bucket === 'week2'){
+        week2Count += 1;
+      } else if(bucket === 'week3'){
+        week3Count += 1;
+      } else {
+        excludedRows.push(toExcluded(row, EXCLUSION_REASONS.OUT_OF_RANGE));
+      }
+    }
+
+    const finalRenderedCardCount = week1Count + week2Count + week3Count;
+    const validAssetCount = validAssetRows.length;
+
+    return {
+      totalRawRowsLoaded: Array.isArray(rawRows) ? rawRows.length : 0,
+      parsedNormalizedRows: normalizedRows.length,
+      ppmCategoryMatches: ppmMatches.length,
+      validAssetCount,
+      activeCount: activeRows.length,
+      inactiveCount: inactiveRows.length,
+      selectedSiteSurvivors: selectedSiteRows.length,
+      week1Count,
+      week2Count,
+      week3Count,
+      finalRenderedCardCount,
+      excludedRows
+    };
+  }
+
   function computeWeekBucket(date, selectedPeriodStart){
     const workDate = startOfDay(parseDateValue(date));
     const periodStart = startOfDay(parseDateValue(selectedPeriodStart));
@@ -488,6 +591,7 @@
     getActivePPMWorkOrders,
     groupPPMWorkOrdersByAssetAndWeek,
     buildPPMPlannerModelFromMaintainX,
+    buildPPMPipelineDiagnostics,
     buildPPMPlannerModel(rawRows, { siteKey = 'all', selectedPeriodStart } = {}){
       const normalized = getNormalizedWorkOrders(rawRows);
       const activePPM = getActivePPMWorkOrders(normalized);
