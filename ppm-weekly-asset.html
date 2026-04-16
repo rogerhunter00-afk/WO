@@ -327,6 +327,11 @@
       const root = document.body;
 
       let selectedSiteKey = 'all';
+      const MAINTAINX_SOURCE_CONFIG = Object.freeze({
+        ...window.PPMWeeklyAssetTransform.MAINTAINX_SOURCE_CONFIG,
+        sourceMode: 'selected_week'
+      });
+
       let plannerData = null;
       let plannerError = null;
 
@@ -449,7 +454,9 @@
         document.querySelector('[data-kpi="week1-work-orders"]').textContent = String(totalWeek1);
 
         const rowsMarkup = grouped.rows.map(PPMAssetRow).join('');
-        const selectedWeekLabel = plannerData.selectedWeek?.label || plannerData.selectedWeek?.weekEnd || 'latest published week';
+        const selectedWeekLabel = plannerData.sourceType === 'raw_work_orders'
+          ? 'MX_Raw_WorkOrders'
+          : (plannerData.selectedWeek?.label || plannerData.selectedWeek?.weekEnd || 'latest published week');
         const emptyMarkup = grouped.rows.length === 0
           ? `<p class="empty-state">No active PPM work orders found for the selected site and 3-week period (source: ${selectedWeekLabel}).</p>`
           : '';
@@ -459,11 +466,13 @@
 
       async function loadPlannerData(){
         try {
-          const source = await window.PPMWeeklyAssetTransform.loadMaintainXRawData();
+          const source = await window.PPMWeeklyAssetTransform.loadMaintainXRawData(MAINTAINX_SOURCE_CONFIG);
           const normalized = window.PPMWeeklyAssetTransform.getNormalizedWorkOrders(source.rawRows);
           const activePPM = window.PPMWeeklyAssetTransform.getActivePPMWorkOrders(normalized);
 
           plannerData = {
+            sourceType: source.sourceType,
+            sourceUrl: source.sourceUrl,
             selectedWeek: source.selectedWeek,
             activePPM
           };
