@@ -19,8 +19,8 @@
       --shadow:0 1px 2px rgba(16,24,40,.06),0 4px 10px rgba(16,24,40,.06);
       --sticky-controls-offset:0px;
       --ui-offset:0px;
-      --planner-columns:260px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);
-      --planner-min-width:960px;
+      --planner-columns:260px;
+      --planner-min-width:1200px;
       --card-red:#fde8e8;
       --card-green:#e7f8ee;
       --card-orange:#fff0dd;
@@ -109,6 +109,43 @@
       border-bottom:1px solid color-mix(in srgb,var(--grid) 60%,transparent);
       margin-bottom:16px;
     }
+    .year-controls {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .year-controls__label {
+      font-weight:600;
+      color:var(--muted);
+    }
+    .year-controls select {
+      border:1px solid var(--grid);
+      background:var(--paper);
+      color:var(--ink);
+      border-radius:9999px;
+      height:36px;
+      padding:0 .75rem;
+      font:inherit;
+      font-weight:700;
+    }
+    .month-jump {
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+    }
+    .month-jump__btn {
+      border:1px solid var(--grid);
+      background:var(--paper);
+      color:var(--ink);
+      border-radius:9999px;
+      padding:4px 9px;
+      font-size:12px;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .month-jump__btn:hover { border-color:var(--als-blue); }
+    .month-jump__btn:disabled { opacity:.45; cursor:not-allowed; }
 
     .ctrl-pill {
       display:inline-flex;
@@ -188,10 +225,17 @@
 
     .planner-header .planner-cell {
       font-weight:800;
-      font-size:14px;
+      font-size:12px;
       min-height:52px;
       display:flex;
       align-items:center;
+    }
+    .planner-header .planner-cell:first-child {
+      position:sticky;
+      left:0;
+      z-index:5;
+      background:var(--paper);
+      box-shadow:2px 0 0 0 var(--grid);
     }
 
     .planner-row .planner-cell {
@@ -207,6 +251,10 @@
       justify-content:flex-start;
       word-break:break-word;
       overflow-wrap:anywhere;
+      position:sticky;
+      left:0;
+      z-index:3;
+      box-shadow:2px 0 0 0 var(--grid);
     }
 
     .week-cell {
@@ -214,13 +262,13 @@
       flex-direction:column;
       align-items:stretch;
       justify-content:flex-start;
-      gap:8px;
+      gap:4px;
     }
 
     .wo-card {
       border:1px solid color-mix(in srgb,var(--als-blue) 28%,var(--grid));
-      border-radius:10px;
-      padding:8px 9px;
+      border-radius:7px;
+      padding:4px 6px;
       background:var(--card-blue);
       overflow:hidden;
     }
@@ -229,19 +277,20 @@
     .wo-card--orange { background:var(--card-orange); }
     .wo-card--blue { background:var(--card-blue); }
 
-    .wo-card__id { font-size:12px; font-weight:800; color:var(--muted); }
+    .wo-card__id { font-size:11px; font-weight:800; color:var(--muted); line-height:1.2; }
     .wo-card__title {
-      font-size:13px;
+      font-size:11px;
       font-weight:700;
-      margin-top:2px;
+      margin-top:1px;
       white-space:normal;
       word-break:break-word;
       overflow-wrap:anywhere;
+      line-height:1.2;
     }
     .wo-card__meta {
-      font-size:12px;
+      font-size:10px;
       color:var(--muted);
-      margin-top:4px;
+      margin-top:2px;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
@@ -284,6 +333,11 @@
     <section class="sticky-top" data-component="sticky-controls">
       <div class="sticky-controls">
         <button class="ctrl-pill" id="dark-toggle" type="button" role="switch" aria-checked="false" aria-label="Toggle dark theme">Theme: Light</button>
+        <div class="year-controls" aria-label="Select planning year">
+          <label class="year-controls__label" for="year-select">Year</label>
+          <select id="year-select"></select>
+        </div>
+        <div class="month-jump" data-role="month-jump" aria-label="Jump to month"></div>
         <div class="site-filter" data-role="site-filter">
           <span class="site-filter__label">Site: <span data-role="site-filter-active">All</span></span>
           <div class="site-filter__tabs" role="group" aria-label="Filter by site">
@@ -299,16 +353,16 @@
 
     <section class="kpi-row" aria-label="PPM summary KPIs">
       <article class="kpi-card">
-        <div class="kpi-card__label">Active PPM Work Orders</div>
+        <div class="kpi-card__label">WOs Due in Selected Year</div>
         <div class="kpi-card__value" data-kpi="total-work-orders">0</div>
       </article>
       <article class="kpi-card">
-        <div class="kpi-card__label">Assets with Active PPMs</div>
+        <div class="kpi-card__label">Active PPM Assets</div>
         <div class="kpi-card__value" data-kpi="total-assets">0</div>
       </article>
       <article class="kpi-card">
-        <div class="kpi-card__label">WOs Due This Week</div>
-        <div class="kpi-card__value" data-kpi="week1-work-orders">0</div>
+        <div class="kpi-card__label">Weeks with Scheduled PPMs</div>
+        <div class="kpi-card__value" data-kpi="scheduled-weeks">0</div>
       </article>
     </section>
 
@@ -323,12 +377,16 @@
       const plannerSurface = document.querySelector('[data-role="planner-surface"]');
       const siteLabel = document.querySelector('[data-role="site-filter-active"]');
       const siteFilterTabs = document.querySelector('.site-filter__tabs');
+      const yearSelect = document.getElementById('year-select');
+      const monthJump = document.querySelector('[data-role="month-jump"]');
       const themeBtn = document.getElementById('dark-toggle');
       const root = document.body;
 
       let selectedSiteKey = 'all';
+      let selectedYear = new Date().getFullYear();
       let plannerData = null;
       let plannerError = null;
+      let weekKeyOrder = [];
 
       function startOfWeek(date){
         const d = new Date(date);
@@ -337,6 +395,41 @@
         d.setDate(d.getDate() - mondayOffset);
         d.setHours(0, 0, 0, 0);
         return d;
+      }
+
+      function isoWeekKey(date){
+        const d = startOfWeek(date);
+        const year = d.getFullYear();
+        const jan4 = new Date(year, 0, 4);
+        const week1Start = startOfWeek(jan4);
+        const weekNo = Math.floor((d.getTime() - week1Start.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
+        return `${year}-W${String(weekNo).padStart(2, '0')}`;
+      }
+
+      function listYearWeekKeys(year){
+        const keys = [];
+        let cursor = startOfWeek(new Date(year, 0, 4));
+        while(cursor.getFullYear() <= year){
+          if(cursor.getFullYear() === year){
+            keys.push(isoWeekKey(cursor));
+          }
+          cursor = new Date(cursor.getTime() + (7 * 24 * 60 * 60 * 1000));
+          if(keys.length > 54) break;
+        }
+        return [...new Set(keys)];
+      }
+
+      function buildMonthMap(weekKeys){
+        const map = new Map();
+        weekKeys.forEach((weekKey) => {
+          const weekNo = Number(weekKey.split('-W')[1]);
+          const jan4 = new Date(selectedYear, 0, 4);
+          const week1Start = startOfWeek(jan4);
+          const weekStart = new Date(week1Start.getTime() + ((weekNo - 1) * 7 * 24 * 60 * 60 * 1000));
+          const m = weekStart.getMonth();
+          if(!map.has(m)) map.set(m, weekKey);
+        });
+        return map;
       }
 
       function cardStatusClass(status){
@@ -356,13 +449,12 @@
         return `Due ${dayLabel} • ${site}`;
       }
 
-      function PPMPlannerHeader(){
+      function PPMPlannerHeader(weekKeys){
+        const weekColumns = weekKeys.map((weekKey) => `<div class="planner-cell" role="columnheader">${weekKey.replace('-', ' ')}</div>`).join('');
         return `
           <div class="planner-header" role="row">
             <div class="planner-cell" role="columnheader">Asset</div>
-            <div class="planner-cell" role="columnheader">Week 1</div>
-            <div class="planner-cell" role="columnheader">Week 2</div>
-            <div class="planner-cell" role="columnheader">Week 3</div>
+            ${weekColumns}
           </div>
         `;
       }
@@ -384,15 +476,21 @@
         }).join('');
       }
 
-      function PPMAssetRow(row){
+      function PPMAssetRow(row, weekKeys){
+        const weekCells = weekKeys.map((weekKey) => `<div class="planner-cell week-cell" role="gridcell">${renderWeekCards(row.weeks[weekKey] || [])}</div>`).join('');
         return `
           <div class="planner-row" role="row">
             <div class="planner-cell asset-cell" role="rowheader" title="${row.assetName}">${row.assetName}</div>
-            <div class="planner-cell week-cell" role="gridcell">${renderWeekCards(row.weeks.week1)}</div>
-            <div class="planner-cell week-cell" role="gridcell">${renderWeekCards(row.weeks.week2)}</div>
-            <div class="planner-cell week-cell" role="gridcell">${renderWeekCards(row.weeks.week3)}</div>
+            ${weekCells}
           </div>
         `;
+      }
+
+      function updatePlannerGridColumns(weekKeys){
+        const template = ['260px', ...weekKeys.map(() => 'minmax(120px,1fr)')].join(' ');
+        const minWidth = 260 + (weekKeys.length * 120);
+        document.documentElement.style.setProperty('--planner-columns', template);
+        document.documentElement.style.setProperty('--planner-min-width', `${minWidth}px`);
       }
 
       function renderSiteFilter(siteKeys){
@@ -420,10 +518,10 @@
       }
 
       function renderError(message){
-        plannerSurface.innerHTML = `${PPMPlannerHeader()}<p class="empty-state">${message}</p>`;
+        plannerSurface.innerHTML = `${PPMPlannerHeader(weekKeyOrder)}<p class="empty-state">${message}</p>`;
         document.querySelector('[data-kpi="total-work-orders"]').textContent = '0';
         document.querySelector('[data-kpi="total-assets"]').textContent = '0';
-        document.querySelector('[data-kpi="week1-work-orders"]').textContent = '0';
+        document.querySelector('[data-kpi="scheduled-weeks"]').textContent = '0';
       }
 
       function renderPlanner(){
@@ -437,33 +535,99 @@
           return;
         }
 
-        const grouped = window.PPMWeeklyAssetTransform.groupPPMWorkOrdersByAssetAndWeek(
-          plannerData.activePPM,
-          selectedSiteKey,
-          startOfWeek(new Date())
-        );
+        weekKeyOrder = listYearWeekKeys(selectedYear);
+        updatePlannerGridColumns(weekKeyOrder);
 
-        const totalWeek1 = grouped.rows.reduce((acc, row) => acc + row.weeks.week1.length, 0);
-        document.querySelector('[data-kpi="total-work-orders"]').textContent = String(grouped.summary.totalWorkOrders);
-        document.querySelector('[data-kpi="total-assets"]').textContent = String(grouped.summary.totalAssets);
-        document.querySelector('[data-kpi="week1-work-orders"]').textContent = String(totalWeek1);
+        const siteFiltered = plannerData.activePPM.filter(order => {
+          if(selectedSiteKey === 'all') return true;
+          return order.siteKey === selectedSiteKey;
+        });
 
-        const rowsMarkup = grouped.rows.map(PPMAssetRow).join('');
+        const yearFiltered = siteFiltered.filter(order => {
+          const d = order.dueDate || new Date(order.dueDateRaw);
+          return d instanceof Date && !Number.isNaN(d.getTime()) && d.getFullYear() === selectedYear;
+        });
+
+        const byAsset = new Map();
+        yearFiltered.forEach((order) => {
+          const key = order.assetName;
+          if(!key) return;
+          if(!byAsset.has(key)){
+            const baseWeeks = Object.fromEntries(weekKeyOrder.map((k) => [k, []]));
+            byAsset.set(key, { assetName: key, weeks: baseWeeks });
+          }
+          const wk = isoWeekKey(order.dueDate || new Date(order.dueDateRaw));
+          if(byAsset.get(key).weeks[wk]){
+            byAsset.get(key).weeks[wk].push(order);
+          }
+        });
+
+        const rows = [...byAsset.values()].sort((a, b) => a.assetName.localeCompare(b.assetName, undefined, { sensitivity:'base' }));
+        const scheduledWeeks = new Set();
+        let totalWorkOrders = 0;
+        rows.forEach((row) => {
+          weekKeyOrder.forEach((wk) => {
+            const count = row.weeks[wk].length;
+            if(count > 0) scheduledWeeks.add(wk);
+            totalWorkOrders += count;
+          });
+        });
+
+        document.querySelector('[data-kpi="total-work-orders"]').textContent = String(totalWorkOrders);
+        document.querySelector('[data-kpi="total-assets"]').textContent = String(rows.length);
+        document.querySelector('[data-kpi="scheduled-weeks"]').textContent = String(scheduledWeeks.size);
+
+        const rowsMarkup = rows.map((row) => PPMAssetRow(row, weekKeyOrder)).join('');
         const selectedWeekLabel = plannerData.selectedWeek?.label || plannerData.selectedWeek?.weekEnd || 'latest published week';
-        const emptyMarkup = grouped.rows.length === 0
-          ? `<p class="empty-state">No active PPM work orders found for the selected site and 3-week period (source: ${selectedWeekLabel}).</p>`
+        const emptyMarkup = rows.length === 0
+          ? `<p class="empty-state">No active PPM work orders found for the selected site in ${selectedYear} (source: ${selectedWeekLabel}).</p>`
           : '';
 
-        plannerSurface.innerHTML = `${PPMPlannerHeader()}${rowsMarkup}${emptyMarkup}`;
+        plannerSurface.innerHTML = `${PPMPlannerHeader(weekKeyOrder)}${rowsMarkup}${emptyMarkup}`;
+        renderMonthJump();
+      }
+
+      function renderYearSelect(){
+        const nowYear = new Date().getFullYear();
+        const years = Array.from({ length: 7 }, (_, i) => nowYear - 3 + i);
+        if(!years.includes(selectedYear)) years.push(selectedYear);
+        years.sort((a, b) => a - b);
+        yearSelect.innerHTML = years.map((year) => `<option value="${year}" ${year === selectedYear ? 'selected' : ''}>${year}</option>`).join('');
+        yearSelect.addEventListener('change', () => {
+          selectedYear = Number(yearSelect.value) || nowYear;
+          renderPlanner();
+          renderMonthJump();
+        });
+      }
+
+      function renderMonthJump(){
+        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const monthMap = buildMonthMap(weekKeyOrder);
+        monthJump.innerHTML = monthNames.map((name, monthIndex) => {
+          const targetWeek = monthMap.get(monthIndex);
+          if(!targetWeek) return `<button type="button" class="month-jump__btn" disabled>${name}</button>`;
+          return `<button type="button" class="month-jump__btn" data-week-key="${targetWeek}">${name}</button>`;
+        }).join('');
+
+        monthJump.querySelectorAll('[data-week-key]').forEach((button) => {
+          button.addEventListener('click', () => {
+            const index = weekKeyOrder.indexOf(button.dataset.weekKey);
+            if(index < 0) return;
+            const planner = document.querySelector('.planner');
+            planner.scrollTo({ left: 260 + (index * 120), behavior: 'smooth' });
+          });
+        });
       }
 
       async function loadPlannerData(){
         try {
-          const source = await window.PPMWeeklyAssetTransform.loadMaintainXRawData();
+          const source = await window.PPMWeeklyAssetTransform.loadMaintainXRawData(MAINTAINX_SOURCE_CONFIG);
           const normalized = window.PPMWeeklyAssetTransform.getNormalizedWorkOrders(source.rawRows);
           const activePPM = window.PPMWeeklyAssetTransform.getActivePPMWorkOrders(normalized);
 
           plannerData = {
+            sourceType: source.sourceType,
+            sourceUrl: source.sourceUrl,
             selectedWeek: source.selectedWeek,
             activePPM
           };
@@ -508,6 +672,7 @@
       });
 
       renderSiteFilter([]);
+      renderYearSelect();
       renderPlanner();
       loadPlannerData();
       updateStickyOffset();
