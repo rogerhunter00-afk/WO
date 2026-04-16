@@ -3,6 +3,11 @@
 
   const SHEET_INDEX_CSV_URL =
     'https://docs.google.com/spreadsheets/d/e/2PACX-1vRJocigDhxneJtrUmezFU7FcWpzSSah8-Wb6Rce8NA1f7jKcINgYU29iYRqt5QQymWATX5zs5k8_rK0/pub?single=true&output=csv&gid=105348743';
+  const RAW_WORK_ORDERS_CSV_URL =
+    'https://docs.google.com/spreadsheets/d/1bVi12enMnCmUVmzR_add6e38qFggHwVGwI1PWrIggl4/gviz/tq?tqx=out:csv&sheet=MX_Raw_WorkOrders';
+  const MAINTAINX_SOURCE_CONFIG = Object.freeze({
+    sourceMode: 'selected_week'
+  });
 
   const ACTIVE_STATUS_ALLOWLIST = [
     'open',
@@ -424,37 +429,50 @@
     };
   }
 
-  async function loadMaintainXRawData({ bust = false } = {}){
-    const weeks = await loadWeeksIndex({ bust });
-    if(!Array.isArray(weeks) || !weeks.length){
-      throw new Error('No week entries were found in the MaintainX index sheet.');
+  async function loadMaintainXRawData({ bust = false, sourceMode = MAINTAINX_SOURCE_CONFIG.sourceMode } = {}){
+    const sourceType = sourceMode === 'raw_work_orders' ? 'raw_work_orders' : 'selected_week';
+    let selectedWeek = null;
+    let sourceUrl = null;
+
+    if(sourceType === 'raw_work_orders'){
+      sourceUrl = RAW_WORK_ORDERS_CSV_URL;
+    } else {
+      const weeks = await loadWeeksIndex({ bust });
+      if(!Array.isArray(weeks) || !weeks.length){
+        throw new Error('No week entries were found in the MaintainX index sheet.');
+      }
+
+      selectedWeek = chooseInitialWeek(weeks);
+      if(!selectedWeek) throw new Error('Could not resolve a selected week from the index sheet.');
+
+      sourceUrl = selectedWeek.url || null;
+      if(!sourceUrl && selectedWeek.gid != null){
+        sourceUrl = csvUrlForGid(selectedWeek.gid);
+      }
+      if(!sourceUrl){
+        throw new Error('Selected week is missing both URL and gid source references.');
+      }
     }
 
-    const selectedWeek = chooseInitialWeek(weeks);
-    if(!selectedWeek) throw new Error('Could not resolve a selected week from the index sheet.');
-
-    let sourceUrl = selectedWeek.url || null;
-    if(!sourceUrl && selectedWeek.gid != null){
-      sourceUrl = csvUrlForGid(selectedWeek.gid);
-    }
-    if(!sourceUrl){
-      throw new Error('Selected week is missing both URL and gid source references.');
-    }
-
-    const res = await fetch(sourceUrl, { cache: 'no-store' });
+    const finalUrl = bust ? withBust(sourceUrl) : sourceUrl;
+    const res = await fetch(finalUrl, { cache: bust ? 'reload' : 'no-store' });
     if(!res.ok){
-      throw new Error(`MaintainX week load failed (${res.status} ${res.statusText})`);
+      const sourceLabel = sourceType === 'raw_work_orders' ? 'MX_Raw_WorkOrders' : 'MaintainX week';
+      throw new Error(`${sourceLabel} load failed (${res.status} ${res.statusText})`);
     }
 
     const text = await res.text();
     if(!text || !text.trim()){
-      throw new Error('MaintainX week CSV is empty.');
+      const sourceLabel = sourceType === 'raw_work_orders' ? 'MX_Raw_WorkOrders' : 'MaintainX week CSV';
+      throw new Error(`${sourceLabel} is empty.`);
     }
 
     const parsed = parseDelimited(text);
     const dedupedRows = dedupeRows(parsed.rows || []);
 
     return {
+      sourceType,
+      sourceUrl,
       selectedWeek,
       headers: parsed.headers || [],
       rawRows: dedupedRows
@@ -470,6 +488,8 @@
 
     return {
       ...grouped,
+      sourceType: source.sourceType,
+      sourceUrl: source.sourceUrl,
       selectedWeek: source.selectedWeek,
       summary: {
         ...grouped.summary,
@@ -482,6 +502,8 @@
 
   const api = {
     SHEET_INDEX_CSV_URL,
+    RAW_WORK_ORDERS_CSV_URL,
+    MAINTAINX_SOURCE_CONFIG,
     SITE_KEY_LABELS,
     loadMaintainXRawData,
     getNormalizedWorkOrders,
