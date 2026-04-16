@@ -3,6 +3,11 @@
 
   const SHEET_INDEX_CSV_URL =
     'https://docs.google.com/spreadsheets/d/e/2PACX-1vRJocigDhxneJtrUmezFU7FcWpzSSah8-Wb6Rce8NA1f7jKcINgYU29iYRqt5QQymWATX5zs5k8_rK0/pub?single=true&output=csv&gid=105348743';
+  const RAW_WORK_ORDERS_CSV_URL =
+    'https://docs.google.com/spreadsheets/d/1bVi12enMnCmUVmzR_add6e38qFggHwVGwI1PWrIggl4/gviz/tq?tqx=out:csv&sheet=MX_Raw_WorkOrders';
+  const MAINTAINX_SOURCE_CONFIG = Object.freeze({
+    sourceMode: 'selected_week'
+  });
 
   const ACTIVE_STATUS_ALLOWLIST = [
     'open',
@@ -409,40 +414,145 @@
     return stageId.kept;
   }
 
-  function computeWeekBucket(date, selectedPeriodStart){
-    const workDate = startOfDay(parseDateValue(date));
-    const periodStart = startOfDay(parseDateValue(selectedPeriodStart));
+  function computeWeekBucket(dueDate, yearStart, yearEnd){
+    const workDate = startOfDay(parseDateValue(dueDate));
+    const start = startOfDay(parseDateValue(yearStart));
+    const end = startOfDay(parseDateValue(yearEnd));
 
-    if(!workDate || !periodStart) return 'outOfRange';
-
-    const deltaMs = workDate.getTime() - periodStart.getTime();
-    if(deltaMs < 0) return 'outOfRange';
-
-    const bucketConfig = [
-      { key: 'week1', from: 0, to: WEEK_MS },
-      { key: 'week2', from: WEEK_MS, to: 2 * WEEK_MS },
-      { key: 'week3', from: 2 * WEEK_MS, to: 3 * WEEK_MS }
-    ];
-
-    for(const bucket of bucketConfig){
-      if(deltaMs >= bucket.from && deltaMs < bucket.to) return bucket.key;
+    if(!workDate) return { outsideYear: true, reason: 'invalid_due_date' };
+    if(!start || !end || end.getTime() < start.getTime()){
+      return { outsideYear: true, reason: 'invalid_year_bounds' };
     }
-    return 'outOfRange';
+    if(workDate.getTime() < start.getTime() || workDate.getTime() > end.getTime()){
+      return { outsideYear: true, reason: 'outside_year' };
+    }
+
+    const deltaMs = workDate.getTime() - start.getTime();
+    const weekIndex = Math.floor(deltaMs / WEEK_MS) + 1;
+    return { weekIndex: Math.max(1, Math.min(53, weekIndex)), outsideYear: false };
   }
 
-  function createEmptyWeeks(){
-    return { week1: [], week2: [], week3: [] };
+  function createEmptyWeeks(yearStart, yearEnd){
+    const start = startOfDay(parseDateValue(yearStart));
+    const end = startOfDay(parseDateValue(yearEnd));
+    if(!start || !end || end.getTime() < start.getTime()) return { weeks: {}, totalWeeks: 0 };
+
+    const totalWeeks = Math.max(1, Math.min(53, Math.floor((end.getTime() - start.getTime()) / WEEK_MS) + 1));
+    const weeks = {};
+    for(let i = 1; i <= totalWeeks; i += 1){
+      weeks[`week${i}`] = [];
+    }
+    return { weeks, totalWeeks };
+  }
+
+  function isInsideSelectedYear(dateValue, selectedPeriodStart){
+    const dueDate = startOfDay(parseDateValue(dateValue));
+    const periodStart = startOfDay(parseDateValue(selectedPeriodStart));
+    if(!dueDate || !periodStart) return false;
+    return dueDate.getFullYear() === periodStart.getFullYear();
+  }
+
+  function buildPlannerDiagnostics(workOrders, { siteKey = 'all', selectedPeriodStart } = {}){
+    const list = Array.isArray(workOrders) ? workOrders : [];
+    const filteredSiteKey = siteKey && siteKey !== 'all' ? siteKey : 'all';
+    const periodStart = selectedPeriodStart || startOfWeek(new Date());
+
+    const ppmMatched = [];
+    const activeStatusMatched = [];
+    const validAssetMatched = [];
+    const validDueDateMatched = [];
+    const insideSelectedYear = [];
+    const finalOrders = [];
+    const excludedRows = [];
+
+    for(const order of list){
+      if(!isPPMCategory(order.category)){
+        continue;
+      }
+      ppmMatched.push(order);
+
+      if(!isActivePlanningStatus(order.status)){
+        excludedRows.push(toExcludedRow(order, 'inactive_status'));
+        continue;
+      }
+      activeStatusMatched.push(order);
+
+      if(!order.assetName){
+        excludedRows.push(toExcludedRow(order, 'missing_asset'));
+        continue;
+      }
+      if(!order.woNumber){
+        excludedRows.push(toExcludedRow(order, 'missing_wo_number'));
+        continue;
+      }
+      validAssetMatched.push(order);
+
+      if(!parseDateValue(order.dueDate || order.dueDateRaw)){
+        excludedRows.push(toExcludedRow(order, 'invalid_due_date'));
+        continue;
+      }
+      validDueDateMatched.push(order);
+
+      if(!isInsideSelectedYear(order.dueDate || order.dueDateRaw, periodStart)){
+        excludedRows.push(toExcludedRow(order, 'outside_year'));
+        continue;
+      }
+      insideSelectedYear.push(order);
+
+      if(filteredSiteKey !== 'all' && order.siteKey !== filteredSiteKey){
+        excludedRows.push(toExcludedRow(order, 'outside_site_filter'));
+        continue;
+      }
+
+      const bucket = computeWeekBucket(order.dueDate || order.dueDateRaw, periodStart);
+      if(bucket === 'outOfRange'){
+        excludedRows.push(toExcludedRow(order, 'outside_window'));
+        continue;
+      }
+
+      finalOrders.push(order);
+    }
+
+    return {
+      finalOrders,
+      excludedRows,
+      diagnostics: {
+        totalRawRows: list.length,
+        ppmMatched: ppmMatched.length,
+        activeStatusMatched: activeStatusMatched.length,
+        validAssetMatched: validAssetMatched.length,
+        validDueDateMatched: validDueDateMatched.length,
+        insideSelectedYear: insideSelectedYear.length,
+        finalRenderedCards: finalOrders.length
+      }
+    };
   }
 
   function groupPPMWorkOrdersByAssetAndWeek(workOrders, selectedSite, selectedPeriodStart){
     const filteredSiteKey = selectedSite && selectedSite !== 'all' ? selectedSite : 'all';
+    const anchorDate = startOfDay(parseDateValue(selectedPeriodStart)) || startOfDay(new Date());
+    const yearStart = new Date(anchorDate.getFullYear(), 0, 1);
+    const yearEnd = new Date(anchorDate.getFullYear(), 11, 31);
+    const template = createEmptyWeeks(yearStart, yearEnd);
+    const weekCounts = Object.fromEntries(Object.keys(template.weeks).map(key => [key, 0]));
+    const excluded = [];
     const bySite = new Map();
 
     for(const order of (Array.isArray(workOrders) ? workOrders : [])){
       if(filteredSiteKey !== 'all' && order.siteKey !== filteredSiteKey) continue;
 
-      const bucket = computeWeekBucket(order.dueDate || order.dueDateRaw, selectedPeriodStart);
-      if(bucket === 'outOfRange') continue;
+      const bucket = computeWeekBucket(order.dueDate || order.dueDateRaw, yearStart, yearEnd);
+      if(bucket.outsideYear){
+        excluded.push({
+          id: order.id || null,
+          woNumber: order.woNumber || null,
+          assetName: order.assetName || null,
+          dueDateRaw: order.dueDateRaw || null,
+          reason: bucket.reason || 'outside_year'
+        });
+        continue;
+      }
+      const weekKey = `week${bucket.weekIndex}`;
 
       const siteKey = order.siteKey || 'other';
       if(!bySite.has(siteKey)) bySite.set(siteKey, new Map());
@@ -450,10 +560,16 @@
 
       const assetName = order.assetName;
       if(!assets.has(assetName)){
-        assets.set(assetName, { assetName, siteKey, site: order.site || SITE_KEY_LABELS[siteKey] || 'Unknown', weeks: createEmptyWeeks() });
+        assets.set(assetName, {
+          assetName,
+          siteKey,
+          site: order.site || SITE_KEY_LABELS[siteKey] || 'Unknown',
+          weeks: Object.fromEntries(Object.keys(template.weeks).map(key => [key, []]))
+        });
       }
 
-      assets.get(assetName).weeks[bucket].push(order);
+      assets.get(assetName).weeks[weekKey].push(order);
+      weekCounts[weekKey] = (weekCounts[weekKey] || 0) + 1;
     }
 
     const sites = [...bySite.keys()].sort((a, b) => {
@@ -477,53 +593,72 @@
       totalAssets += sortedAssets.length;
 
       sortedAssets.forEach(asset => {
-        totalWorkOrders += asset.weeks.week1.length + asset.weeks.week2.length + asset.weeks.week3.length;
+        totalWorkOrders += Object.keys(asset.weeks).reduce((sum, key) => sum + asset.weeks[key].length, 0);
         rows.push(asset);
       });
     }
 
     return {
+      yearStart: yearStart.toISOString().slice(0, 10),
+      yearEnd: yearEnd.toISOString().slice(0, 10),
+      totalWeeks: template.totalWeeks,
       sites,
       assetsBySite,
       rows,
       summary: {
         totalAssets,
-        totalWorkOrders
-      }
+        totalWorkOrders,
+        weekCounts,
+        excluded
+      },
+      excluded
     };
   }
 
-  async function loadMaintainXRawData({ bust = false } = {}){
-    const weeks = await loadWeeksIndex({ bust });
-    if(!Array.isArray(weeks) || !weeks.length){
-      throw new Error('No week entries were found in the MaintainX index sheet.');
+  async function loadMaintainXRawData({ bust = false, sourceMode = MAINTAINX_SOURCE_CONFIG.sourceMode } = {}){
+    const sourceType = sourceMode === 'raw_work_orders' ? 'raw_work_orders' : 'selected_week';
+    let selectedWeek = null;
+    let sourceUrl = null;
+
+    if(sourceType === 'raw_work_orders'){
+      sourceUrl = RAW_WORK_ORDERS_CSV_URL;
+    } else {
+      const weeks = await loadWeeksIndex({ bust });
+      if(!Array.isArray(weeks) || !weeks.length){
+        throw new Error('No week entries were found in the MaintainX index sheet.');
+      }
+
+      selectedWeek = chooseInitialWeek(weeks);
+      if(!selectedWeek) throw new Error('Could not resolve a selected week from the index sheet.');
+
+      sourceUrl = selectedWeek.url || null;
+      if(!sourceUrl && selectedWeek.gid != null){
+        sourceUrl = csvUrlForGid(selectedWeek.gid);
+      }
+      if(!sourceUrl){
+        throw new Error('Selected week is missing both URL and gid source references.');
+      }
     }
 
-    const selectedWeek = chooseInitialWeek(weeks);
-    if(!selectedWeek) throw new Error('Could not resolve a selected week from the index sheet.');
-
-    let sourceUrl = selectedWeek.url || null;
-    if(!sourceUrl && selectedWeek.gid != null){
-      sourceUrl = csvUrlForGid(selectedWeek.gid);
-    }
-    if(!sourceUrl){
-      throw new Error('Selected week is missing both URL and gid source references.');
-    }
-
-    const res = await fetch(sourceUrl, { cache: 'no-store' });
+    const finalUrl = bust ? withBust(sourceUrl) : sourceUrl;
+    const res = await fetch(finalUrl, { cache: bust ? 'reload' : 'no-store' });
     if(!res.ok){
-      throw new Error(`MaintainX week load failed (${res.status} ${res.statusText})`);
+      const sourceLabel = sourceType === 'raw_work_orders' ? 'MX_Raw_WorkOrders' : 'MaintainX week';
+      throw new Error(`${sourceLabel} load failed (${res.status} ${res.statusText})`);
     }
 
     const text = await res.text();
     if(!text || !text.trim()){
-      throw new Error('MaintainX week CSV is empty.');
+      const sourceLabel = sourceType === 'raw_work_orders' ? 'MX_Raw_WorkOrders' : 'MaintainX week CSV';
+      throw new Error(`${sourceLabel} is empty.`);
     }
 
     const parsed = parseDelimited(text);
     const dedupedRows = dedupeRows(parsed.rows || []);
 
     return {
+      sourceType,
+      sourceUrl,
       selectedWeek,
       headers: parsed.headers || [],
       rawRows: dedupedRows
@@ -535,22 +670,32 @@
     const normalized = getNormalizedWorkOrders(source.rawRows);
     const activePPM = getActivePPMWorkOrders(normalized, { statusMode: options.statusMode || PPM_STATUS_MODES.ACTIVE_ONLY });
     const selectedPeriodStart = options.selectedPeriodStart || startOfWeek(new Date());
-    const grouped = groupPPMWorkOrdersByAssetAndWeek(activePPM, options.siteKey || 'all', selectedPeriodStart);
+    const evaluated = buildPlannerDiagnostics(normalized, {
+      siteKey: options.siteKey || 'all',
+      selectedPeriodStart
+    });
+    const grouped = groupPPMWorkOrdersByAssetAndWeek(evaluated.finalOrders, options.siteKey || 'all', selectedPeriodStart);
 
     return {
       ...grouped,
+      sourceType: source.sourceType,
+      sourceUrl: source.sourceUrl,
       selectedWeek: source.selectedWeek,
+      excludedRows: evaluated.excludedRows,
+      diagnostics: evaluated.diagnostics,
       summary: {
         ...grouped.summary,
         totalRowsInput: source.rawRows.length,
         totalNormalizedRows: normalized.length,
-        totalActivePPMRows: activePPM.length
+        totalActivePPMRows: evaluated.diagnostics.validAssetMatched
       }
     };
   }
 
   const api = {
     SHEET_INDEX_CSV_URL,
+    RAW_WORK_ORDERS_CSV_URL,
+    MAINTAINX_SOURCE_CONFIG,
     SITE_KEY_LABELS,
     loadMaintainXRawData,
     getNormalizedWorkOrders,
@@ -568,11 +713,13 @@
       const grouped = groupPPMWorkOrdersByAssetAndWeek(activePPM, siteKey, selectedPeriodStart || startOfWeek(new Date()));
       return {
         ...grouped,
+        excludedRows: evaluated.excludedRows,
+        diagnostics: evaluated.diagnostics,
         summary: {
           ...grouped.summary,
           totalRowsInput: Array.isArray(rawRows) ? rawRows.length : 0,
           totalNormalizedRows: normalized.length,
-          totalActivePPMRows: activePPM.length
+          totalActivePPMRows: evaluated.diagnostics.validAssetMatched
         }
       };
     }
