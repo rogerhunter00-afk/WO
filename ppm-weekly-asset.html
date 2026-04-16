@@ -176,6 +176,8 @@
       cursor:pointer;
     }
     .site-filter__tab[aria-pressed="true"] { border-color:var(--als-blue); background:color-mix(in srgb,var(--als-blue) 12%,var(--paper)); }
+    .status-mode-toggle { display:inline-flex; align-items:center; gap:6px; font-weight:600; color:var(--muted); }
+    .status-mode-toggle input { accent-color:var(--als-blue); }
 
     .kpi-row { display:grid; grid-template-columns:repeat(3,minmax(180px,1fr)); gap:12px; margin:0 0 20px; }
     .kpi-card {
@@ -348,12 +350,16 @@
             <button type="button" class="site-filter__tab" data-site-key="Byron" aria-pressed="false">Byron</button>
           </div>
         </div>
+        <label class="status-mode-toggle" title="Include completed PPM work orders in planner totals">
+          <input type="checkbox" data-role="status-mode-toggle" />
+          Include completed PPMs
+        </label>
       </div>
     </section>
 
     <section class="kpi-row" aria-label="PPM summary KPIs">
       <article class="kpi-card">
-        <div class="kpi-card__label">WOs Due in Selected Year</div>
+        <div class="kpi-card__label" data-role="kpi-total-label">Active PPM Work Orders</div>
         <div class="kpi-card__value" data-kpi="total-work-orders">0</div>
       </article>
       <article class="kpi-card">
@@ -377,13 +383,13 @@
       const plannerSurface = document.querySelector('[data-role="planner-surface"]');
       const siteLabel = document.querySelector('[data-role="site-filter-active"]');
       const siteFilterTabs = document.querySelector('.site-filter__tabs');
-      const yearSelect = document.getElementById('year-select');
-      const monthJump = document.querySelector('[data-role="month-jump"]');
+      const statusModeToggle = document.querySelector('[data-role="status-mode-toggle"]');
+      const kpiTotalLabel = document.querySelector('[data-role="kpi-total-label"]');
       const themeBtn = document.getElementById('dark-toggle');
       const root = document.body;
 
       let selectedSiteKey = 'all';
-      let selectedYear = new Date().getFullYear();
+      let statusMode = window.PPMWeeklyAssetTransform.PPM_STATUS_MODES.ACTIVE_ONLY;
       let plannerData = null;
       let plannerError = null;
       let weekKeyOrder = [];
@@ -535,43 +541,21 @@
           return;
         }
 
-        weekKeyOrder = listYearWeekKeys(selectedYear);
-        updatePlannerGridColumns(weekKeyOrder);
+        const grouped = window.PPMWeeklyAssetTransform.groupPPMWorkOrdersByAssetAndWeek(
+          plannerData.filteredPPM,
+          selectedSiteKey,
+          startOfWeek(new Date())
+        );
 
-        const siteFiltered = plannerData.activePPM.filter(order => {
-          if(selectedSiteKey === 'all') return true;
-          return order.siteKey === selectedSiteKey;
-        });
-
-        const yearFiltered = siteFiltered.filter(order => {
-          const d = order.dueDate || new Date(order.dueDateRaw);
-          return d instanceof Date && !Number.isNaN(d.getTime()) && d.getFullYear() === selectedYear;
-        });
-
-        const byAsset = new Map();
-        yearFiltered.forEach((order) => {
-          const key = order.assetName;
-          if(!key) return;
-          if(!byAsset.has(key)){
-            const baseWeeks = Object.fromEntries(weekKeyOrder.map((k) => [k, []]));
-            byAsset.set(key, { assetName: key, weeks: baseWeeks });
-          }
-          const wk = isoWeekKey(order.dueDate || new Date(order.dueDateRaw));
-          if(byAsset.get(key).weeks[wk]){
-            byAsset.get(key).weeks[wk].push(order);
-          }
-        });
-
-        const rows = [...byAsset.values()].sort((a, b) => a.assetName.localeCompare(b.assetName, undefined, { sensitivity:'base' }));
-        const scheduledWeeks = new Set();
-        let totalWorkOrders = 0;
-        rows.forEach((row) => {
-          weekKeyOrder.forEach((wk) => {
-            const count = row.weeks[wk].length;
-            if(count > 0) scheduledWeeks.add(wk);
-            totalWorkOrders += count;
-          });
-        });
+        const totalWeek1 = grouped.rows.reduce((acc, row) => acc + row.weeks.week1.length, 0);
+        if(kpiTotalLabel){
+          kpiTotalLabel.textContent = statusMode === window.PPMWeeklyAssetTransform.PPM_STATUS_MODES.INCLUDE_DONE
+            ? 'PPM Work Orders (Including Completed)'
+            : 'Active PPM Work Orders';
+        }
+        document.querySelector('[data-kpi="total-work-orders"]').textContent = String(grouped.summary.totalWorkOrders);
+        document.querySelector('[data-kpi="total-assets"]').textContent = String(grouped.summary.totalAssets);
+        document.querySelector('[data-kpi="week1-work-orders"]').textContent = String(totalWeek1);
 
         document.querySelector('[data-kpi="total-work-orders"]').textContent = String(totalWorkOrders);
         document.querySelector('[data-kpi="total-assets"]').textContent = String(rows.length);
@@ -579,8 +563,11 @@
 
         const rowsMarkup = rows.map((row) => PPMAssetRow(row, weekKeyOrder)).join('');
         const selectedWeekLabel = plannerData.selectedWeek?.label || plannerData.selectedWeek?.weekEnd || 'latest published week';
-        const emptyMarkup = rows.length === 0
-          ? `<p class="empty-state">No active PPM work orders found for the selected site in ${selectedYear} (source: ${selectedWeekLabel}).</p>`
+        const statusPhrase = statusMode === window.PPMWeeklyAssetTransform.PPM_STATUS_MODES.INCLUDE_DONE
+          ? 'PPM work orders'
+          : 'active PPM work orders';
+        const emptyMarkup = grouped.rows.length === 0
+          ? `<p class="empty-state">No ${statusPhrase} found for the selected site and 3-week period (source: ${selectedWeekLabel}).</p>`
           : '';
 
         plannerSurface.innerHTML = `${PPMPlannerHeader(weekKeyOrder)}${rowsMarkup}${emptyMarkup}`;
@@ -623,17 +610,17 @@
         try {
           const source = await window.PPMWeeklyAssetTransform.loadMaintainXRawData(MAINTAINX_SOURCE_CONFIG);
           const normalized = window.PPMWeeklyAssetTransform.getNormalizedWorkOrders(source.rawRows);
-          const activePPM = window.PPMWeeklyAssetTransform.getActivePPMWorkOrders(normalized);
+          const filteredPPM = window.PPMWeeklyAssetTransform.getActivePPMWorkOrders(normalized, { statusMode });
 
           plannerData = {
             sourceType: source.sourceType,
             sourceUrl: source.sourceUrl,
             selectedWeek: source.selectedWeek,
-            activePPM
+            filteredPPM
           };
 
           const initialGroup = window.PPMWeeklyAssetTransform.groupPPMWorkOrdersByAssetAndWeek(
-            activePPM,
+            filteredPPM,
             'all',
             startOfWeek(new Date())
           );
@@ -674,6 +661,12 @@
       renderSiteFilter([]);
       renderYearSelect();
       renderPlanner();
+      statusModeToggle?.addEventListener('change', () => {
+        statusMode = statusModeToggle.checked
+          ? window.PPMWeeklyAssetTransform.PPM_STATUS_MODES.INCLUDE_DONE
+          : window.PPMWeeklyAssetTransform.PPM_STATUS_MODES.ACTIVE_ONLY;
+        loadPlannerData();
+      });
       loadPlannerData();
       updateStickyOffset();
       window.addEventListener('resize', updateStickyOffset, { passive:true });
