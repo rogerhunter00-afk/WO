@@ -340,6 +340,20 @@
     });
   }
 
+  function toExcludedRow(order, reason){
+    return {
+      reason,
+      id: order?.id || '',
+      woNumber: order?.woNumber || '',
+      title: order?.title || '',
+      category: order?.category || '',
+      status: order?.status || '',
+      site: order?.site || '',
+      assetName: order?.assetName || '',
+      dueDateRaw: order?.dueDateRaw || ''
+    };
+  }
+
   function computeWeekBucket(date, selectedPeriodStart){
     const workDate = startOfDay(parseDateValue(date));
     const periodStart = startOfDay(parseDateValue(selectedPeriodStart));
@@ -363,6 +377,89 @@
 
   function createEmptyWeeks(){
     return { week1: [], week2: [], week3: [] };
+  }
+
+  function isInsideSelectedYear(dateValue, selectedPeriodStart){
+    const dueDate = startOfDay(parseDateValue(dateValue));
+    const periodStart = startOfDay(parseDateValue(selectedPeriodStart));
+    if(!dueDate || !periodStart) return false;
+    return dueDate.getFullYear() === periodStart.getFullYear();
+  }
+
+  function buildPlannerDiagnostics(workOrders, { siteKey = 'all', selectedPeriodStart } = {}){
+    const list = Array.isArray(workOrders) ? workOrders : [];
+    const filteredSiteKey = siteKey && siteKey !== 'all' ? siteKey : 'all';
+    const periodStart = selectedPeriodStart || startOfWeek(new Date());
+
+    const ppmMatched = [];
+    const activeStatusMatched = [];
+    const validAssetMatched = [];
+    const validDueDateMatched = [];
+    const insideSelectedYear = [];
+    const finalOrders = [];
+    const excludedRows = [];
+
+    for(const order of list){
+      if(!isPPMCategory(order.category)){
+        continue;
+      }
+      ppmMatched.push(order);
+
+      if(!isActivePlanningStatus(order.status)){
+        excludedRows.push(toExcludedRow(order, 'inactive_status'));
+        continue;
+      }
+      activeStatusMatched.push(order);
+
+      if(!order.assetName){
+        excludedRows.push(toExcludedRow(order, 'missing_asset'));
+        continue;
+      }
+      if(!order.woNumber){
+        excludedRows.push(toExcludedRow(order, 'missing_wo_number'));
+        continue;
+      }
+      validAssetMatched.push(order);
+
+      if(!parseDateValue(order.dueDate || order.dueDateRaw)){
+        excludedRows.push(toExcludedRow(order, 'invalid_due_date'));
+        continue;
+      }
+      validDueDateMatched.push(order);
+
+      if(!isInsideSelectedYear(order.dueDate || order.dueDateRaw, periodStart)){
+        excludedRows.push(toExcludedRow(order, 'outside_year'));
+        continue;
+      }
+      insideSelectedYear.push(order);
+
+      if(filteredSiteKey !== 'all' && order.siteKey !== filteredSiteKey){
+        excludedRows.push(toExcludedRow(order, 'outside_site_filter'));
+        continue;
+      }
+
+      const bucket = computeWeekBucket(order.dueDate || order.dueDateRaw, periodStart);
+      if(bucket === 'outOfRange'){
+        excludedRows.push(toExcludedRow(order, 'outside_window'));
+        continue;
+      }
+
+      finalOrders.push(order);
+    }
+
+    return {
+      finalOrders,
+      excludedRows,
+      diagnostics: {
+        totalRawRows: list.length,
+        ppmMatched: ppmMatched.length,
+        activeStatusMatched: activeStatusMatched.length,
+        validAssetMatched: validAssetMatched.length,
+        validDueDateMatched: validDueDateMatched.length,
+        insideSelectedYear: insideSelectedYear.length,
+        finalRenderedCards: finalOrders.length
+      }
+    };
   }
 
   function groupPPMWorkOrdersByAssetAndWeek(workOrders, selectedSite, selectedPeriodStart){
@@ -464,18 +561,23 @@
   async function buildPPMPlannerModelFromMaintainX(options = {}){
     const source = await loadMaintainXRawData(options);
     const normalized = getNormalizedWorkOrders(source.rawRows);
-    const activePPM = getActivePPMWorkOrders(normalized);
     const selectedPeriodStart = options.selectedPeriodStart || startOfWeek(new Date());
-    const grouped = groupPPMWorkOrdersByAssetAndWeek(activePPM, options.siteKey || 'all', selectedPeriodStart);
+    const evaluated = buildPlannerDiagnostics(normalized, {
+      siteKey: options.siteKey || 'all',
+      selectedPeriodStart
+    });
+    const grouped = groupPPMWorkOrdersByAssetAndWeek(evaluated.finalOrders, options.siteKey || 'all', selectedPeriodStart);
 
     return {
       ...grouped,
       selectedWeek: source.selectedWeek,
+      excludedRows: evaluated.excludedRows,
+      diagnostics: evaluated.diagnostics,
       summary: {
         ...grouped.summary,
         totalRowsInput: source.rawRows.length,
         totalNormalizedRows: normalized.length,
-        totalActivePPMRows: activePPM.length
+        totalActivePPMRows: evaluated.diagnostics.validAssetMatched
       }
     };
   }
@@ -490,15 +592,18 @@
     buildPPMPlannerModelFromMaintainX,
     buildPPMPlannerModel(rawRows, { siteKey = 'all', selectedPeriodStart } = {}){
       const normalized = getNormalizedWorkOrders(rawRows);
-      const activePPM = getActivePPMWorkOrders(normalized);
-      const grouped = groupPPMWorkOrdersByAssetAndWeek(activePPM, siteKey, selectedPeriodStart || startOfWeek(new Date()));
+      const periodStart = selectedPeriodStart || startOfWeek(new Date());
+      const evaluated = buildPlannerDiagnostics(normalized, { siteKey, selectedPeriodStart: periodStart });
+      const grouped = groupPPMWorkOrdersByAssetAndWeek(evaluated.finalOrders, siteKey, periodStart);
       return {
         ...grouped,
+        excludedRows: evaluated.excludedRows,
+        diagnostics: evaluated.diagnostics,
         summary: {
           ...grouped.summary,
           totalRowsInput: Array.isArray(rawRows) ? rawRows.length : 0,
           totalNormalizedRows: normalized.length,
-          totalActivePPMRows: activePPM.length
+          totalActivePPMRows: evaluated.diagnostics.validAssetMatched
         }
       };
     }
