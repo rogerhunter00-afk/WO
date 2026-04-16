@@ -345,43 +345,35 @@
     });
   }
 
-  function toExcludedRow(order, reason){
-    return {
-      reason,
-      id: order?.id || '',
-      woNumber: order?.woNumber || '',
-      title: order?.title || '',
-      category: order?.category || '',
-      status: order?.status || '',
-      site: order?.site || '',
-      assetName: order?.assetName || '',
-      dueDateRaw: order?.dueDateRaw || ''
-    };
-  }
+  function computeWeekBucket(dueDate, yearStart, yearEnd){
+    const workDate = startOfDay(parseDateValue(dueDate));
+    const start = startOfDay(parseDateValue(yearStart));
+    const end = startOfDay(parseDateValue(yearEnd));
 
-  function computeWeekBucket(date, selectedPeriodStart){
-    const workDate = startOfDay(parseDateValue(date));
-    const periodStart = startOfDay(parseDateValue(selectedPeriodStart));
-
-    if(!workDate || !periodStart) return 'outOfRange';
-
-    const deltaMs = workDate.getTime() - periodStart.getTime();
-    if(deltaMs < 0) return 'outOfRange';
-
-    const bucketConfig = [
-      { key: 'week1', from: 0, to: WEEK_MS },
-      { key: 'week2', from: WEEK_MS, to: 2 * WEEK_MS },
-      { key: 'week3', from: 2 * WEEK_MS, to: 3 * WEEK_MS }
-    ];
-
-    for(const bucket of bucketConfig){
-      if(deltaMs >= bucket.from && deltaMs < bucket.to) return bucket.key;
+    if(!workDate) return { outsideYear: true, reason: 'invalid_due_date' };
+    if(!start || !end || end.getTime() < start.getTime()){
+      return { outsideYear: true, reason: 'invalid_year_bounds' };
     }
-    return 'outOfRange';
+    if(workDate.getTime() < start.getTime() || workDate.getTime() > end.getTime()){
+      return { outsideYear: true, reason: 'outside_year' };
+    }
+
+    const deltaMs = workDate.getTime() - start.getTime();
+    const weekIndex = Math.floor(deltaMs / WEEK_MS) + 1;
+    return { weekIndex: Math.max(1, Math.min(53, weekIndex)), outsideYear: false };
   }
 
-  function createEmptyWeeks(){
-    return { week1: [], week2: [], week3: [] };
+  function createEmptyWeeks(yearStart, yearEnd){
+    const start = startOfDay(parseDateValue(yearStart));
+    const end = startOfDay(parseDateValue(yearEnd));
+    if(!start || !end || end.getTime() < start.getTime()) return { weeks: {}, totalWeeks: 0 };
+
+    const totalWeeks = Math.max(1, Math.min(53, Math.floor((end.getTime() - start.getTime()) / WEEK_MS) + 1));
+    const weeks = {};
+    for(let i = 1; i <= totalWeeks; i += 1){
+      weeks[`week${i}`] = [];
+    }
+    return { weeks, totalWeeks };
   }
 
   function isInsideSelectedYear(dateValue, selectedPeriodStart){
@@ -469,13 +461,29 @@
 
   function groupPPMWorkOrdersByAssetAndWeek(workOrders, selectedSite, selectedPeriodStart){
     const filteredSiteKey = selectedSite && selectedSite !== 'all' ? selectedSite : 'all';
+    const anchorDate = startOfDay(parseDateValue(selectedPeriodStart)) || startOfDay(new Date());
+    const yearStart = new Date(anchorDate.getFullYear(), 0, 1);
+    const yearEnd = new Date(anchorDate.getFullYear(), 11, 31);
+    const template = createEmptyWeeks(yearStart, yearEnd);
+    const weekCounts = Object.fromEntries(Object.keys(template.weeks).map(key => [key, 0]));
+    const excluded = [];
     const bySite = new Map();
 
     for(const order of (Array.isArray(workOrders) ? workOrders : [])){
       if(filteredSiteKey !== 'all' && order.siteKey !== filteredSiteKey) continue;
 
-      const bucket = computeWeekBucket(order.dueDate || order.dueDateRaw, selectedPeriodStart);
-      if(bucket === 'outOfRange') continue;
+      const bucket = computeWeekBucket(order.dueDate || order.dueDateRaw, yearStart, yearEnd);
+      if(bucket.outsideYear){
+        excluded.push({
+          id: order.id || null,
+          woNumber: order.woNumber || null,
+          assetName: order.assetName || null,
+          dueDateRaw: order.dueDateRaw || null,
+          reason: bucket.reason || 'outside_year'
+        });
+        continue;
+      }
+      const weekKey = `week${bucket.weekIndex}`;
 
       const siteKey = order.siteKey || 'other';
       if(!bySite.has(siteKey)) bySite.set(siteKey, new Map());
@@ -483,10 +491,16 @@
 
       const assetName = order.assetName;
       if(!assets.has(assetName)){
-        assets.set(assetName, { assetName, siteKey, site: order.site || SITE_KEY_LABELS[siteKey] || 'Unknown', weeks: createEmptyWeeks() });
+        assets.set(assetName, {
+          assetName,
+          siteKey,
+          site: order.site || SITE_KEY_LABELS[siteKey] || 'Unknown',
+          weeks: Object.fromEntries(Object.keys(template.weeks).map(key => [key, []]))
+        });
       }
 
-      assets.get(assetName).weeks[bucket].push(order);
+      assets.get(assetName).weeks[weekKey].push(order);
+      weekCounts[weekKey] = (weekCounts[weekKey] || 0) + 1;
     }
 
     const sites = [...bySite.keys()].sort((a, b) => {
@@ -510,19 +524,25 @@
       totalAssets += sortedAssets.length;
 
       sortedAssets.forEach(asset => {
-        totalWorkOrders += asset.weeks.week1.length + asset.weeks.week2.length + asset.weeks.week3.length;
+        totalWorkOrders += Object.keys(asset.weeks).reduce((sum, key) => sum + asset.weeks[key].length, 0);
         rows.push(asset);
       });
     }
 
     return {
+      yearStart: yearStart.toISOString().slice(0, 10),
+      yearEnd: yearEnd.toISOString().slice(0, 10),
+      totalWeeks: template.totalWeeks,
       sites,
       assetsBySite,
       rows,
       summary: {
         totalAssets,
-        totalWorkOrders
-      }
+        totalWorkOrders,
+        weekCounts,
+        excluded
+      },
+      excluded
     };
   }
 
