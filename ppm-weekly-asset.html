@@ -264,6 +264,10 @@
       justify-content:flex-start;
       gap:4px;
     }
+    .week-cell--red { background:color-mix(in srgb,var(--card-red) 42%,var(--paper)); }
+    .week-cell--orange { background:color-mix(in srgb,var(--card-orange) 42%,var(--paper)); }
+    .week-cell--blue { background:color-mix(in srgb,var(--card-blue) 42%,var(--paper)); }
+    .week-cell--green { background:color-mix(in srgb,var(--card-green) 42%,var(--paper)); }
 
     .wo-card {
       border:1px solid color-mix(in srgb,var(--als-blue) 28%,var(--grid));
@@ -465,6 +469,16 @@
         `;
       }
 
+      function weekCellStatusClass(weekOrders){
+        if(!weekOrders.length) return '';
+        const classes = weekOrders.map((wo) => cardStatusClass(wo.status));
+        if(classes.includes('wo-card--red')) return 'week-cell--red';
+        if(classes.includes('wo-card--orange')) return 'week-cell--orange';
+        if(classes.includes('wo-card--blue')) return 'week-cell--blue';
+        if(classes.includes('wo-card--green')) return 'week-cell--green';
+        return '';
+      }
+
       function renderWeekCards(weekOrders){
         if(!weekOrders.length){
           return '';
@@ -483,7 +497,12 @@
       }
 
       function PPMAssetRow(row, weekKeys){
-        const weekCells = weekKeys.map((weekKey) => `<div class="planner-cell week-cell" role="gridcell">${renderWeekCards(row.weeks[weekKey] || [])}</div>`).join('');
+        const weekCells = weekKeys.map((weekKey) => {
+          const weekOrders = row.weeks[weekKey] || [];
+          const statusClass = weekCellStatusClass(weekOrders);
+          const classAttr = statusClass ? `planner-cell week-cell ${statusClass}` : 'planner-cell week-cell';
+          return `<div class="${classAttr}" role="gridcell">${renderWeekCards(weekOrders)}</div>`;
+        }).join('');
         return `
           <div class="planner-row" role="row">
             <div class="planner-cell asset-cell" role="rowheader" title="${row.assetName}">${row.assetName}</div>
