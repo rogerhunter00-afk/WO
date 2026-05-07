@@ -6,7 +6,7 @@
   const RAW_WORK_ORDERS_CSV_URL =
     'https://docs.google.com/spreadsheets/d/1bVi12enMnCmUVmzR_add6e38qFggHwVGwI1PWrIggl4/gviz/tq?tqx=out:csv&sheet=MX_Raw_WorkOrders';
   const MAINTAINX_SOURCE_CONFIG = Object.freeze({
-    sourceMode: 'selected_week'
+    sourceMode: 'raw_work_orders'
   });
 
   const ACTIVE_STATUS_ALLOWLIST = [
