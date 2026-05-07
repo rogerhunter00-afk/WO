@@ -207,7 +207,7 @@
 
     .planner-header {
       position:sticky;
-      top:0;
+      top:calc(var(--planner-top-height, 0px) + var(--planner-legend-height, 0px));
       z-index:4;
       background:var(--paper);
       border-bottom:1px solid var(--grid);
@@ -310,11 +310,11 @@
 
     .month-jump { display:none; }
     .site-filter select { border:1px solid var(--grid); background:var(--paper); color:var(--ink); border-radius:999px; height:36px; min-width:132px; padding:0 12px; font:inherit; font-weight:700; }
-    .planner-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;border-bottom:1px solid var(--grid);padding:18px 24px 14px;}
+    .planner-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;border-bottom:1px solid var(--grid);padding:18px 24px 14px;position:sticky;top:0;z-index:7;background:var(--paper);}
     .planner-top h2{margin:0;font-size:35px;font-weight:800;line-height:1.2;}
     .planner-top p{margin:4px 0 0;color:#607091;font-size:14px;font-weight:600;}
     .planner-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
-    .legend-row{display:flex;gap:28px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--grid);padding:14px 24px;}
+    .legend-row{display:flex;gap:28px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--grid);padding:14px 24px;position:sticky;top:var(--planner-top-height, 0px);z-index:6;background:var(--paper);} 
     .legend-chip{display:inline-flex;align-items:center;gap:10px;color:#445273;font-weight:700;}
     .legend-dot{width:14px;height:14px;border-radius:999px;background:#adb6c8;}
 
@@ -584,10 +584,21 @@
           : '';
 
         plannerSurface.innerHTML = `${plannerTopMarkup()}${legendMarkup()}${PPMPlannerHeader(weekKeyOrder)}${rowsMarkup}${emptyMarkup}`;
+        updatePlannerStickyOffsets();
         renderMonthJump();
       }
 
 
+
+
+      function updatePlannerStickyOffsets(){
+        const top = plannerSurface.querySelector('.planner-top');
+        const legend = plannerSurface.querySelector('.legend-row');
+        const topHeight = top ? Math.ceil(top.getBoundingClientRect().height) : 0;
+        const legendHeight = legend ? Math.ceil(legend.getBoundingClientRect().height) : 0;
+        document.documentElement.style.setProperty('--planner-top-height', `${topHeight}px`);
+        document.documentElement.style.setProperty('--planner-legend-height', `${legendHeight}px`);
+      }
       function plannerTopMarkup(){
         return `<div class="planner-top"><div><h2>Weekly Year Calendar</h2><p>View scheduled PPMs by week for each asset.</p></div><div class="planner-actions"><button class="ctrl-pill" type="button">Full year</button><button class="ctrl-pill" type="button">Print</button><button class="ctrl-pill" type="button">Export</button><button class="ctrl-pill" type="button">Refresh</button></div></div>`;
       }
@@ -685,7 +696,10 @@
       renderPlanner();
       loadPlannerData();
       updateStickyOffset();
-      window.addEventListener('resize', updateStickyOffset, { passive:true });
+      window.addEventListener('resize', () => {
+        updateStickyOffset();
+        updatePlannerStickyOffsets();
+      }, { passive:true });
     })();
   </script>
 </body>
