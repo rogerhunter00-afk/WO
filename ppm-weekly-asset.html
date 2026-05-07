@@ -621,7 +621,7 @@
 
       async function loadPlannerData(){
         try {
-          const source = await window.PPMWeeklyAssetTransform.loadMaintainXRawData(MAINTAINX_SOURCE_CONFIG);
+          const source = await window.PPMWeeklyAssetTransform.loadMaintainXRawData(window.PPMWeeklyAssetTransform.MAINTAINX_SOURCE_CONFIG);
           const normalized = window.PPMWeeklyAssetTransform.getNormalizedWorkOrders(source.rawRows);
           const activePPM = window.PPMWeeklyAssetTransform.getActivePPMWorkOrders(normalized);
 
