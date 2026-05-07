@@ -585,6 +585,7 @@
 
         plannerSurface.innerHTML = `${plannerTopMarkup()}${legendMarkup()}${PPMPlannerHeader(weekKeyOrder)}${rowsMarkup}${emptyMarkup}`;
         renderMonthJump();
+        centerCurrentWeek();
       }
 
 
@@ -609,6 +610,23 @@
         });
       }
 
+
+      function scrollToWeek(weekKey, behavior = 'smooth'){
+        const index = weekKeyOrder.indexOf(weekKey);
+        if(index < 0) return;
+        const planner = document.querySelector('.planner');
+        if(!planner) return;
+        const leftEdge = 260 + (index * 120);
+        const targetLeft = Math.max(0, leftEdge - ((planner.clientWidth - 120) / 2));
+        planner.scrollTo({ left: targetLeft, behavior });
+      }
+
+      function centerCurrentWeek(){
+        if(selectedYear !== new Date().getFullYear()) return;
+        const todayKey = isoWeekKey(new Date());
+        requestAnimationFrame(() => scrollToWeek(todayKey, 'auto'));
+      }
+
       function renderMonthJump(){
         const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         const monthMap = buildMonthMap(weekKeyOrder);
@@ -622,8 +640,7 @@
           button.addEventListener('click', () => {
             const index = weekKeyOrder.indexOf(button.dataset.weekKey);
             if(index < 0) return;
-            const planner = document.querySelector('.planner');
-            planner.scrollTo({ left: 260 + (index * 120), behavior: 'smooth' });
+            scrollToWeek(weekKeyOrder[index]);
           });
         });
       }
