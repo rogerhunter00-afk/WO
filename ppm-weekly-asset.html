@@ -268,6 +268,14 @@
     .week-cell--orange { background:color-mix(in srgb,var(--card-orange) 42%,var(--paper)); }
     .week-cell--blue { background:color-mix(in srgb,var(--card-blue) 42%,var(--paper)); }
     .week-cell--green { background:color-mix(in srgb,var(--card-green) 42%,var(--paper)); }
+    .current-week-col {
+      background:color-mix(in srgb,var(--als-blue) 10%,var(--paper));
+      box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--als-blue) 45%,transparent);
+    }
+    .planner-header .current-week-col {
+      font-weight:900;
+      color:var(--als-blue);
+    }
 
     .wo-card {
       border:1px solid color-mix(in srgb,var(--als-blue) 28%,var(--grid));
@@ -460,7 +468,12 @@
       }
 
       function PPMPlannerHeader(weekKeys){
-        const weekColumns = weekKeys.map((weekKey) => `<div class="planner-cell" role="columnheader">${weekKey.replace('-', ' ')}</div>`).join('');
+        const currentWeekKey = getCurrentWeekKeyForSelectedYear();
+        const weekColumns = weekKeys.map((weekKey) => {
+          const isCurrent = currentWeekKey === weekKey;
+          const classAttr = isCurrent ? 'planner-cell current-week-col' : 'planner-cell';
+          return `<div class="${classAttr}" role="columnheader">${weekKey.replace('-', ' ')}</div>`;
+        }).join('');
         return `
           <div class="planner-header" role="row">
             <div class="planner-cell" role="columnheader">Asset ↕</div>
@@ -497,10 +510,14 @@
       }
 
       function PPMAssetRow(row, weekKeys){
+        const currentWeekKey = getCurrentWeekKeyForSelectedYear();
         const weekCells = weekKeys.map((weekKey) => {
           const weekOrders = row.weeks[weekKey] || [];
           const statusClass = weekCellStatusClass(weekOrders);
-          const classAttr = statusClass ? `planner-cell week-cell ${statusClass}` : 'planner-cell week-cell';
+          const currentClass = currentWeekKey === weekKey ? ' current-week-col' : '';
+          const classAttr = statusClass
+            ? `planner-cell week-cell ${statusClass}${currentClass}`
+            : `planner-cell week-cell${currentClass}`;
           return `<div class="${classAttr}" role="gridcell">${renderWeekCards(weekOrders)}</div>`;
         }).join('');
         return `
@@ -641,6 +658,12 @@
       }
 
 
+      function getCurrentWeekKeyForSelectedYear(){
+        const today = new Date();
+        if(selectedYear !== today.getFullYear()) return null;
+        return isoWeekKey(today);
+      }
+
       function scrollToWeek(weekKey, behavior = 'smooth'){
         const index = weekKeyOrder.indexOf(weekKey);
         if(index < 0) return;
@@ -652,8 +675,8 @@
       }
 
       function centerCurrentWeek(){
-        if(selectedYear !== new Date().getFullYear()) return;
-        const todayKey = isoWeekKey(new Date());
+        const todayKey = getCurrentWeekKeyForSelectedYear();
+        if(!todayKey) return;
         requestAnimationFrame(() => scrollToWeek(todayKey, 'auto'));
       }
 
