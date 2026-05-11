@@ -30,7 +30,6 @@
     'inactive',
     'closed',
     'complete',
-    'done',
     'rejected'
   ];
 
