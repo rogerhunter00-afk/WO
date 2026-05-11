@@ -28,8 +28,6 @@
     'void',
     'archive',
     'inactive',
-    'closed',
-    'complete',
     'rejected'
   ];
 
@@ -331,7 +329,12 @@
     const normalized = normalizeKey(status);
     if(!normalized) return false;
     if(INACTIVE_STATUS_BLOCKLIST.some(token => normalized.includes(token))) return false;
-    return ACTIVE_STATUS_ALLOWLIST.some(token => normalized.includes(token));
+
+    if(ACTIVE_STATUS_ALLOWLIST.some(token => normalized.includes(token))) return true;
+
+    if(normalized.includes('complete') || normalized.includes('done') || normalized.includes('closed')) return true;
+
+    return true;
   }
 
   function getActivePPMWorkOrders(workOrders){
