@@ -3526,7 +3526,7 @@ function chipStyle(label, slugOverride){ const slug=slugOverride||slugify(label)
 // --- Name aliases / shortening ---
 const NAME_ALIASES = new Map([
   ['callum keith engineering team', 'Callum'],
-  ['east kilbride engineering team', 'Jim and Ciaren'],
+  ['east kilbride engineering team', 'Jim and Ciaren and Colin'],
   // add more here...
 ]);
 
@@ -3809,7 +3809,7 @@ function applyHistoricalStatus(rows, weekEnd){
 
 /* --- Eng Schedule integration --- */
 const PLAN_DEFAULT_DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Non-Production Day'];
-const PLAN_DEFAULT_PEOPLE = ['Callum','Graeme','Cameron','Jim/Ciaren'];
+const PLAN_DEFAULT_PEOPLE = ['Callum','Graeme','Cameron','Jim/Ciaren/Colin'];
 const PLAN_FOCUS_SELECTOR = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 function normalizePlanList(value){
@@ -3997,13 +3997,13 @@ const PLAN_PERSON_ALIAS_TARGETS = new Map([
   ['shaun','MM'],
   ['sean','MM'],
   ['cameron','Cameron'],
-  ['jim','Jim/Ciaren'],
-  ['ciaren','Jim/Ciaren'],
-  ['jimciaren','Jim/Ciaren'],
-  ['jim and ciaren','Jim/Ciaren'],
-  ['jim & ciaren','Jim/Ciaren'],
-  ['jim/ciaren','Jim/Ciaren'],
-  ['jim and cieren','Jim/Ciaren'],
+  ['jim','Jim/Ciaren/Colin'],
+  ['ciaren','Jim/Ciaren/Colin'],
+  ['jimciaren','Jim/Ciaren/Colin'],
+  ['jim and ciaren','Jim/Ciaren/Colin'],
+  ['jim & ciaren','Jim/Ciaren/Colin'],
+  ['jim/ciaren','Jim/Ciaren/Colin'],
+  ['jim and cieren','Jim/Ciaren/Colin'],
 ]);
 
 let PLAN_NEXT_WEEK_RAW = null;
